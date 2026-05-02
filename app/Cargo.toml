@@ -44,3 +44,6 @@ gix = { version = "0.80.0", features = ["blocking-network-client", "blocking-htt
 assert_cmd = "2.1"
 predicates = "3.1"
 tempfile = "3.26"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(tarpaulin_include)'] }

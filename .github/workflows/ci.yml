@@ -19,18 +19,13 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
-      - name: Cache cargo registry
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - name: Lint
-        run: cargo clippy -- -D warnings
-      - name: Test
-        run: cargo test
+      - uses: Swatinem/rust-cache@v2
+      - name: Run tests
+        run: make test
+      - name: Install cargo-tarpaulin
+        run: cargo install cargo-tarpaulin --locked
+      - name: Check coverage
+        run: cargo tarpaulin --fail-under 90
 
   build:
     name: Build Release Binary
@@ -63,14 +58,16 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          fetch-depth: 20
+          fetch-depth: 0
       - name: Install gitleaks
         run: |
-          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz" \
-            | tar -xz gitleaks
-          sudo mv gitleaks /usr/local/bin/gitleaks
+          set -e
+          wget -qO /tmp/gitleaks.tar.gz \
+            "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz"
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
+          sudo mv /tmp/gitleaks /usr/local/bin/gitleaks
       - name: Run gitleaks
-        run: gitleaks detect --source=. --log-opts="-n 20" --config=.gitleaks.toml
+        run: gitleaks detect --config .gitleaks.toml --source . --log-opts "HEAD~50..HEAD"
         continue-on-error: true
 
   snyk-scan:
@@ -78,13 +75,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+      - name: Install Snyk CLI
+        run: |
+          curl -sL https://static.snyk.io/cli/latest/snyk-linux -o /tmp/snyk
+          chmod +x /tmp/snyk
+          sudo mv /tmp/snyk /usr/local/bin/snyk
       - name: Run Snyk code scan
-        uses: snyk/actions/node@master
-        continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          command: code test
+        run: snyk code test
+        continue-on-error: true
 
   auto-merge:
     name: Auto Merge

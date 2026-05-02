@@ -8,3 +8,6 @@ license = "MIT"
 comtrya-lib = { path = "../lib" }
 schemars = "1.2"
 serde_json = "1.0"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(tarpaulin_include)'] }

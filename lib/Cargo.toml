@@ -71,3 +71,6 @@ uzers = "0.12"
 [dev-dependencies]
 tempfile = "3.26"
 pretty_assertions = "1.4"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(tarpaulin_include)'] }
