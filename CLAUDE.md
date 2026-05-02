@@ -110,13 +110,14 @@ cargo tarpaulin --fail-under 25  # coverage check (matches CI)
 
 Single workflow `.github/workflows/ci.yml`, triggers on `pull_request` to `main`/`master` only.
 
-| Job           | What it does                                                                    |
-| ------------- | ------------------------------------------------------------------------------- |
-| `test`        | `make test` (fmt check + clippy + cargo test) + tarpaulin ≥25%                  |
-| `build`       | `cargo build --release` → uploads `etch-linux-amd64` artifact (7-day retention) |
-| `secret-scan` | gitleaks v8.30.1 binary (advisory, non-blocking)                                |
-| `snyk-scan`   | Snyk code test (advisory, non-blocking)                                         |
-| `auto-merge`  | Squash-merges the PR when all jobs pass                                         |
+| Job           | What it does                                                   |
+| ------------- | -------------------------------------------------------------- |
+| `test`        | `make test` (fmt check + clippy + cargo test) + tarpaulin ≥25% |
+| `secret-scan` | gitleaks v8.30.1 binary (advisory, non-blocking)               |
+| `snyk-scan`   | Snyk code test (advisory, non-blocking)                        |
+| `auto-merge`  | Squash-merges the PR when all jobs pass                        |
+
+> **Note:** `build` job is temporarily disabled — restore when build times improve.
 
 Pre-commit hook: `make lint` + `ggshield secret scan pre-commit`
 Pre-push hook: `make test` (full suite before push reaches GitHub)
