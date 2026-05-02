@@ -1,0 +1,9 @@
+[extend]
+useDefault = true
+
+[allowlist]
+description = "etch-cli allowlist"
+regexes = []
+paths = [
+    "Cargo.lock",
+]

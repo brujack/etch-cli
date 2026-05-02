@@ -16,14 +16,14 @@ pub(crate) struct Dir {
 
 impl Dir {
     pub fn run(self, cli: &'static str) -> Assert {
-        let mut comtrya = Command::new(assert_cmd::cargo::cargo_bin!("comtrya"));
+        let mut etch = Command::new(assert_cmd::cargo::cargo_bin!("etch"));
 
-        comtrya.current_dir(self.cwd);
+        etch.current_dir(self.cwd);
 
         let args = cli.split(' ').collect::<Vec<_>>();
-        comtrya.args(args);
+        etch.args(args);
 
-        comtrya.assert()
+        etch.assert()
     }
 
     pub fn env<S: Into<String>>(mut self, env: S) -> Dir {

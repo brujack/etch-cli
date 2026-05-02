@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -e
+make lint
+if command -v ggshield &>/dev/null; then
+    ggshield secret scan pre-commit
+fi

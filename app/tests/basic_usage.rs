@@ -7,7 +7,7 @@ mod utils;
 fn prints_help() {
     run("-h")
         .success()
-        .stdout(predicates::str::contains("comtrya"));
+        .stdout(predicates::str::contains("etch"));
 }
 
 #[test]

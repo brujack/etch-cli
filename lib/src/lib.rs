@@ -1,3 +1,7 @@
+// Pre-existing comtrya patterns — redundant .into_iter() calls that
+// clippy flags on Linux but not macOS; not worth changing inherited code.
+#![allow(clippy::useless_conversion)]
+
 pub mod actions;
 pub mod atoms;
 pub mod config;

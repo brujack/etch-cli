@@ -1,5 +1,23 @@
 /target
 /_cicd-intermediates
 /.build
-.DS_Store
 .idea/
+
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+.AppleDouble
+.LSOverride
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# Rust
+**/*.rs.bk

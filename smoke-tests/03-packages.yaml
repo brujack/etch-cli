@@ -1,0 +1,4 @@
+# SNAPSHOT THE VM BEFORE RUNNING THIS MANIFEST
+actions:
+  - action: package.install
+    name: htop

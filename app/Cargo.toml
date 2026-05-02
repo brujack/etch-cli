@@ -1,10 +1,15 @@
 [package]
-name = "comtrya"
+name = "etch-cli"
 version = "0.9.2"
-authors = ["David McKay <david@rawkode.dev>"]
+authors = ["David McKay <david@rawkode.dev>", "Bruce Jackson <bjackson@pobox.com>"]
 edition = "2021"
 license = "MIT"
-description = "A tool to simplify reprovisioning a fresh OS. Installs packages and manages dotfiles."
+description = "Declarative configuration management for personal workstations."
+repository = "https://github.com/brujack/etch-cli"
+
+[[bin]]
+name = "etch"
+path = "src/main.rs"
 
 [dependencies]
 anyhow = "1.0"

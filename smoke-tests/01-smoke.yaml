@@ -1,0 +1,5 @@
+actions:
+  - action: command.run
+    command: echo
+    args:
+      - "etch smoke test: hello from etch apply"

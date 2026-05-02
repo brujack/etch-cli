@@ -1,0 +1,8 @@
+# Idempotency test: apply everything from 02-05 a second time.
+# Every action must report no-op. Any action that re-executes is a bug
+# in that action's check logic.
+manifests:
+  - 02-files
+  - 03-packages
+  - 04-templates
+  - 05-git
