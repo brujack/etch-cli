@@ -36,7 +36,7 @@ impl Default for PackageProviders {
     fn default() -> Self {
         let info = os_info::get();
 
-        println!("Info: {info:?}");
+        tracing::debug!("OS info: {info:?}");
 
         match info.os_type() {
             os_info::Type::Ubuntu => PackageProviders::Aptitude,
