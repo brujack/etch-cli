@@ -6,7 +6,8 @@ test: lint
 	cargo test
 
 lint:
-	cargo clippy -- -D warnings
+	cargo fmt --all -- --check
+	cargo clippy --all-targets -- -D warnings
 
 build:
 	cargo build --release
