@@ -1,0 +1,5 @@
+actions:
+  - action: file.copy
+    from: "{{ manifest_dir }}/fixtures/greeting.txt.tera"
+    to: "{{ user.home_dir }}/etch-test-output/greeting.txt"
+    template: true

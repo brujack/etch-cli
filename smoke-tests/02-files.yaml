@@ -1,0 +1,11 @@
+actions:
+  - action: directory.create
+    path: "{{ user.home_dir }}/etch-test-output"
+
+  - action: file.copy
+    from: "{{ manifest_dir }}/fixtures/hello.txt"
+    to: "{{ user.home_dir }}/etch-test-output/hello-copy.txt"
+
+  - action: file.link
+    source: "{{ user.home_dir }}/etch-test-output/hello-copy.txt"
+    target: "{{ user.home_dir }}/etch-test-output/hello-link.txt"
