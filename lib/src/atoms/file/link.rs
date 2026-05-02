@@ -68,12 +68,7 @@ impl Atom for Link {
             }
         };
 
-        let source = if cfg!(target_os = "windows") {
-            const PREFIX: &str = r"\\?\";
-            PathBuf::from(&self.source.display().to_string().replace(PREFIX, ""))
-        } else {
-            self.source.to_owned()
-        };
+        let source = self.source.to_owned();
 
         // If this file doesn't link to what we expect, lets make it so
         Ok(Outcome {
@@ -82,20 +77,8 @@ impl Atom for Link {
         })
     }
 
-    #[cfg(unix)]
     fn execute(&mut self) -> anyhow::Result<()> {
         std::os::unix::fs::symlink(&self.source, &self.target)?;
-
-        Ok(())
-    }
-
-    #[cfg(windows)]
-    fn execute(&mut self) -> anyhow::Result<()> {
-        if self.target.is_dir() {
-            std::os::windows::fs::symlink_dir(&self.source, &self.target)?;
-        } else {
-            std::os::windows::fs::symlink_file(&self.source, &self.target)?;
-        }
 
         Ok(())
     }

@@ -57,17 +57,17 @@ make install-hooks # install pre-commit and pre-push hooks (run once per checkou
 
 Manifest actions map to `lib/src/actions/<name>/`:
 
-| Action             | Description                                     | Key fields                                                  |
-| ------------------ | ----------------------------------------------- | ----------------------------------------------------------- |
-| `command.run`      | Run shell commands                              | `command`, `args`, `privileged` (bool)                      |
-| `directory.create` | Create a directory                              | `path`                                                      |
-| `directory.copy`   | Copy a directory                                | `from`, `to`                                                |
-| `file.copy`        | Copy a file; optionally render as Tera template | `from` (or `source`), `to` (or `target`), `template` (bool) |
-| `file.link`        | Symlink a file                                  | `source`, `target` (`from`/`to` deprecated)                 |
-| `git.clone`        | Clone a git repo                                | `repo_url`, `directory`                                     |
-| `package.install`  | Install OS packages                             | `name` (single) or `list` (multiple)                        |
-| `macos.defaults`   | Write macOS defaults                            | domain, key, type, value fields                             |
-| `binary`           | Install a binary from a GitHub release          | `name`, `version`, `url`                                    |
+| Action             | Description                                     | Key fields                                                             |
+| ------------------ | ----------------------------------------------- | ---------------------------------------------------------------------- |
+| `command.run`      | Run shell commands                              | `command`, `args`, `privileged` (bool)                                 |
+| `directory.create` | Create a directory                              | `path`                                                                 |
+| `directory.copy`   | Copy a directory                                | `from`, `to`                                                           |
+| `file.copy`        | Copy a file; optionally render as Tera template | `from` (or `source`), `to` (or `target`), `template` (bool)            |
+| `file.link`        | Symlink a file                                  | `source`, `target` (`from`/`to` deprecated)                            |
+| `git.clone`        | Clone a git repo                                | `repo_url`, `directory`                                                |
+| `package.install`  | Install OS packages                             | `name` (single) or `list` (multiple); providers: `apt`, `snap`, `brew` |
+| `macos.defaults`   | Write macOS defaults                            | domain, key, type, value fields                                        |
+| `binary`           | Install a binary from a GitHub release          | `name`, `version`, `url`                                               |
 
 Template engine is [Tera](https://keats.github.io/tera/). Available context variables: `user.username`, `user.home_dir`, `user.name`, `os.hostname`, `os.name`, `os.family`, `os.distribution`, `manifest_dir`.
 
@@ -110,13 +110,14 @@ cargo tarpaulin --fail-under 25  # coverage check (matches CI)
 
 Single workflow `.github/workflows/ci.yml`, triggers on `pull_request` to `main`/`master` only.
 
-| Job           | What it does                                                                    |
-| ------------- | ------------------------------------------------------------------------------- |
-| `test`        | `make test` (fmt check + clippy + cargo test) + tarpaulin ≥25%                  |
-| `build`       | `cargo build --release` → uploads `etch-linux-amd64` artifact (7-day retention) |
-| `secret-scan` | gitleaks v8.30.1 binary (advisory, non-blocking)                                |
-| `snyk-scan`   | Snyk code test (advisory, non-blocking)                                         |
-| `auto-merge`  | Squash-merges the PR when all jobs pass                                         |
+| Job           | What it does                                                   |
+| ------------- | -------------------------------------------------------------- |
+| `test`        | `make test` (fmt check + clippy + cargo test) + tarpaulin ≥25% |
+| `secret-scan` | gitleaks v8.30.1 binary (advisory, non-blocking)               |
+| `snyk-scan`   | Snyk code test (advisory, non-blocking)                        |
+| `auto-merge`  | Squash-merges the PR when all jobs pass                        |
+
+> **Note:** `build` job is temporarily disabled — restore when build times improve.
 
 Pre-commit hook: `make lint` + `ggshield secret scan pre-commit`
 Pre-push hook: `make test` (full suite before push reaches GitHub)

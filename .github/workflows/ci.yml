@@ -29,24 +29,6 @@ jobs:
         # is built up. Raise this as tests are added.
         run: cargo tarpaulin --fail-under 25
 
-  build:
-    name: Build Release Binary
-    runs-on: ubuntu-latest
-    needs: [test]
-    steps:
-      - uses: actions/checkout@v5
-      - name: Install Rust stable
-        uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-      - name: Build release
-        run: cargo build --release
-      - name: Upload binary
-        uses: actions/upload-artifact@v4
-        with:
-          name: etch-linux-amd64
-          path: target/release/etch
-          retention-days: 7
-
   secret-scan:
     name: Secret Scan
     runs-on: ubuntu-latest
@@ -84,7 +66,7 @@ jobs:
   auto-merge:
     name: Auto Merge
     runs-on: ubuntu-latest
-    needs: [test, build, secret-scan, snyk-scan]
+    needs: [test, secret-scan, snyk-scan]
     if: github.event_name == 'pull_request'
     permissions:
       contents: write
