@@ -57,17 +57,17 @@ make install-hooks # install pre-commit and pre-push hooks (run once per checkou
 
 Manifest actions map to `lib/src/actions/<name>/`:
 
-| Action             | Description                                     | Key fields                                                  |
-| ------------------ | ----------------------------------------------- | ----------------------------------------------------------- |
-| `command.run`      | Run shell commands                              | `command`, `args`, `privileged` (bool)                      |
-| `directory.create` | Create a directory                              | `path`                                                      |
-| `directory.copy`   | Copy a directory                                | `from`, `to`                                                |
-| `file.copy`        | Copy a file; optionally render as Tera template | `from` (or `source`), `to` (or `target`), `template` (bool) |
-| `file.link`        | Symlink a file                                  | `source`, `target` (`from`/`to` deprecated)                 |
-| `git.clone`        | Clone a git repo                                | `repo_url`, `directory`                                     |
-| `package.install`  | Install OS packages                             | `name` (single) or `list` (multiple)                        |
-| `macos.defaults`   | Write macOS defaults                            | domain, key, type, value fields                             |
-| `binary`           | Install a binary from a GitHub release          | `name`, `version`, `url`                                    |
+| Action             | Description                                     | Key fields                                                             |
+| ------------------ | ----------------------------------------------- | ---------------------------------------------------------------------- |
+| `command.run`      | Run shell commands                              | `command`, `args`, `privileged` (bool)                                 |
+| `directory.create` | Create a directory                              | `path`                                                                 |
+| `directory.copy`   | Copy a directory                                | `from`, `to`                                                           |
+| `file.copy`        | Copy a file; optionally render as Tera template | `from` (or `source`), `to` (or `target`), `template` (bool)            |
+| `file.link`        | Symlink a file                                  | `source`, `target` (`from`/`to` deprecated)                            |
+| `git.clone`        | Clone a git repo                                | `repo_url`, `directory`                                                |
+| `package.install`  | Install OS packages                             | `name` (single) or `list` (multiple); providers: `apt`, `snap`, `brew` |
+| `macos.defaults`   | Write macOS defaults                            | domain, key, type, value fields                                        |
+| `binary`           | Install a binary from a GitHub release          | `name`, `version`, `url`                                               |
 
 Template engine is [Tera](https://keats.github.io/tera/). Available context variables: `user.username`, `user.home_dir`, `user.name`, `os.hostname`, `os.name`, `os.family`, `os.distribution`, `manifest_dir`.
 
