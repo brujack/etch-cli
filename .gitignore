@@ -1,4 +1,5 @@
 /target
+/.worktrees
 /_cicd-intermediates
 /.build
 .idea/
