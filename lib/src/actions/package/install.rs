@@ -42,7 +42,6 @@ impl Action for PackageInstall {
 
             if variant.file {
                 match variant.provider {
-                    PackageProviders::BsdPkg => debug!("Will attempt to install from local file."),
                     PackageProviders::Aptitude => {
                         debug!("Will attempt to install from local file.")
                     }
