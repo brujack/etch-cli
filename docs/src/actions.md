@@ -19,7 +19,7 @@ echo hi
 
 ## Groups of actions provided
 
-Comtrya provides multiple actions which are broken down into groups with the actions being apart of a larger group:
+etch provides multiple actions which are broken down into groups with the actions being apart of a larger group:
 
 - [Binary](./binary.md)
 - [Commands](./command.md)

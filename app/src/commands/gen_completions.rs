@@ -1,6 +1,6 @@
 use std::io;
 
-use super::ComtryaCommand;
+use super::EtchCommand;
 use crate::Runtime;
 
 use clap::{Command, CommandFactory, Parser};
@@ -20,7 +20,7 @@ fn print_completions<G: Generator>(gen: G, cmd: &mut Command) {
     generate(gen, cmd, cmd.get_name().to_string(), &mut io::stdout());
 }
 
-impl ComtryaCommand for GenCompletions {
+impl EtchCommand for GenCompletions {
     fn execute(&self, _runtime: &Runtime) -> anyhow::Result<()> {
         print_completions(self.shell, &mut GlobalArgs::command());
 

@@ -8,7 +8,7 @@ db-urls = ["https://github.com/rustsec/advisory-db"]
 ignore = [
     # hickory-proto 0.25.2: DNS DoS via O(n²) name compression / NSEC3 unbounded loop.
     # No attack surface: etch is a CLI, not a DNS server. Fix requires hickory 0.26+,
-    # which is a major semver jump blocked by comtrya-lib's 0.25 pin.
+    # which is a major semver jump blocked by the hickory 0.25 pin.
     "RUSTSEC-2026-0119",
     "RUSTSEC-2026-0118",
     # rsa 0.9.10: Marvin Attack timing side-channel. No fix in 0.9.x series (open since
@@ -60,4 +60,4 @@ allow-registry = ["https://github.com/rust-lang/crates.io-index"]
 allow-git = []
 
 [sources.allow-org]
-github = ["comtrya", "rawkode"]
+github = ["brujack"]

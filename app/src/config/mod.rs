@@ -17,7 +17,7 @@ pub struct GlobalArgs {
     #[arg(short = 'd', long)]
     pub manifest_directory: Option<String>,
 
-    /// Specify a configuration path (if invalid Comtrya will exit)
+    /// Specify a configuration path (if invalid etch will exit)
     #[arg(short = 'c', long)]
     pub config_path: Option<String>,
 
@@ -93,7 +93,7 @@ pub(crate) fn load_config(args: &GlobalArgs) -> Result<Config> {
     }
 }
 
-/// Check the current working directory for a `Comtrya.yaml` file
+/// Check the current working directory for an `etch.yaml` file
 /// If that doesn't exist, we'll check the platforms config directory
 /// for etch/Etch.yaml
 ///
@@ -104,7 +104,7 @@ pub(crate) fn load_config(args: &GlobalArgs) -> Result<Config> {
 /// # Returns
 ///
 /// `Result<Config>`
-/// - `Ok(Config)` - valid `Comtrya.yaml` file is found and deserialized successfully
+/// - `Ok(Config)` - valid `etch.yaml` file is found and deserialized successfully
 /// - `Err` - Error occurs during reading/deserialization OR a user provided an invalid
 ///   path for the config file
 ///
@@ -116,7 +116,7 @@ pub fn lib_config(args: &GlobalArgs) -> anyhow::Result<Config> {
     let mut config = match find_configs(args) {
         Some(config_path) => {
             let yaml = std::fs::read_to_string(&config_path)
-                .with_context(|| "Found Comtrya.yaml, but was unable to read the contents.")?;
+                .with_context(|| "Found etch.yaml, but was unable to read the contents.")?;
 
             let mut config = match yaml.trim().is_empty() {
                 true => Config {
@@ -124,7 +124,7 @@ pub fn lib_config(args: &GlobalArgs) -> anyhow::Result<Config> {
                 },
 
                 false => serde_yaml_ng::from_str(yaml.as_str())
-                    .with_context(|| "Found Comtrya.yaml, but couldn't deserialize the YAML.")?,
+                    .with_context(|| "Found etch.yaml, but couldn't deserialize the YAML.")?,
             };
 
             // The existence of the config file allows an implicit manifests location of.
@@ -203,24 +203,24 @@ fn find_configs(args: &GlobalArgs) -> Option<PathBuf> {
 
     // Check current working directory first
     if let Ok(cwd) = std::env::current_dir() {
-        let local_config = cwd.join("Comtrya.yaml");
+        let local_config = cwd.join("etch.yaml");
 
         if local_config.is_file() {
-            warn!("Comtrya.yaml found in current working directory");
+            warn!("etch.yaml found in current working directory");
             return Some(local_config);
         }
-        trace!("No Comtrya.yaml found in current working directory");
+        trace!("No etch.yaml found in current working directory");
     }
 
     // Check platform's config dir
     if let Some(config_dir) = dirs_next::config_dir() {
-        let local_config = config_dir.join("Comtrya.yaml");
+        let local_config = config_dir.join("etch.yaml");
 
         if local_config.is_file() {
-            warn!("Comtrya.yaml found in users config directory");
+            warn!("etch.yaml found in users config directory");
             return Some(local_config);
         }
-        trace!("No Comtrya.yaml found in users config directory");
+        trace!("No etch.yaml found in users config directory");
     };
 
     None

@@ -21,8 +21,8 @@ Perform a git clone on a repository from GitHub.
 ```yaml
 actions:
   - action: git.clone
-    repo_url: https://github.com/comtrya/comtrya
-    directory: /Users/test/Testing/comtrya/
+    repo_url: https://github.com/brujack/etch-cli
+    directory: /Users/test/Testing/etch/
 ```
 
 ## git.clone [0.8.7 and prior]
@@ -40,6 +40,6 @@ Perform a git clone on a repository from GitHub.
 
 ```yaml
 - action: git.clone
-  repository: comtrya/comtrya
+  repository: brujack/etch-cli
   directory: {{ user.home_dir }}/Code/src/
 ```

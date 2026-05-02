@@ -1,8 +1,8 @@
 actions:
   - action: file.download
-    from: https://github.com/comtrya/comtrya/archive/refs/tags/v0.9.0.tar.gz
-    to: /tmp/comtrya
+    from: https://github.com/brujack/etch-cli/archive/refs/tags/v0.9.0.tar.gz
+    to: /tmp/etch
   
   - action: file.unarchive
-    from: /tmp/comtrya
+    from: /tmp/etch
     to: /tmp/

@@ -1,5 +1,5 @@
 actions:
   - action: binary.github
-    name: comtrya
+    name: etch
     directory: /tmp
-    repository: comtrya/comtrya
+    repository: brujack/etch-cli

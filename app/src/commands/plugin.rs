@@ -4,7 +4,7 @@ use std::{
     path::PathBuf,
 };
 
-use super::ComtryaCommand;
+use super::EtchCommand;
 use crate::Runtime;
 
 use anyhow::{anyhow, Context, Result};
@@ -175,7 +175,7 @@ fn update_plugin(path: impl Into<PathBuf>) -> Result<()> {
     Ok(())
 }
 
-impl ComtryaCommand for PluginCommands {
+impl EtchCommand for PluginCommands {
     fn execute(&self, _runtime: &Runtime) -> anyhow::Result<()> {
         // ensure the plugin directory exists
         let plugin_dir = plugin_path();

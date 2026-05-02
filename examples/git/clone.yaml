@@ -1,4 +1,4 @@
 actions:
   - action: git.clone
-    repo_url: https://github.com/comtrya/comtrya
-    directory: /Users/toddmartin/Testing/comtrya/
+    repo_url: https://github.com/brujack/etch-cli
+    directory: /Users/toddmartin/Testing/etch/

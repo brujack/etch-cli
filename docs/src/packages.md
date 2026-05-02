@@ -26,11 +26,11 @@ Not all package managers are supported. This is a list of currently supported pa
 | dnf        | Fedora            |
 | snapcraft  | Linux             |
 
-If you would like support to be added for a package provider, feel free to contribute the support or request support in the [repository](https://github.com/comtrya/comtrya) issue tracker.
+If you would like support to be added for a package provider, feel free to contribute the support or request support in the [repository](https://github.com/brujack/etch-cli) issue tracker.
 
 ### Important note on homebrew and macOS
 
-Some package manager providers can implement a `bootstrap` method that will automatically configure the package manager on the system if it is not part of the default installation. This is the case with macOS. Comtrya can automatically install `homebrew` to a macOS system and will do so if a manifest specifies a `package.install` action and does not overridfe the macOS default of homebrew.
+Some package manager providers can implement a `bootstrap` method that will automatically configure the package manager on the system if it is not part of the default installation. This is the case with macOS. etch can automatically install `homebrew` to a macOS system and will do so if a manifest specifies a `package.install` action and does not overridfe the macOS default of homebrew.
 
 ## package.install
 
@@ -77,7 +77,7 @@ List of supported package providers:
 - pkg (FreeBSD)
 - aptitude (debian/ubuntu)
 
-If you would like to have this feature supported on another package provider, please open an issue at the [comtrya GitHub repository](https://github.com/comtrya/comtrya).
+If you would like to have this feature supported on another package provider, please open an issue at the [etch GitHub repository](https://github.com/brujack/etch-cli).
 
 #### Example
 

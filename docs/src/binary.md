@@ -18,8 +18,8 @@ This action will grab a binary from GitHub and place it in the target directory.
 
 ```yaml
 - action: binary.github
-  name: comtrya
+  name: etch
   directory: /usr/local/bin
-  repository: comtrya/comtrya
+  repository: brujack/etch-cli
   version: v0.8.7
 ```

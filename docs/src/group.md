@@ -10,7 +10,7 @@ Not all systems are currently supported. The following is a list of group provid
 - Linux
 - macOS
 
-If your OS of choice is not listed, feel free to either contribute support by opening a pull request or requesting that support be added in the [repository's](https://github.com/comtrya/comtrya) issue tracker.
+If your OS of choice is not listed, feel free to either contribute support by opening a pull request or requesting that support be added in the [repository's](https://github.com/brujack/etch-cli) issue tracker.
 
 ## group.add
 

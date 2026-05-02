@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Report an issue with comtrya
+about: Report an issue with etch-cli
 title: "Bug:"
 
 ---
@@ -19,7 +19,7 @@ What the expected behaviour in your opinion.
 
 **Environment**
 - OS
-- Version: `comtrya --version`
+- Version: `etch-cli --version`
 
 **Additional information**
 Add more context which didn't fit in the fields above.

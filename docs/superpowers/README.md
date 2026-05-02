@@ -26,7 +26,7 @@ Master status index for all specs and implementation plans in this directory.
 | -------------------------------------- | ------------------------------------------------------------- |
 | Prune unused package manager providers | Keep Homebrew + one Linux distro; delete BSDs, Pacman, Zypper |
 | ntfy notification action               | Matches existing notification infra                           |
-| macOS defaults write ergonomics        | If comtrya's current API is rough                             |
+| macOS defaults write ergonomics        | If etch-cli's current API is rough                             |
 
 ---
 

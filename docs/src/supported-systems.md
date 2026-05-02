@@ -1,6 +1,6 @@
 # Supported Systems
 
-The following operating systems are officially supported by Comtrya:
+The following operating systems are officially supported by etch:
 
 - FreeBSD
 - Linux
@@ -8,4 +8,4 @@ The following operating systems are officially supported by Comtrya:
 - NetBSD
 - Windows
 
-If your operating system is not listed, file an issue on the projects [GitHub](https://github.com/comtrya/comtrya) and the team will see what needs to be done to add support.
+If your operating system is not listed, file an issue on the projects [GitHub](https://github.com/brujack/etch-cli) and the team will see what needs to be done to add support.

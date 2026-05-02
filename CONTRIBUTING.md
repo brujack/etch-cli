@@ -16,7 +16,7 @@ Before you create a PR, just run `check.sh`:
 - Runs all tests via `nextest`
 
 ## Good first issues
-If you want to contribute, but don't feel ready for the big tasks, feel free to choose from one of our [good first issues](https://github.com/comtrya/comtrya/issues?q=is%3Aissue+is%3Aopen+label%3AMeta%3A%3AGoodFirstIssue)
+If you want to contribute, but don't feel ready for the big tasks, feel free to choose from one of our [good first issues](https://github.com/brujack/etch-cli/issues?q=is%3Aissue+is%3Aopen+label%3AMeta%3A%3AGoodFirstIssue)
 
 ### Guides
 If you're lost or not know how to start, you can contact:
@@ -24,12 +24,12 @@ If you're lost or not know how to start, you can contact:
 - @icepuma
 - @martintc
 
-at the [Rawkode Academy Discord](https://rawkode.chat/) in the `#comtrya` channel.
+at the [Rawkode Academy Discord](https://rawkode.chat/) in the `#etch-cli` channel.
 
 ## Pull requests
-We provide a [pull request template](https://github.com/comtrya/comtrya/blob/main/.github/pull_request_template.md) to guide you through the progress.
+We provide a [pull request template](https://github.com/brujack/etch-cli/blob/main/.github/pull_request_template.md) to guide you through the progress.
 
 ## Help
-If you want to get in touch with us, join the [Rawkode Academy Discord](https://rawkode.chat/) server and jump into the `#comtrya` channel.
+If you want to get in touch with us, join the [Rawkode Academy Discord](https://rawkode.chat/) server and jump into the `#etch-cli` channel.
 
 > See You Space Cowboy...

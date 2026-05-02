@@ -1,4 +1,4 @@
-use super::ComtryaCommand;
+use super::EtchCommand;
 use crate::Runtime;
 use colored::Colorize;
 use comfy_table::{presets::NOTHING, Attribute, Cell, ContentArrangement, Table};
@@ -13,7 +13,7 @@ pub(crate) struct Contexts {
     show_values: bool,
 }
 
-impl ComtryaCommand for Contexts {
+impl EtchCommand for Contexts {
     fn execute(&self, runtime: &Runtime) -> anyhow::Result<()> {
         for (name, context) in runtime.contexts.iter() {
             println!("{}", name.to_string().underline().bold());

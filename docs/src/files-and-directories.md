@@ -9,8 +9,8 @@
 
 ## Note
 The following commands expect the `from`/`source` to point to files/directories which are themselves under a "files" directory.
-This is a restriction so that comtrya knows not to parse any .yaml file e.g. a config for a different tool as a manifest.
-To see how it works check the [examples](https://github.com/comtrya/comtrya/tree/main/examples/file)
+This is a restriction so that etch knows not to parse any .yaml file e.g. a config for a different tool as a manifest.
+To see how it works check the [examples](https://github.com/brujack/etch-cli/tree/main/examples/file)
 
 - file.link
 - file.copy
@@ -62,14 +62,14 @@ Action used to copy a file from one location to another.
   owned_by_group: test
 ```
 
-*Note: utilizing chown functionality will require running comtrya as root. Also, both a user and a group need to
+*Note: utilizing chown functionality will require running etch as root. Also, both a user and a group need to
 be specified.*
 
 ## file.chown
 
 This action will change the user and group owner of a file.
 
-*Note: In order to utilize this, must run comtrya as root. Also both a user and group need to be specified.*
+*Note: In order to utilize this, must run etch as root. Also both a user and group need to be specified.*
 
 | Key    | Type    | Optional | Description                    |
 |:-------|:--------|:---------|:-------------------------------|
@@ -119,7 +119,7 @@ actions:
     owned_by_group: nobody
 ```
 
-*Note: utilizing chown functionality will require running comtrya as root. Also, both a user and a group need to
+*Note: utilizing chown functionality will require running etch as root. Also, both a user and a group need to
 be specified.*
 
 ## file.link
@@ -185,11 +185,11 @@ This action provides the ability to unarchive a `tar.gz` file.
 ```yaml
 actions:
   - action: file.download
-    from: https://github.com/comtrya/comtrya/archive/refs/tags/v0.9.0.tar.gz
-    to: /tmp/comtrya
+    from: https://github.com/brujack/etch-cli/archive/refs/tags/v0.9.0.tar.gz
+    to: /tmp/etch
 
   - action: file.unarchive
-    from: /tmp/comtrya
+    from: /tmp/etch
     to: /tmp/
 ```
 

@@ -37,7 +37,7 @@ cat ~/etch-test-output/greeting.txt
 
 # 5. Git clone — exercises network egress
 etch apply -d ~/etch-smoke -m 05-git
-ls ~/etch-test-output/comtrya-src/
+ls ~/etch-test-output/etch-src/
 
 # 6. Idempotency — must report no-op for every action
 etch apply -d ~/etch-smoke -m 99-idempotency

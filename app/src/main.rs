@@ -1,4 +1,4 @@
-use crate::commands::ComtryaCommand;
+use crate::commands::EtchCommand;
 use crate::config::{Commands, GlobalArgs};
 
 use std::io;

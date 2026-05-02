@@ -1,6 +1,6 @@
 # Variants
 
-All comtrya actions support the concept of variants. Variants allow you to modify how the action will be executed backed on contexts.
+All etch actions support the concept of variants. Variants allow you to modify how the action will be executed backed on contexts.
 
 A command example of a variant is a variant based on the operating system. Suppose you have an action that is going to differ slightly between a linux, windows, and macOS system. The following is an example of that.
 

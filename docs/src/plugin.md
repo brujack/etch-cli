@@ -1,6 +1,6 @@
 # Plugins
 
-Plugins are created by the community to extend the functionality of Comtrya. They allow users to customize and enhance their experience by adding new features or modifying existing ones.
+Plugins are created by the community to extend the functionality of etch. They allow users to customize and enhance their experience by adding new features or modifying existing ones.
 
 Plugins can be used to automate tasks, integrate with other tools, or provide additional configuration options.
 

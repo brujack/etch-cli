@@ -14,5 +14,5 @@
 
 ## Please tell us about your environment:
 
-Version (`comtrya --version`):
+Version (`etch-cli --version`):
 Operating system:

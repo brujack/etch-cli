@@ -1,4 +1,4 @@
-use super::ComtryaCommand;
+use super::EtchCommand;
 use crate::Runtime;
 
 use clap::Parser;
@@ -7,7 +7,7 @@ use clap::Parser;
 #[command()]
 pub(crate) struct Version {}
 
-impl ComtryaCommand for Version {
+impl EtchCommand for Version {
     fn execute(&self, _: &Runtime) -> anyhow::Result<()> {
         const VERSION: Option<&'static str> = option_env!("CARGO_PKG_VERSION");
         println!("{}", VERSION.unwrap_or("unknown"));

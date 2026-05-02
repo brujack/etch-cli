@@ -12,6 +12,6 @@ pub(crate) use gen_completions::GenCompletions;
 
 use crate::Runtime;
 
-pub trait ComtryaCommand {
+pub trait EtchCommand {
     fn execute(&self, runtime: &Runtime) -> anyhow::Result<()>;
 }

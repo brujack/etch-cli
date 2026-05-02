@@ -26,10 +26,10 @@ actions:
     passphrase: '{{ get_env(name="AGE_PASSPHRASE") }}'
 
   - action: file.copy
-    from: comtrya.jpg
-    to: /tmp/comtrya.jpg
+    from: etch.jpg
+    to: /tmp/etch.jpg
 
   - action: file.copy
-    from: comtrya.jpg
+    from: etch.jpg
     chmod: "0500"
-    to: /tmp/comtrya2.jpg
+    to: /tmp/etch2.jpg

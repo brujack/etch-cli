@@ -1,9 +1,9 @@
 # Commands
 
-Comtrya offers several commands for use. They can be listed in the terminal by running comtrya with the help command.
+etch offers several commands for use. They can be listed in the terminal by running etch with the help command.
 
 ```shell
-comtrya help
+etch help
 ```
 
 The most frequently used command s the **apply** command, which will apply the actions of provided manifests to the system.
@@ -17,50 +17,50 @@ The most frequently used command s the **apply** command, which will apply the a
 | version         | Print version information                    |
 | contexts        | List available contexts                      |
 | gen-completions | Auto generate completions                    |
-| help            | Print out help information for using comtrya |
+| help            | Print out help information for using etch |
 
 ## Apply
 
 The apply command executes and runs the manifests. There are a few ways to do this.
 
-The first option is to point comtrya to a directory of manifests and have it execute them all:
+The first option is to point etch to a directory of manifests and have it execute them all:
 
 ```shell
-comtrya -d ./manifests apply
+etch -d ./manifests apply
 ```
 
-As shown, this is done with the `-d` option, which tells comtrya the directory that contains the manifests to be applied.
+As shown, this is done with the `-d` option, which tells etch the directory that contains the manifests to be applied.
 
 The second option is to specify specific manifest(s) to be executed:
 
 ```shell
-comtrya -d ./ apply -m one,two,three
+etch -d ./ apply -m one,two,three
 ```
 
-The `-m` option is used to let comtrya know which manifests to apply. Note that the name of the manifest (i.e. one.yaml) is only the name and must not contain any path information or file extension (.yaml). So, `/manifests/one` is not a valid input. Any manifests are expected to be located in the directory of the manifests you specified.
+The `-m` option is used to let etch know which manifests to apply. Note that the name of the manifest (i.e. one.yaml) is only the name and must not contain any path information or file extension (.yaml). So, `/manifests/one` is not a valid input. Any manifests are expected to be located in the directory of the manifests you specified.
 
 Suppose you have a directory `manifests/` that contains the manifests `one.yaml` and `two.yaml`. You want to *only* execute `one.yaml`. There are three ways to achieve this. You can simply specify the manifest if it's in the current working directory:
 
 ```shell
 cd manifests/
-comtrya -d ./ apply -m one
+etch -d ./ apply -m one
 ```
 
 Or you can specify the directory:
 
 ```shell
-comtrya -d ./manifests/one.yaml apply
+etch -d ./manifests/one.yaml apply
 ```
 
 Alternatively a combination of the two is possible as well:
 
 ```shell
-comtrya -d ./manifests/ apply -m one
+etch -d ./manifests/ apply -m one
 ```
 
 ## Contexts
 
-The **contexts** command is useful to see what comtrya knows about your system. This can be environment variables, included variables, information about the OS, user information and other variables. Below is an exmaple of the output.
+The **contexts** command is useful to see what etch knows about your system. This can be environment variables, included variables, information about the OS, user information and other variables. Below is an exmaple of the output.
 
 ```text
 env
@@ -113,7 +113,7 @@ variables
 You can also view the values that these contexts have by passing in a `show-values` option as demonstrated below:
 
 ```shell
-comtrya contexts --show-values
+etch contexts --show-values
 ```
 
 ## Status

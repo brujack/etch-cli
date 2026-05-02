@@ -1,9 +1,9 @@
 # Integration tests
 
-Files in this folder can test `comtrya` at a very high level.
+Files in this folder can test `etch-cli` at a very high level.
 The binary is built and then executed as a command. As such
 things like `#[cfg(test)]` no longer kick in.
-While it might be annoying, it does mean that we exercise `comtrya`
+While it might be annoying, it does mean that we exercise `etch-cli`
 just as a user would!
 
 ## Setup
@@ -25,7 +25,7 @@ fn your_thing() {
 that setup bring in `dir` and `f` function to crete a nested directory structures:
 
 ```rust
-let t = TempDir::new("comtrya").expect("could not create tempdir");
+let t = TempDir::new("etch-cli").expect("could not create tempdir");
 let path = t.into_path();
 
 dir(
@@ -57,10 +57,10 @@ actions:
 ).create_in(&path.clone())
 ```
 
-Once you have your tempdir setup as you want, you can change into and run `comtrya`:
+Once you have your tempdir setup as you want, you can change into and run `etch-cli`:
 
 ```rust
-let assert = cd(path).run("comtrya --help --no-color")
+let assert = cd(path).run("etch-cli --help --no-color")
 ```
 
 The resulting `assert` object is from [assert_cmd](https://docs.rs/assert_cmd/1.0.3/assert_cmd/) and can be used to assert on `stdout`, `stderr` and other bits.

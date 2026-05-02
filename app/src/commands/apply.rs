@@ -1,4 +1,4 @@
-use super::ComtryaCommand;
+use super::EtchCommand;
 use crate::Runtime;
 use clap::Parser;
 use comfy_table::{Cell, ContentArrangement, Table};
@@ -82,7 +82,7 @@ impl Apply {
     }
 }
 
-impl ComtryaCommand for Apply {
+impl EtchCommand for Apply {
     #[instrument(skip(self, runtime))]
     fn execute(&self, runtime: &Runtime) -> anyhow::Result<()> {
         let contexts = &runtime.contexts;
