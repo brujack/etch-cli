@@ -1,5 +1,7 @@
 # Platform Pruning Implementation Plan
 
+> **Status: DONE**
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Remove all code that supports platforms other than Ubuntu 24.04/26.04 and macOS, leaving exactly three package managers (apt, snap, homebrew) and two OS-specific provider families (linux, macos).

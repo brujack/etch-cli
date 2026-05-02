@@ -71,24 +71,6 @@ mod test {
     }
 
     #[test]
-    #[cfg(windows)]
-    fn it_can_windows() {
-        let oscontext = OSContextProvider {};
-        let keyvaluepairs = oscontext.get_contexts().unwrap();
-
-        keyvaluepairs.iter().for_each(|context| match context {
-            Context::KeyValueContext(k, v) => match k.as_ref() {
-                "family" => assert_eq!(v.to_string(), String::from("windows")),
-                "name" => assert_eq!(v.to_string(), String::from("windows")),
-                _ => (),
-            },
-            Context::ListContext(_, _) => {
-                assert_eq!(true, false);
-            }
-        })
-    }
-
-    #[test]
     #[cfg(target_os = "linux")]
     fn it_can_linux() {
         let oscontext = OSContextProvider {};
@@ -98,24 +80,6 @@ mod test {
             Context::KeyValueContext(k, v) => match k.as_ref() {
                 "family" => assert_eq!(v.to_string(), String::from("unix")),
                 "name" => assert_eq!(v.to_string(), String::from("linux")),
-                _ => (),
-            },
-            Context::ListContext(_, _) => {
-                assert_eq!(true, false);
-            }
-        })
-    }
-
-    #[test]
-    #[cfg(target_os = "freebsd")]
-    fn it_can_linux() {
-        let oscontext = OSContextProvider {};
-        let keyvaluepairs = oscontext.get_contexts().unwrap();
-
-        keyvaluepairs.iter().for_each(|context| match context {
-            Context::KeyValueContext(k, v) => match k.as_ref() {
-                "family" => assert_eq!(v.to_string(), String::from("unix")),
-                "name" => assert_eq!(v.to_string(), String::from("freebsd")),
                 _ => (),
             },
             Context::ListContext(_, _) => {

@@ -1,5 +1,3 @@
-mod freebsd;
-use self::freebsd::FreeBSDUserProvider;
 use crate::steps::Step;
 mod none;
 use self::none::NoneUserProvider;
@@ -15,9 +13,6 @@ use crate::contexts::Contexts;
 
 #[derive(JsonSchema, Clone, Debug, Serialize, Deserialize)]
 pub enum UserProviders {
-    #[serde(alias = "freebsd")]
-    FreeBSD,
-
     #[serde(alias = "none")]
     None,
 
@@ -31,7 +26,6 @@ pub enum UserProviders {
 impl UserProviders {
     pub fn get_provider(self) -> Box<dyn UserProvider> {
         match self {
-            UserProviders::FreeBSD => Box::new(FreeBSDUserProvider {}),
             UserProviders::None => Box::new(NoneUserProvider {}),
             UserProviders::Linux => Box::new(LinuxUserProvider {}),
             UserProviders::MacOs => Box::new(MacOSUserProvider {}),
@@ -39,7 +33,6 @@ impl UserProviders {
     }
 }
 
-#[allow(clippy::derivable_impls)]
 impl Default for UserProviders {
     #[cfg(target_os = "linux")]
     fn default() -> Self {
@@ -51,8 +44,6 @@ impl Default for UserProviders {
         let info = os_info::get();
 
         match info.os_type() {
-            // BSD Operating systems
-            os_info::Type::FreeBSD => UserProviders::FreeBSD,
             os_info::Type::Macos => UserProviders::MacOs,
             _ => UserProviders::None,
         }

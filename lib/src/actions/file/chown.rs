@@ -3,7 +3,6 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use super::FileAction;
-#[cfg(unix)]
 use crate::atoms::file::Chown;
 
 #[derive(JsonSchema, Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -22,17 +21,6 @@ impl Action for FileChown {
         format!("Changing ownership for file {}", self.path)
     }
 
-    #[cfg(not(unix))]
-    fn plan(
-        &self,
-        _: &crate::manifests::Manifest,
-        _: &crate::contexts::Contexts,
-    ) -> anyhow::Result<Vec<crate::steps::Step>> {
-        tracing::warn!("This action is not supported on windows.");
-        Ok(vec![])
-    }
-
-    #[cfg(unix)]
     fn plan(
         &self,
         _: &crate::manifests::Manifest,
