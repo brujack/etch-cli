@@ -1,4 +1,4 @@
-// Pre-existing comtrya patterns — redundant .into_iter() calls that
+// Pre-existing patterns — redundant .into_iter() calls that
 // clippy flags on Linux but not macOS; not worth changing inherited code.
 #![allow(clippy::useless_conversion)]
 

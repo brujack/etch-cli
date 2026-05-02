@@ -3,7 +3,7 @@ use clap::{Parser, Subcommand};
 use std::error::Error;
 
 use anyhow::{anyhow, Context, Result};
-pub use comtrya_lib::config::Config;
+pub use etch_lib::config::Config;
 use std::{
     path::{Path, PathBuf},
     vec,
@@ -12,7 +12,7 @@ use std::{
 use tracing::{trace, warn};
 
 #[derive(Parser, Debug, Default)]
-#[command(version, about, name="comtrya", long_about = None)]
+#[command(version, about, name="etch", long_about = None)]
 pub struct GlobalArgs {
     #[arg(short = 'd', long)]
     pub manifest_directory: Option<String>,
@@ -54,8 +54,8 @@ pub enum Commands {
     /// Auto generate completions
     ///
     /// for examples:
-    ///  - bash: ```source <(comtrya gen-completions bash)```
-    ///  - fish: ```comtrya gen-completions fish | source```
+    ///  - bash: ```source <(etch gen-completions bash)```
+    ///  - fish: ```etch gen-completions fish | source```
     #[command(long_about, verbatim_doc_comment)]
     GenCompletions(commands::GenCompletions),
 }
@@ -95,7 +95,7 @@ pub(crate) fn load_config(args: &GlobalArgs) -> Result<Config> {
 
 /// Check the current working directory for a `Comtrya.yaml` file
 /// If that doesn't exist, we'll check the platforms config directory
-/// for comtrya/Comtrya.yaml
+/// for etch/Etch.yaml
 ///
 /// # Arguments
 ///
@@ -237,7 +237,7 @@ mod tests {
             .parent()
             .unwrap()
             .join("examples")
-            .join("Comtrya.yaml")
+            .join("Etch.yaml")
     }
 
     /// Test config returns an error when an invalid configuration path is supplied

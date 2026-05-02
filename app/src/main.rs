@@ -3,9 +3,9 @@ use crate::config::{Commands, GlobalArgs};
 
 use std::io;
 
-use comtrya_lib::contexts::build_contexts;
-use comtrya_lib::contexts::Contexts;
-use comtrya_lib::manifests;
+use etch_lib::contexts::build_contexts;
+use etch_lib::contexts::Contexts;
+use etch_lib::manifests;
 
 use clap::Parser;
 use tracing::{error, Level};
@@ -113,7 +113,7 @@ fn check_for_updates(no_color: bool) {
 
         let cmd = format!(
             "Run to update: {cmd}",
-            cmd = "curl -fsSL https://get.comtrya.dev | sh".green()
+            cmd = "curl -fsSL https://get.etch-cli.dev | sh".green()
         );
 
         println!("\n{msg}\n{changelog}\n{cmd}");

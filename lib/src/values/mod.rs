@@ -72,7 +72,7 @@ impl<'de> Deserialize<'de> for Value {
             type Value = Value;
 
             fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                formatter.write_str("any comtrya context value")
+                formatter.write_str("any etch context value")
             }
 
             fn visit_i64<E>(self, i: i64) -> Result<Value, E>

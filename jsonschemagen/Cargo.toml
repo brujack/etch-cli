@@ -5,7 +5,7 @@ edition = "2021"
 license = "MIT"
 
 [dependencies]
-comtrya-lib = { path = "../lib" }
+etch-lib = { path = "../lib" }
 schemars = "1.2"
 serde_json = "1.0"
 

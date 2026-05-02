@@ -52,7 +52,7 @@
               "type": "string"
             },
             "dir": {
-              "default": "/Users/rawkode/Code/src/github.com/comtrya/comtrya/jsonschemagen",
+              "default": "/Users/rawkode/Code/src/github.com/brujack/etch-cli/jsonschemagen",
               "type": "string"
             },
             "sudo": {
@@ -873,7 +873,7 @@
           "type": "string"
         },
         "dir": {
-          "default": "/Users/rawkode/Code/src/github.com/comtrya/comtrya/jsonschemagen",
+          "default": "/Users/rawkode/Code/src/github.com/brujack/etch-cli/jsonschemagen",
           "type": "string"
         },
         "sudo": {

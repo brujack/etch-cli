@@ -129,7 +129,7 @@ impl Repo {
     fn path(&self) -> Result<PathBuf> {
         let plugins_path = data_local_dir()
             .context("Failed to locate local data directory")?
-            .join("comtrya")
+            .join("etch")
             .join("plugins")
             .join(self.repo.to_string());
 

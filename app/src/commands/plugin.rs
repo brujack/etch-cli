@@ -19,7 +19,7 @@ use gix::{
 };
 
 fn plugin_path() -> PathBuf {
-    data_local_dir().unwrap().join("comtrya").join("plugins")
+    data_local_dir().unwrap().join("etch").join("plugins")
 }
 
 #[derive(Subcommand, Debug)]

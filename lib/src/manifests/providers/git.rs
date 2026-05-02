@@ -37,7 +37,7 @@ impl ManifestProvider for GitManifestProvider {
         let clean_url = self.clean_git_url(&config.repository);
         let cache_path = dirs_next::cache_dir()
             .ok_or(ManifestProviderError::NoResolution)?
-            .join("comtrya")
+            .join("etch")
             .join("manifests")
             .join("git")
             .join(clean_url);

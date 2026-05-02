@@ -1,4 +1,4 @@
-use comtrya_lib::manifests::Manifest;
+use etch_lib::manifests::Manifest;
 use schemars::schema_for;
 
 fn main() {
