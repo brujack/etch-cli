@@ -95,7 +95,7 @@ privilege: sudo # sudo | doas | run0
 
 **Run tests:** `make test`
 
-The test suite is inherited from comtrya and covers unit tests in `lib/src/` and integration tests in `app/tests/`. Current coverage is approximately 28% — the floor for the tarpaulin CI gate is set at 25% and should be raised as tests are added.
+The test suite is inherited from comtrya and covers unit tests in `lib/src/` and integration tests in `app/tests/`. Current coverage is approximately 39% — the floor for the tarpaulin CI gate is set at 25% and should be raised as tests are added.
 
 ```bash
 cargo test                     # all tests
@@ -146,5 +146,5 @@ gh pr create --repo brujack/etch-cli
 
 - **Phase 1** (done): fork, rename, security audit, CI, hooks, smoke test manifests
 - **Phase 2** (pending): migrate one shell script from dotfiles into a manifest; identify rough edges
-- **Phase 3** (pending): prune unused package manager providers (keep Homebrew + one Linux distro)
+- **Phase 3** (done): pare down to Ubuntu 24.04/26.04 and macOS only; removed 11 provider files
 - **Later:** ntfy notification action; macOS defaults ergonomics improvements
