@@ -33,7 +33,6 @@ impl UserProviders {
     }
 }
 
-#[allow(clippy::derivable_impls)]
 impl Default for UserProviders {
     #[cfg(target_os = "linux")]
     fn default() -> Self {
