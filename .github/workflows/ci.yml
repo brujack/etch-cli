@@ -88,6 +88,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [test, build, secret-scan, snyk-scan]
     if: github.event_name == 'pull_request'
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@v5
       - name: Auto merge on CI pass
