@@ -1,102 +1,84 @@
-> [!IMPORTANT]
-> We couldn't find any new maintainer(s) in the last 2 months and therefore I'll archive comtrya. Feel free to fork it and continue :)
-> Thanks @rawkode and all other maintainers over time for the awesome work!
+# etch-cli
 
-# Comtrya
+[![CI](https://img.shields.io/github/actions/workflow/status/brujack/etch-cli/ci.yml?event=pull_request&style=for-the-badge)](https://github.com/brujack/etch-cli/actions/workflows/ci.yml)
+[![License](https://img.shields.io/github/license/brujack/etch-cli?style=for-the-badge)](https://github.com/brujack/etch-cli/blob/main/LICENSE)
 
-![Comtrya](/Comtrya.gif "Hello")
+Declarative configuration management for personal workstations. Define your packages, dotfiles, git repos, and macOS defaults in YAML manifests and apply them with a single command.
 
-> This is better, yes?
-
----
-
-[![License](https://img.shields.io/github/license/comtrya/comtrya?style=for-the-badge)](https://github.com/comtrya/comtrya/blob/main/LICENSE)
-
-[![Latest GitHub Release](https://img.shields.io/github/v/release/comtrya/comtrya?label=Latest&style=for-the-badge)](https://github.com/comtrya/comtrya/releases/latest)
-[![GitHub Actions Status](https://img.shields.io/github/actions/workflow/status/comtrya/comtrya/main.yaml?branch=main&style=for-the-badge)](https://github.com/comtrya/comtrya/actions/workflows/main.yml)
-
-[![Codecov](https://img.shields.io/codecov/c/github/comtrya/comtrya?style=for-the-badge)](https://codecov.io/gh/comtrya/comtrya)
-
-[![Discord](https://img.shields.io/discord/730728064031653999?label=Discord&style=for-the-badge)](https://rawkode.chat)
-
-[![Packaging status](https://repology.org/badge/vertical-allrepos/comtrya.svg)](https://repology.org/metapackage/comtrya)
+> **Note:** etch-cli is a personal fork of [comtrya](https://github.com/comtrya/comtrya) (archived April 2026, MIT license). The upstream project is maintained by [@rawkode](https://github.com/rawkode) and contributors; all credit for the original design and implementation goes to them.
 
 ---
-
-Want to learn how to use Comtrya? [Check the docs](https://comtrya.dev).
-
-Comtrya now also has documentation in the repository located in the `docs/` folder. In order to use it, please install
-[mdbook](https://github.com/rust-lang/mdBook) using `cargo install mdbook`. Navigate to the `docs/` directory and run
-`mdbook serve`. The documentation will be available through your web browser usually on `localhost:3000`.
-
----
-
-## About
-
-Comtrya is a tool to help provision a fresh OS with the packages and configuration (dotfiles) you need to become productive again.
-
-I'm a serial OS installer, I wipe the OS on my machines every, approx, 30 days. I've primarily relied on SaltStack to automate this, but I've grown frustrated with the mismatch between configuration management and personal provisioning.
-
-I've also tried Ansible, Chef, Puppet, mgmt, and probably anything else you're about to suggest; they all have a flaw that makes it too cumbersome to adopt for the trivial use-case.
 
 ## Installing
 
-You'll find binaries over on the [releases page](https://github.com/comtrya/comtrya/releases/latest).
-
-If you're not feeling risk-averse, you can use this one-liner:
-
 ```shell
-curl -fsSL https://get.comtrya.dev | sh
+cargo install etch-cli
 ```
 
-or specify `VERSION=vx.x.x` to pin to a release version
+Or build from source:
 
 ```shell
-curl -fsSL https://get.comtrya.dev | VERSION=v0.9.2 sh
+git clone https://github.com/brujack/etch-cli.git
+cd etch-cli
+cargo build --release
+# binary at target/release/etch
 ```
-
-If this doesn't work for your OS and architecture, please open an issue and we'll do our best to support it.
 
 ## Usage
 
 ```shell
-# Run all manifests within your current directory
-comtrya apply
+# Apply all manifests in the current directory
+etch apply
 
-# --manifests, or -m, will run a subset of your manifests
-comtrya apply -m one,two,three
+# Apply a subset of manifests
+etch apply -m one,two,three
 
-# Run all manifests within a specified directory
-comtrya -d ./manifests apply
+# Apply manifests from a specific directory
+etch -d ./manifests apply
+
+# Dry run — show what would change without applying
+etch apply --dry-run
 ```
 
-## What's Next?
+## Manifest format
 
-You should take a look at the issues page to see what's available to contribute. Below is a short list of the major features that are upcoming.
+Manifests are YAML files describing actions to perform:
 
-### Better Output
+```yaml
+actions:
+    - action: command.run
+      command: echo
+      args:
+          - hello from etch
 
-Providing a `--quiet` or `--summary` option that restricts the output to the run time
+    - action: package.install
+      name: htop
+
+    - action: file.link
+      from: ~/.dotfiles/.zshrc
+      to: ~/.zshrc
+```
+
+See the [comtrya documentation](https://comtrya.dev) for the full action catalog — the manifest format is identical.
+
+## Action catalog
+
+| Action                                      | Description                              |
+| ------------------------------------------- | ---------------------------------------- |
+| `command.run`                               | Run shell commands                       |
+| `directory.create` / `directory.copy`       | Manage directories                       |
+| `file.copy` / `file.link` / `file.template` | Manage files                             |
+| `git.clone`                                 | Clone git repositories                   |
+| `package.install`                           | Install packages (Homebrew, apt, dnf, …) |
+| `macos.defaults`                            | Write macOS defaults                     |
+| `group` / `user`                            | Manage Unix groups and users             |
+| `binary`                                    | Install binaries from GitHub releases    |
+
+## Development
 
 ```shell
-Comtrya finished in 12.3s
-
-Installed Packages: 12
-Provisioned Files: 34
+make test     # lint + test
+make lint     # cargo clippy -D warnings
+make build    # cargo build --release
+make install-hooks  # install pre-commit and pre-push hooks (run once per checkout)
 ```
-
-### Async DAG
-
-We're using [petgraph](https://github.com/petgraph/petgraph) to build out the graph, but we're not traversing it in a way that will allow us to concurrently execute manifests at the same depth. This is something I wish to sort out pretty soon.
-
-### Package Provider Enhancements
-
-Currently, we execute arbitrary `packager install` commands. The provider spec should be enriched to support:
-
--   List refresh
--   Upgrades
--   Version pinning
-
-### Integration tests
-
-We are a bit light on tests at the moment, but we have started introducing some helpful plumbing in [tests](comtrya/app/tests).

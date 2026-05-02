@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - master
+      - main
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Lint
+        run: cargo clippy -- -D warnings
+      - name: Test
+        run: cargo test
+
+  build:
+    name: Build Release Binary
+    runs-on: ubuntu-latest
+    needs: [test]
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-release-${{ hashFiles('**/Cargo.lock') }}
+      - name: Build release
+        run: cargo build --release
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: etch-linux-amd64
+          path: target/release/etch
+          retention-days: 7
+
+  secret-scan:
+    name: Secret Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 20
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+  snyk-scan:
+    name: Snyk Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Run Snyk code scan
+        uses: snyk/actions/node@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          command: code test
+
+  auto-merge:
+    name: Auto Merge
+    runs-on: ubuntu-latest
+    needs: [test, build, secret-scan, snyk-scan]
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v5
+      - name: Auto merge on CI pass
+        run: gh pr merge --squash --auto "${{ github.event.pull_request.number }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
