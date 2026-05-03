@@ -52,3 +52,29 @@ impl Atom for Clone {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn plan_should_run_when_directory_does_not_exist() {
+        let tmp = tempfile::tempdir().unwrap();
+        let target = tmp.path().join("not_yet_cloned");
+        let atom = Clone {
+            repository: gix::url::parse("https://github.com/example/repo.git".into()).unwrap(),
+            directory: target,
+        };
+        assert!(atom.plan().unwrap().should_run);
+    }
+
+    #[test]
+    fn plan_should_not_run_when_directory_exists() {
+        let tmp = tempfile::tempdir().unwrap();
+        let atom = Clone {
+            repository: gix::url::parse("https://github.com/example/repo.git".into()).unwrap(),
+            directory: tmp.path().to_path_buf(),
+        };
+        assert!(!atom.plan().unwrap().should_run);
+    }
+}
