@@ -3,7 +3,7 @@ actions:
     path: "{{ user.home_dir }}/etch-test-output"
 
   - action: file.copy
-    from: "{{ manifest_dir }}/fixtures/hello.txt"
+    from: "hello.txt"
     to: "{{ user.home_dir }}/etch-test-output/hello-copy.txt"
 
   - action: file.link
