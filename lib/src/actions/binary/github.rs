@@ -153,3 +153,80 @@ impl Action for BinaryGitHub {
         ])
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::actions::Actions;
+    use crate::contexts::Contexts;
+    use crate::manifests::Manifest;
+
+    #[test]
+    fn it_can_be_deserialized() {
+        let yaml = r#"
+- action: binary.github
+  name: gitleaks
+  directory: /usr/local/bin
+  repository: gitleaks/gitleaks
+  version: latest
+"#;
+        let mut actions: Vec<Actions> = serde_yaml_ng::from_str(yaml).unwrap();
+        match actions.pop() {
+            Some(Actions::BinaryGitHub(action)) => {
+                assert_eq!("gitleaks", action.action.name);
+                assert_eq!("/usr/local/bin", action.action.directory);
+                assert_eq!("gitleaks/gitleaks", action.action.repository);
+                assert_eq!(Some(String::from("latest")), action.action.version);
+            }
+            _ => panic!("BinaryGitHub didn't deserialize"),
+        }
+    }
+
+    #[test]
+    fn plan_returns_empty_when_binary_already_exists() {
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::write(tmp.path().join("mytool"), b"fake binary").unwrap();
+
+        let action = BinaryGitHub {
+            name: String::from("mytool"),
+            directory: tmp.path().display().to_string(),
+            repository: String::from("owner/repo"),
+            version: None,
+        };
+
+        let steps = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+        assert_eq!(0, steps.len());
+    }
+
+    #[test]
+    fn plan_errors_on_invalid_repository_format() {
+        let tmp = tempfile::tempdir().unwrap();
+        let action = BinaryGitHub {
+            name: String::from("mytool"),
+            directory: tmp.path().display().to_string(),
+            repository: String::from("no-slash-here"),
+            version: None,
+        };
+        assert!(action
+            .plan(&Manifest::default(), &Contexts::default())
+            .is_err());
+    }
+
+    #[test]
+    #[ignore]
+    fn plan_downloads_real_github_release() {
+        let tmp = tempfile::tempdir().unwrap();
+        let action = BinaryGitHub {
+            name: String::from("gitleaks"),
+            directory: tmp.path().display().to_string(),
+            repository: String::from("gitleaks/gitleaks"),
+            version: Some(String::from("v8.30.1")),
+        };
+        let steps = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+        assert_eq!(2, steps.len());
+    }
+}
