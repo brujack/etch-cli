@@ -123,83 +123,140 @@ impl UserProvider for LinuxUserProvider {
     }
 }
 
-#[cfg(target_os = "linux")]
 #[cfg(test)]
 mod test {
     use crate::actions::user::providers::{LinuxUserProvider, UserProvider};
     use crate::actions::user::{add_group::UserAddGroup, UserVariant};
     use crate::contexts::Contexts;
+    use serial_test::serial;
+    use std::os::unix::fs::PermissionsExt;
+
+    fn write_mock_bin(dir: &std::path::Path, name: &str) {
+        let path = dir.join(name);
+        std::fs::write(&path, "#!/usr/bin/env bash\nexit 0\n").unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
+    }
+
+    fn with_mock_bins<F: FnOnce()>(bins: &[&str], f: F) {
+        let tmp = tempfile::tempdir().unwrap();
+        for bin in bins {
+            write_mock_bin(tmp.path(), bin);
+        }
+        let old_path = std::env::var("PATH").unwrap_or_default();
+        std::env::set_var("PATH", format!("{}:{}", tmp.path().display(), old_path));
+        f();
+        std::env::set_var("PATH", old_path);
+    }
 
     #[test]
+    #[serial]
     fn test_add_user() {
-        let user_provider = LinuxUserProvider {};
-        let contexts = Contexts::default();
-        let steps = user_provider.add_user(
-            &UserVariant {
-                username: String::from("test"),
-                shell: String::from("sh"),
-                home_dir: String::from("/home/test"),
-                fullname: String::from("Test User"),
-                group: vec![],
-                ..Default::default()
-            },
-            &contexts,
-        );
-
-        assert_eq!(steps.unwrap().len(), 1);
+        with_mock_bins(&["useradd", "usermod"], || {
+            let user_provider = LinuxUserProvider {};
+            let contexts = Contexts::default();
+            let steps = user_provider
+                .add_user(
+                    &UserVariant {
+                        username: String::from("test"),
+                        shell: String::from("sh"),
+                        home_dir: String::from("/home/test"),
+                        fullname: String::from("Test User"),
+                        group: vec![],
+                        ..Default::default()
+                    },
+                    &contexts,
+                )
+                .unwrap();
+            assert_eq!(1, steps.len());
+        });
     }
 
     #[test]
+    #[serial]
     fn test_add_user_no_username() {
-        let user_provider = LinuxUserProvider {};
-        let contexts = Contexts::default();
-        let steps = user_provider.add_user(
-            &UserVariant {
-                username: String::from(""),
-                shell: String::from("sh"),
-                home_dir: String::from("/home/test"),
-                fullname: String::from("Test User"),
-                group: vec![],
-                ..Default::default()
-            },
-            &contexts,
-        );
-
-        assert_eq!(steps.unwrap().len(), 0);
+        with_mock_bins(&["useradd"], || {
+            let user_provider = LinuxUserProvider {};
+            let contexts = Contexts::default();
+            let steps = user_provider
+                .add_user(
+                    &UserVariant {
+                        username: String::from(""),
+                        shell: String::from("sh"),
+                        home_dir: String::from("/home/test"),
+                        fullname: String::from("Test User"),
+                        group: vec![],
+                        ..Default::default()
+                    },
+                    &contexts,
+                )
+                .unwrap();
+            assert_eq!(0, steps.len());
+        });
     }
 
     #[test]
+    #[serial]
     fn test_add_to_group() {
-        let user_provider = LinuxUserProvider {};
-        let contexts = Contexts::default();
-        let steps = user_provider.add_to_group(
-            &UserAddGroup {
-                username: String::from("test"),
-                group: vec![String::from("testgroup"), String::from("wheel")],
-                ..Default::default()
-            },
-            &contexts,
-        );
-
-        assert_eq!(steps.unwrap().len(), 2);
+        with_mock_bins(&["usermod"], || {
+            let user_provider = LinuxUserProvider {};
+            let contexts = Contexts::default();
+            let steps = user_provider
+                .add_to_group(
+                    &UserAddGroup {
+                        username: String::from("test"),
+                        group: vec![String::from("testgroup"), String::from("wheel")],
+                        ..Default::default()
+                    },
+                    &contexts,
+                )
+                .unwrap();
+            assert_eq!(2, steps.len());
+        });
     }
 
     #[test]
+    #[serial]
     fn test_create_user_add_to_group() {
+        with_mock_bins(&["useradd", "usermod"], || {
+            let user_provider = LinuxUserProvider {};
+            let contexts = Contexts::default();
+            let steps = user_provider
+                .add_user(
+                    &UserVariant {
+                        username: String::from("test"),
+                        shell: String::from(""),
+                        home_dir: String::from(""),
+                        fullname: String::from(""),
+                        group: vec![String::from("testgroup")],
+                        ..Default::default()
+                    },
+                    &contexts,
+                )
+                .unwrap();
+            assert_eq!(2, steps.len());
+        });
+    }
+
+    #[test]
+    #[serial]
+    fn test_add_user_returns_empty_when_useradd_not_found() {
+        let tmp = tempfile::tempdir().unwrap();
+        let old_path = std::env::var("PATH").unwrap_or_default();
+        std::env::set_var("PATH", tmp.path().display().to_string());
+
         let user_provider = LinuxUserProvider {};
         let contexts = Contexts::default();
-        let steps = user_provider.add_user(
-            &UserVariant {
-                username: String::from("test"),
-                shell: String::from(""),
-                home_dir: String::from(""),
-                fullname: String::from(""),
-                group: vec![String::from("testgroup")],
-                ..Default::default()
-            },
-            &contexts,
-        );
+        let steps = user_provider
+            .add_user(
+                &UserVariant {
+                    username: String::from("test"),
+                    ..Default::default()
+                },
+                &contexts,
+            )
+            .unwrap();
 
-        assert_eq!(steps.unwrap().len(), 2);
+        std::env::set_var("PATH", old_path);
+        assert_eq!(0, steps.len());
     }
 }
