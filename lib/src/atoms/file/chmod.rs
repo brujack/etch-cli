@@ -183,4 +183,13 @@ mod tests {
         assert_eq!(true, file_chmod.execute().is_ok());
         assert_eq!(false, file_chmod.plan().unwrap().should_run);
     }
+
+    #[test]
+    fn plan_should_run_true_when_file_does_not_exist() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("nonexistent");
+        let atom = Chmod { path, mode: 0o644 };
+        // File doesn't exist — atom assumes another atom will create it
+        assert!(atom.plan().unwrap().should_run);
+    }
 }

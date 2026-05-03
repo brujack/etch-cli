@@ -270,4 +270,44 @@ mod tests {
         let mut command_run = new_run_command(String::from("non-existant-command"));
         command_run.execute().expect_err("Command should fail");
     }
+
+    #[test]
+    fn execute_succeeds_for_echo() {
+        let mut exec = Exec {
+            command: String::from("echo"),
+            arguments: vec![String::from("hello")],
+            ..Default::default()
+        };
+        assert!(exec.execute().is_ok());
+    }
+
+    #[test]
+    fn execute_fails_for_false_command() {
+        let mut exec = Exec {
+            command: String::from("false"),
+            ..Default::default()
+        };
+        assert!(exec.execute().is_err());
+    }
+
+    #[test]
+    fn execute_with_working_dir() {
+        let tmp = tempfile::tempdir().unwrap();
+        let mut exec = Exec {
+            command: String::from("echo"),
+            arguments: vec![String::from("hello")],
+            working_dir: Some(tmp.path().display().to_string()),
+            ..Default::default()
+        };
+        assert!(exec.execute().is_ok());
+    }
+
+    #[test]
+    fn plan_always_returns_should_run_true() {
+        let exec = Exec {
+            command: String::from("echo"),
+            ..Default::default()
+        };
+        assert!(exec.plan().unwrap().should_run);
+    }
 }
