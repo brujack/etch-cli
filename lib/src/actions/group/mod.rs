@@ -58,3 +58,35 @@ impl From<&Group> for GroupVariant {
         group
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::actions::Actions;
+
+    #[test]
+    fn group_add_can_be_deserialized() {
+        let yaml = r#"
+- action: group.add
+  group_name: admins
+"#;
+        let mut actions: Vec<Actions> = serde_yaml_ng::from_str(yaml).unwrap();
+        match actions.pop() {
+            Some(Actions::GroupAdd(action)) => {
+                assert_eq!(action.action.group_name, "admins");
+            }
+            _ => panic!("Expected GroupAdd action"),
+        }
+    }
+
+    #[test]
+    fn group_variant_from_group_no_variants() {
+        use super::{Group, GroupVariant};
+
+        let group = Group {
+            group_name: "developers".to_string(),
+            ..Default::default()
+        };
+        let variant: GroupVariant = (&group).into();
+        assert_eq!(variant.group_name, "developers");
+    }
+}

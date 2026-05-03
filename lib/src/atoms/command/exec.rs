@@ -310,4 +310,61 @@ mod tests {
         };
         assert!(exec.plan().unwrap().should_run);
     }
+
+    #[test]
+    fn output_string_after_execute() {
+        let mut exec = Exec {
+            command: String::from("echo"),
+            arguments: vec![String::from("hello-output")],
+            ..Default::default()
+        };
+        exec.execute().unwrap();
+        assert!(exec.output_string().contains("hello-output"));
+    }
+
+    #[test]
+    fn output_string_empty_before_execute() {
+        let exec = Exec {
+            command: String::from("echo"),
+            ..Default::default()
+        };
+        assert_eq!(exec.output_string(), "");
+    }
+
+    #[test]
+    fn error_message_empty_after_successful_execute() {
+        let mut exec = Exec {
+            command: String::from("echo"),
+            arguments: vec![String::from("hi")],
+            ..Default::default()
+        };
+        exec.execute().unwrap();
+        assert_eq!(exec.error_message(), "");
+    }
+
+    #[test]
+    fn display_format() {
+        let exec = Exec {
+            command: String::from("ls"),
+            arguments: vec![String::from("-la")],
+            privileged: true,
+            ..Default::default()
+        };
+        let display = format!("{exec}");
+        assert!(display.contains("ls"));
+        assert!(display.contains("-la"));
+        assert!(display.contains("privileged=true"));
+    }
+
+    #[test]
+    fn execute_with_environment() {
+        let mut exec = Exec {
+            command: String::from("env"),
+            environment: vec![(String::from("MY_TEST_VAR"), String::from("test_value"))],
+            ..Default::default()
+        };
+        let result = exec.execute();
+        assert!(result.is_ok());
+        assert!(exec.output_string().contains("MY_TEST_VAR=test_value"));
+    }
 }

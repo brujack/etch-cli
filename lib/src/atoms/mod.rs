@@ -59,3 +59,46 @@ impl std::fmt::Display for Echo {
         write!(f, "Echo: {}", self.0)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn echo_plan_returns_should_run_true() {
+        let echo = Echo("test");
+        let outcome = echo.plan().unwrap();
+        assert!(outcome.should_run);
+        assert!(outcome.side_effects.is_empty());
+    }
+
+    #[test]
+    fn echo_execute_returns_ok() {
+        let mut echo = Echo("test");
+        assert!(echo.execute().is_ok());
+    }
+
+    #[test]
+    fn echo_output_string_returns_content() {
+        let echo = Echo("hello");
+        assert_eq!(echo.output_string(), "hello");
+    }
+
+    #[test]
+    fn echo_error_message_returns_empty() {
+        let echo = Echo("test");
+        assert_eq!(echo.error_message(), "");
+    }
+
+    #[test]
+    fn echo_status_code_returns_zero() {
+        let echo = Echo("test");
+        assert_eq!(echo.status_code(), 0);
+    }
+
+    #[test]
+    fn echo_display_format() {
+        let echo = Echo("stargate");
+        assert_eq!(format!("{echo}"), "Echo: stargate");
+    }
+}

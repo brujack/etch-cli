@@ -113,3 +113,35 @@ impl From<&Package> for PackageVariant {
         package
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn package_variant_from_package_with_name() {
+        let pkg = Package {
+            name: Some("curl".to_string()),
+            ..Default::default()
+        };
+        let variant: PackageVariant = (&pkg).into();
+        assert_eq!(variant.packages(), vec!["curl"]);
+    }
+
+    #[test]
+    fn package_variant_from_package_with_list() {
+        let pkg = Package {
+            list: vec!["git".to_string(), "vim".to_string()],
+            ..Default::default()
+        };
+        let variant: PackageVariant = (&pkg).into();
+        assert_eq!(variant.packages(), vec!["git", "vim"]);
+    }
+
+    #[test]
+    fn package_variant_packages_empty_when_no_name_or_list() {
+        let pkg = Package::default();
+        let variant: PackageVariant = (&pkg).into();
+        assert!(variant.packages().is_empty());
+    }
+}

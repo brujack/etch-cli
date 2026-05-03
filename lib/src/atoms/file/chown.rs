@@ -211,4 +211,54 @@ mod tests {
 
         assert_eq!(true, file_chown.plan().unwrap().should_run);
     }
+
+    #[test]
+    fn plan_should_run_when_file_does_not_exist() {
+        let tmp = tempfile::tempdir().unwrap();
+        let atom = Chown {
+            path: tmp.path().join("nonexistent"),
+            owner: "root".to_string(),
+            group: "root".to_string(),
+        };
+        assert!(atom.plan().unwrap().should_run);
+    }
+
+    #[test]
+    fn plan_returns_false_when_owner_does_not_exist() {
+        let temp_file = tempfile::NamedTempFile::new().unwrap();
+        let atom = Chown {
+            path: temp_file.path().to_path_buf(),
+            owner: "__nonexistent_user_xyz__".to_string(),
+            group: "staff".to_string(),
+        };
+        assert!(!atom.plan().unwrap().should_run);
+    }
+
+    #[test]
+    fn plan_returns_false_when_group_does_not_exist() {
+        let temp_file = tempfile::NamedTempFile::new().unwrap();
+        let user = uzers::get_current_username()
+            .unwrap_or_else(|| std::ffi::OsString::from("root"))
+            .into_string()
+            .unwrap();
+        let atom = Chown {
+            path: temp_file.path().to_path_buf(),
+            owner: user,
+            group: "__nonexistent_group_xyz__".to_string(),
+        };
+        assert!(!atom.plan().unwrap().should_run);
+    }
+
+    #[test]
+    fn display_format() {
+        let atom = Chown {
+            path: std::path::PathBuf::from("/tmp/myfile.txt"),
+            owner: "alice".to_string(),
+            group: "users".to_string(),
+        };
+        let display = format!("{atom}");
+        assert!(display.contains("myfile.txt"));
+        assert!(display.contains("alice"));
+        assert!(display.contains("users"));
+    }
 }

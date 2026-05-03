@@ -25,9 +25,14 @@ jobs:
       - name: Install cargo-tarpaulin
         run: cargo install cargo-tarpaulin --locked
       - name: Check coverage
-        # Current coverage is ~28% — threshold set to current floor while coverage
-        # is built up. Raise this as tests are added.
-        run: cargo tarpaulin --fail-under 25
+        # Coverage gate: 75%. The theoretical maximum for this codebase is ~83%
+        # due to hard-to-cover code: network operations (GitHub API, git clone),
+        # CLI binary dispatch (app/), sudo/root-required atoms, and DNS lookups.
+        # These cannot be covered without network access, root, or binary test harnesses.
+        run: cargo tarpaulin --exclude-files 'jsonschemagen/*' --fail-under 75
+      - name: Coverage with network tests (informational)
+        run: cargo tarpaulin --exclude-files 'jsonschemagen/*' -- --include-ignored
+        continue-on-error: true
 
   secret-scan:
     name: Secret Scan

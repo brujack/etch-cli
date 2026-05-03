@@ -192,4 +192,27 @@ mod tests {
         // File doesn't exist — atom assumes another atom will create it
         assert!(atom.plan().unwrap().should_run);
     }
+
+    #[test]
+    fn display_format() {
+        let atom = Chmod {
+            path: std::path::PathBuf::from("/tmp/myfile.txt"),
+            mode: 0o755,
+        };
+        let display = format!("{atom}");
+        assert!(display.contains("myfile.txt"));
+        assert!(display.contains("755"));
+    }
+
+    #[test]
+    fn get_path_returns_path() {
+        use super::super::FileAtom;
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("test.txt");
+        let atom = Chmod {
+            path: path.clone(),
+            mode: 0o644,
+        };
+        assert_eq!(atom.get_path(), &path);
+    }
 }

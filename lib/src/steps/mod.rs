@@ -224,4 +224,34 @@ mod tests {
 
         assert_eq!(false, step.do_finalizers_allow_us_to_continue());
     }
+
+    #[test]
+    fn ensure_finalizer_returns_true_when_finalizer_returns_true() {
+        let step = Step {
+            atom: Box::new(EchoAtom("hello-world")),
+            initializers: vec![],
+            finalizers: vec![FinalizerFlowControl::Ensure(Box::new(EchoFinalizer(true)))],
+        };
+        assert_eq!(true, step.do_finalizers_allow_us_to_continue());
+    }
+
+    #[test]
+    fn ensure_finalizer_returns_false_when_finalizer_returns_false() {
+        let step = Step {
+            atom: Box::new(EchoAtom("hello-world")),
+            initializers: vec![],
+            finalizers: vec![FinalizerFlowControl::Ensure(Box::new(EchoFinalizer(false)))],
+        };
+        assert_eq!(false, step.do_finalizers_allow_us_to_continue());
+    }
+
+    #[test]
+    fn ensure_finalizer_that_errors_blocks_execution() {
+        let step = Step {
+            atom: Box::new(EchoAtom("hello-world")),
+            initializers: vec![],
+            finalizers: vec![FinalizerFlowControl::Ensure(Box::new(ErrorFinalizer()))],
+        };
+        assert_eq!(false, step.do_finalizers_allow_us_to_continue());
+    }
 }

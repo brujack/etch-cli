@@ -68,6 +68,30 @@ mod tests {
     use super::*;
 
     #[test]
+    fn display_format() {
+        let atom = Unarchive {
+            origin: std::path::PathBuf::from("/tmp/archive.tar.gz"),
+            dest: std::path::PathBuf::from("/tmp/output"),
+            force: false,
+        };
+        let display = format!("{atom}");
+        assert!(display.contains("archive.tar.gz"));
+        assert!(display.contains("output"));
+    }
+
+    #[test]
+    fn get_path_returns_origin() {
+        use super::super::FileAtom;
+        let origin = std::path::PathBuf::from("/tmp/archive.tar.gz");
+        let atom = Unarchive {
+            origin: origin.clone(),
+            dest: std::path::PathBuf::from("/tmp/output"),
+            force: false,
+        };
+        assert_eq!(atom.get_path(), &origin);
+    }
+
+    #[test]
     fn plan_should_run_when_dest_does_not_exist() {
         let fixture =
             std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/fixtures/test.tar.gz");

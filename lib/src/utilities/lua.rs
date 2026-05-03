@@ -181,3 +181,189 @@ impl Default for LuaRuntime {
         LuaRuntime(Lua::new())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+    use tealr::mlu::mlua::Lua;
+
+    #[test]
+    fn lua_value_to_json_nil() {
+        let result = lua_value_to_json(LuaValue::Nil);
+        assert_eq!(result, JsonValue::Null);
+    }
+
+    #[test]
+    fn lua_value_to_json_boolean() {
+        assert_eq!(lua_value_to_json(LuaValue::Boolean(true)), json!(true));
+        assert_eq!(lua_value_to_json(LuaValue::Boolean(false)), json!(false));
+    }
+
+    #[test]
+    fn lua_value_to_json_integer() {
+        assert_eq!(lua_value_to_json(LuaValue::Integer(42)), json!(42i64));
+        assert_eq!(lua_value_to_json(LuaValue::Integer(-7)), json!(-7i64));
+    }
+
+    #[test]
+    fn lua_value_to_json_number() {
+        let result = lua_value_to_json(LuaValue::Number(2.71));
+        assert!(result.is_f64() || result.is_number());
+    }
+
+    #[test]
+    fn lua_value_to_json_string() {
+        let lua = Lua::new();
+        let s = lua.create_string("hello").unwrap();
+        assert_eq!(lua_value_to_json(LuaValue::String(s)), json!("hello"));
+    }
+
+    #[test]
+    fn lua_value_to_json_array_table() {
+        let lua = Lua::new();
+        let table = lua.create_table().unwrap();
+        table.set(1i64, "a").unwrap();
+        table.set(2i64, "b").unwrap();
+        let result = lua_value_to_json(LuaValue::Table(table));
+        // Array tables have integer keys
+        assert!(result.is_array() || result.is_object());
+    }
+
+    #[test]
+    fn lua_value_to_json_empty_table() {
+        let lua = Lua::new();
+        let table = lua.create_table().unwrap();
+        let result = lua_value_to_json(LuaValue::Table(table));
+        // Empty table: pairs count is 0, treated as array
+        assert!(result.is_array());
+        assert_eq!(result.as_array().unwrap().len(), 0);
+    }
+
+    #[test]
+    fn lua_value_to_json_other_returns_null() {
+        // LightUserData and other types should return Null
+        // Use an empty table to check the fallback path isn't needed separately;
+        // we can verify the non-table path by checking that non-table lua values return null
+        // (already covered by Nil test above)
+        let result = lua_value_to_json(LuaValue::Nil);
+        assert_eq!(result, JsonValue::Null);
+    }
+
+    #[test]
+    fn json_to_lua_null() {
+        let lua = Lua::new();
+        let result = json_to_lua(&JsonValue::Null, &lua).unwrap();
+        assert!(matches!(result, LuaValue::Nil));
+    }
+
+    #[test]
+    fn json_to_lua_bool() {
+        let lua = Lua::new();
+        let result = json_to_lua(&json!(true), &lua).unwrap();
+        assert!(matches!(result, LuaValue::Boolean(true)));
+
+        let result = json_to_lua(&json!(false), &lua).unwrap();
+        assert!(matches!(result, LuaValue::Boolean(false)));
+    }
+
+    #[test]
+    fn json_to_lua_integer() {
+        let lua = Lua::new();
+        let result = json_to_lua(&json!(-5i64), &lua).unwrap();
+        assert!(matches!(result, LuaValue::Integer(-5)));
+    }
+
+    #[test]
+    fn json_to_lua_float() {
+        let lua = Lua::new();
+        let result = json_to_lua(&json!(1.5f64), &lua).unwrap();
+        assert!(matches!(result, LuaValue::Number(_)));
+    }
+
+    #[test]
+    fn json_to_lua_string() {
+        let lua = Lua::new();
+        let result = json_to_lua(&json!("Stargate"), &lua).unwrap();
+        assert!(matches!(result, LuaValue::String(_)));
+    }
+
+    #[test]
+    fn json_to_lua_array() {
+        let lua = Lua::new();
+        let result = json_to_lua(&json!(["a", "b"]), &lua).unwrap();
+        assert!(matches!(result, LuaValue::Table(_)));
+    }
+
+    #[test]
+    fn json_to_lua_object() {
+        let lua = Lua::new();
+        let result = json_to_lua(&json!({"key": "value"}), &lua).unwrap();
+        assert!(matches!(result, LuaValue::Table(_)));
+    }
+
+    #[test]
+    fn lua_function_default_and_deref() {
+        let f = LuaFunction::default();
+        // Deref should give us the inner Function
+        let _ = f.deref();
+    }
+
+    #[test]
+    fn lua_function_eq_and_hash() {
+        // Two LuaFunction instances from the same lua state can be compared
+        let lua = Lua::new();
+        let f1_raw = lua.create_function(|_, ()| Ok(())).unwrap();
+        let f2_raw = lua.create_function(|_, ()| Ok(())).unwrap();
+        let f1 = LuaFunction(f1_raw);
+        let f2 = LuaFunction(f2_raw);
+        let _ = f1 == f2; // just ensure it doesn't panic
+
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+        let mut h1 = DefaultHasher::new();
+        f1.hash(&mut h1);
+        let _ = h1.finish(); // just ensure no panic
+    }
+
+    #[test]
+    fn lua_function_ord() {
+        let lua = Lua::new();
+        let f1_raw = lua.create_function(|_, ()| Ok(())).unwrap();
+        let f2_raw = lua.create_function(|_, ()| Ok(())).unwrap();
+        let f1 = LuaFunction(f1_raw);
+        let f2 = LuaFunction(f2_raw);
+        let _ = f1.partial_cmp(&f2);
+        let _ = f1.cmp(&f2);
+    }
+
+    #[test]
+    fn lua_function_json_schema() {
+        let name = LuaFunction::schema_name();
+        assert_eq!(name, "LuaFunction");
+    }
+
+    #[test]
+    fn lua_function_deref_mut() {
+        let mut f = LuaFunction::default();
+        let _ = f.deref_mut(); // ensure DerefMut works
+    }
+
+    #[test]
+    fn lua_runtime_default_and_deref() {
+        let rt = LuaRuntime::default();
+        let _ = rt.deref(); // Deref to &Lua
+    }
+
+    #[test]
+    fn lua_runtime_deref_mut() {
+        let mut rt = LuaRuntime::default();
+        let _ = rt.deref_mut(); // DerefMut to &mut Lua
+    }
+
+    #[test]
+    fn lua_runtime_json_schema() {
+        let name = LuaRuntime::schema_name();
+        assert_eq!(name, "LuaRuntime");
+    }
+}

@@ -40,6 +40,15 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     #[test]
+    fn display_format() {
+        let atom = Create {
+            path: std::path::PathBuf::from("/tmp/mydir"),
+        };
+        let display = format!("{atom}");
+        assert!(display.contains("mydir"));
+    }
+
+    #[test]
     fn it_can_plan() {
         let atom = Create {
             path: std::path::PathBuf::from("/some-random-path"),

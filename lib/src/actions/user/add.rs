@@ -39,3 +39,48 @@ impl Action for UserAdd {
         Ok(atoms)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::actions::Actions;
+    use crate::config::Config;
+    use crate::contexts::build_contexts;
+    use crate::manifests::Manifest;
+
+    #[test]
+    fn user_add_can_be_deserialized() {
+        let yaml = r#"
+- action: user.add
+  username: testuser
+"#;
+        let mut actions: Vec<Actions> = serde_yaml_ng::from_str(yaml).unwrap();
+        match actions.pop() {
+            Some(Actions::UserAdd(action)) => {
+                assert_eq!(action.action.username, "testuser");
+            }
+            _ => panic!("Expected UserAdd"),
+        }
+    }
+
+    #[test]
+    fn user_add_summarize() {
+        use super::UserAdd;
+        use crate::actions::Action;
+        let user = UserAdd {
+            username: "alice".to_string(),
+            ..Default::default()
+        };
+        assert!(user.summarize().contains("alice"));
+    }
+
+    #[test]
+    fn user_add_plan_with_empty_username_returns_empty() {
+        use super::UserAdd;
+        use crate::actions::Action;
+        let user = UserAdd::default(); // empty username
+        let manifest = Manifest::default();
+        let contexts = build_contexts(&Config::default());
+        let steps = user.plan(&manifest, &contexts).unwrap();
+        assert!(steps.is_empty());
+    }
+}

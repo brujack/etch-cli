@@ -119,4 +119,26 @@ mod tests {
         assert!(atom.execute().is_ok());
         assert_eq!(b"written content", std::fs::read(&path).unwrap().as_slice());
     }
+
+    #[test]
+    fn display_format() {
+        let atom = SetContents {
+            path: std::path::PathBuf::from("/tmp/myfile.txt"),
+            contents: vec![],
+        };
+        let display = format!("{atom}");
+        assert!(display.contains("myfile.txt"));
+    }
+
+    #[test]
+    fn get_path_returns_path() {
+        use super::super::FileAtom;
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("test.txt");
+        let atom = SetContents {
+            path: path.clone(),
+            contents: vec![],
+        };
+        assert_eq!(atom.get_path(), &path);
+    }
 }

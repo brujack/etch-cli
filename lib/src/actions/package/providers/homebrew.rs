@@ -148,4 +148,36 @@ mod test {
         let steps = homebrew.add_repository(&repo, &contexts).unwrap();
         assert_eq!(steps.len(), 1);
     }
+
+    #[test]
+    #[cfg(target_os = "macos")]
+    fn query_returns_packages_when_brew_available() {
+        let homebrew = Homebrew {};
+        if !homebrew.available() {
+            return; // skip if brew not installed
+        }
+        // Query for a package that almost certainly isn't installed
+        let yaml = "name: __no_such_package_xyz123__\nlist: []\nprovider: homebrew\nextra_args: []\nfile: false";
+        let variant: PackageVariant = serde_yaml_ng::from_str(yaml).unwrap_or_default();
+        // query() might fail if brew isn't available, just don't panic
+        let _ = homebrew.query(&variant);
+    }
+
+    #[test]
+    #[cfg(target_os = "macos")]
+    fn install_returns_empty_when_all_installed() {
+        let homebrew = Homebrew {};
+        if !homebrew.available() {
+            return;
+        }
+        // An empty package list means nothing to install
+        let variant = PackageVariant::default();
+        let contexts = Contexts::default();
+        let result = homebrew.install(&variant, &contexts);
+        // Should succeed and return empty (nothing to install)
+        if let Ok(steps) = result {
+            assert!(steps.is_empty());
+        }
+        // If brew isn't available, query() may error — that's acceptable
+    }
 }

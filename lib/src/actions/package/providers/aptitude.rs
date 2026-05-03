@@ -230,6 +230,55 @@ mod test {
     }
 
     #[test]
+    fn test_name() {
+        let aptitude = Aptitude {};
+        assert_eq!(aptitude.name(), "Aptitude");
+    }
+
+    #[test]
+    fn test_available_returns_bool() {
+        let aptitude = Aptitude {};
+        // Just verify it doesn't panic — result depends on whether apt-add-repository is installed
+        let _ = aptitude.available();
+    }
+
+    #[test]
+    fn test_bootstrap_returns_one_step() {
+        let aptitude = Aptitude {};
+        let contexts = Contexts::default();
+        let steps = aptitude.bootstrap(&contexts);
+        assert_eq!(steps.len(), 1);
+    }
+
+    #[test]
+    fn test_has_repository_returns_false() {
+        let aptitude = Aptitude {};
+        let repo = PackageRepository::default();
+        assert!(!aptitude.has_repository(&repo));
+    }
+
+    #[test]
+    fn test_query_returns_packages() {
+        use crate::actions::package::PackageVariant;
+        let aptitude = Aptitude {};
+        let variant = PackageVariant {
+            ..Default::default()
+        };
+        let result = aptitude.query(&variant).unwrap();
+        assert!(result.is_empty()); // no packages set
+    }
+
+    #[test]
+    fn test_install_returns_one_step() {
+        use crate::actions::package::PackageVariant;
+        let aptitude = Aptitude {};
+        let contexts = Contexts::default();
+        let variant = PackageVariant::default();
+        let steps = aptitude.install(&variant, &contexts).unwrap();
+        assert_eq!(steps.len(), 1);
+    }
+
+    #[test]
     fn test_regression_share_ring() {
         let aptitude = Aptitude {};
         let contexts = Contexts::default();

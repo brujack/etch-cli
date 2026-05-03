@@ -120,3 +120,69 @@ pub fn load(manifest_path: PathBuf, contexts: &Contexts) -> HashMap<String, Mani
 
     manifests
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::Config;
+    use crate::contexts::build_contexts;
+    use tempfile::tempdir;
+
+    #[test]
+    fn load_yaml_manifest_from_directory() {
+        let dir = tempdir().unwrap();
+        // Canonicalize the dir to match what load() does internally
+        let real_dir = dir.path().canonicalize().unwrap();
+        let yaml_path = real_dir.join("main.yaml");
+        std::fs::write(&yaml_path, "actions: []\n").unwrap();
+
+        let contexts = build_contexts(&Config::default());
+        let manifests = load(real_dir, &contexts);
+        assert!(!manifests.is_empty());
+    }
+
+    #[test]
+    fn load_skips_invalid_yaml() {
+        let dir = tempdir().unwrap();
+        let real_dir = dir.path().canonicalize().unwrap();
+        let bad_yaml = real_dir.join("bad.yaml");
+        std::fs::write(&bad_yaml, "this: is: not: valid: yaml: [").unwrap();
+
+        let contexts = build_contexts(&Config::default());
+        let manifests = load(real_dir, &contexts);
+        // Invalid yaml should be skipped (logged as error), not panic
+        assert!(manifests.is_empty());
+    }
+
+    #[test]
+    fn load_empty_directory_returns_empty() {
+        let dir = tempdir().unwrap();
+        let contexts = build_contexts(&Config::default());
+        let manifests = load(dir.path().to_path_buf(), &contexts);
+        assert!(manifests.is_empty());
+    }
+
+    #[test]
+    fn load_ignores_non_yaml_files() {
+        let dir = tempdir().unwrap();
+        let real_dir = dir.path().canonicalize().unwrap();
+        let txt_path = real_dir.join("notes.txt");
+        std::fs::write(&txt_path, "not a manifest").unwrap();
+
+        let contexts = build_contexts(&Config::default());
+        let manifests = load(real_dir, &contexts);
+        assert!(manifests.is_empty());
+    }
+
+    #[test]
+    fn load_with_yml_extension() {
+        let dir = tempdir().unwrap();
+        let real_dir = dir.path().canonicalize().unwrap();
+        let yml_path = real_dir.join("main.yml");
+        std::fs::write(&yml_path, "actions: []\n").unwrap();
+
+        let contexts = build_contexts(&Config::default());
+        let manifests = load(real_dir, &contexts);
+        assert!(!manifests.is_empty());
+    }
+}
