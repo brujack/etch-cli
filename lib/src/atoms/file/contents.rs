@@ -96,4 +96,49 @@ mod tests {
         assert_eq!(true, file_contents.execute().is_ok());
         assert_eq!(false, file_contents.plan().unwrap().should_run);
     }
+
+    #[test]
+    fn plan_should_run_true_when_file_does_not_exist() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("nonexistent.txt");
+        let atom = SetContents {
+            path,
+            contents: b"hello".to_vec(),
+        };
+        assert!(atom.plan().unwrap().should_run);
+    }
+
+    #[test]
+    fn execute_writes_contents_to_file() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("output.txt");
+        let mut atom = SetContents {
+            path: path.clone(),
+            contents: b"written content".to_vec(),
+        };
+        assert!(atom.execute().is_ok());
+        assert_eq!(b"written content", std::fs::read(&path).unwrap().as_slice());
+    }
+
+    #[test]
+    fn display_format() {
+        let atom = SetContents {
+            path: std::path::PathBuf::from("/tmp/myfile.txt"),
+            contents: vec![],
+        };
+        let display = format!("{atom}");
+        assert!(display.contains("myfile.txt"));
+    }
+
+    #[test]
+    fn get_path_returns_path() {
+        use super::super::FileAtom;
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("test.txt");
+        let atom = SetContents {
+            path: path.clone(),
+            contents: vec![],
+        };
+        assert_eq!(atom.get_path(), &path);
+    }
 }

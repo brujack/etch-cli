@@ -25,9 +25,13 @@ jobs:
       - name: Install cargo-tarpaulin
         run: cargo install cargo-tarpaulin --locked
       - name: Check coverage
-        # Current coverage is ~28% — threshold set to current floor while coverage
-        # is built up. Raise this as tests are added.
-        run: cargo tarpaulin --fail-under 25
+        # Coverage gate: 65% on Linux CI (ubuntu-latest). Local macOS measurement is
+        # ~75% because macOS provider tests (#[cfg(target_os = "macos")]) add coverage
+        # locally but don't run in CI. The structural ceiling on Linux is ~70%.
+        run: cargo tarpaulin --exclude-files 'jsonschemagen/*' --fail-under 65
+      - name: Coverage with network tests (informational)
+        run: cargo tarpaulin --exclude-files 'jsonschemagen/*' -- --include-ignored
+        continue-on-error: true
 
   secret-scan:
     name: Secret Scan

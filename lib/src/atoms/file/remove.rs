@@ -117,4 +117,44 @@ mod tests {
         assert_eq!(true, file_remove.execute().is_ok());
         assert_eq!(false, file_remove.plan().unwrap().should_run)
     }
+
+    #[test]
+    fn plan_should_not_run_for_nonexistent_path() {
+        let tmp = tempfile::tempdir().unwrap();
+        let atom = Remove {
+            target: tmp.path().join("nonexistent"),
+        };
+        assert!(!atom.plan().unwrap().should_run);
+    }
+
+    #[test]
+    fn plan_should_not_run_for_directory() {
+        let tmp = tempfile::tempdir().unwrap();
+        // target is a directory, not a file
+        let atom = Remove {
+            target: tmp.path().to_path_buf(),
+        };
+        assert!(!atom.plan().unwrap().should_run);
+    }
+
+    #[test]
+    fn display_format() {
+        let tmp = tempfile::tempdir().unwrap();
+        let atom = Remove {
+            target: tmp.path().join("myfile.txt"),
+        };
+        let display = format!("{atom}");
+        assert!(display.contains("myfile.txt"));
+    }
+
+    #[test]
+    fn get_path_returns_target() {
+        use super::super::FileAtom;
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("myfile.txt");
+        let atom = Remove {
+            target: path.clone(),
+        };
+        assert_eq!(atom.get_path(), &path);
+    }
 }

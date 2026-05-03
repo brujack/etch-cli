@@ -64,6 +64,23 @@ mod tests {
     }
 
     #[test]
+    fn display_format() {
+        let atom = Create {
+            path: std::path::PathBuf::from("/tmp/newfile.txt"),
+        };
+        let display = format!("{atom}");
+        assert!(display.contains("newfile.txt"));
+    }
+
+    #[test]
+    fn get_path_returns_path() {
+        use super::super::FileAtom;
+        let path = std::path::PathBuf::from("/tmp/test.txt");
+        let atom = Create { path: path.clone() };
+        assert_eq!(atom.get_path(), &path);
+    }
+
+    #[test]
     fn it_can_execute() {
         let temp_dir = match tempfile::tempdir() {
             std::result::Result::Ok(dir) => dir,

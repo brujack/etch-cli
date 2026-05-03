@@ -76,6 +76,31 @@ mod tests {
     use super::*;
 
     #[test]
+    fn lua_user_error_converts_to_anyhow() {
+        let err = LuaUserError("test error".to_string());
+        let anyhow_err = anyhow::Error::from(err);
+        assert!(anyhow_err.to_string().contains("test error"));
+    }
+
+    #[test]
+    fn setup_globals_adds_sleep_and_error() -> Result<()> {
+        let lua = Lua::new();
+        let contexts = BTreeMap::new();
+        setup_globals(&lua, contexts)?;
+
+        // Verify sleep function was registered
+        let globals = lua.globals();
+        let sleep_fn: tealr::mlu::mlua::Function = globals.get("sleep")?;
+        let _ = sleep_fn; // just verify it exists
+
+        // Verify Error function was registered
+        let error_fn: tealr::mlu::mlua::Function = globals.get("Error")?;
+        let _ = error_fn;
+
+        Ok(())
+    }
+
+    #[test]
     fn can_get_context_from_lua() -> Result<(), LuaError> {
         let lua = Lua::new();
 

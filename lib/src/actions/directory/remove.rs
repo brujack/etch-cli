@@ -61,4 +61,18 @@ mod tests {
             }
         };
     }
+
+    #[test]
+    fn plan_returns_one_step() {
+        use crate::actions::Action;
+        use crate::contexts::Contexts;
+        use crate::manifests::Manifest;
+        let action = super::DirectoryRemove {
+            target: String::from("/tmp/olddir"),
+        };
+        let steps = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+        assert_eq!(1, steps.len());
+    }
 }

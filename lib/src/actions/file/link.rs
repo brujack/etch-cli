@@ -236,6 +236,35 @@ mod tests {
     }
 
     #[test]
+    fn it_links_file_directly() {
+        let tmp = tempfile::tempdir().unwrap();
+        let real_tmp = tmp.path().canonicalize().unwrap();
+        let files_dir = real_tmp.join("files");
+        std::fs::create_dir_all(&files_dir).unwrap();
+        let source_file = files_dir.join("myfile.txt");
+        std::fs::write(&source_file, b"hello").unwrap();
+
+        let manifest: Manifest = Manifest {
+            root_dir: Some(real_tmp.clone()),
+            ..Default::default()
+        };
+
+        let config = Config::default();
+        let contexts = build_contexts(&config);
+
+        let target_path = real_tmp.join("linked_file");
+        let file_link_action: FileLink = FileLink {
+            source: Some("myfile.txt".to_string()),
+            target: Some(target_path.display().to_string()),
+            ..Default::default()
+        };
+
+        let steps = file_link_action.plan(&manifest, &contexts).unwrap();
+        // When source is a file: plan_no_walk returns 2 steps
+        assert_eq!(steps.len(), 2);
+    }
+
+    #[test]
     fn it_can_walk_link_directories() {
         let source_dir = match tempfile::tempdir() {
             Ok(dir) => dir,

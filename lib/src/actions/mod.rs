@@ -329,4 +329,388 @@ actions:
         assert_eq!(variant.condition, Some(String::from("Debian")));
         assert_eq!(variant.action.command, "halt");
     }
+
+    #[test]
+    fn all_major_action_variants_can_be_deserialized() {
+        let yaml = r#"
+actions:
+  - action: command.run
+    command: echo
+  - action: directory.copy
+    from: a
+    to: b
+  - action: directory.create
+    path: /tmp/d
+  - action: directory.remove
+    target: /tmp/d
+  - action: file.copy
+    from: a
+    to: b
+  - action: file.chown
+    path: /tmp/f
+  - action: file.link
+    source: a
+    target: b
+  - action: file.remove
+    target: /tmp/f
+  - action: file.unarchive
+    from: a.tar.gz
+    to: /tmp/dest
+  - action: git.clone
+    repo_url: https://github.com/example/repo.git
+    directory: /tmp/repo
+  - action: group.add
+    group_name: mygroup
+  - action: macos.default
+    domain: com.example
+    key: k
+    kind: string
+    value: v
+  - action: package.install
+    name: htop
+  - action: user.add
+    username: alice
+"#;
+        let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
+        assert_eq!(14, manifest.actions.len());
+    }
+
+    #[test]
+    fn actions_display_names() {
+        let yaml = r#"
+actions:
+  - action: command.run
+    command: echo
+  - action: directory.copy
+    from: a
+    to: b
+  - action: directory.create
+    path: /tmp/d
+  - action: directory.remove
+    target: /tmp/d
+  - action: file.copy
+    from: a
+    to: b
+  - action: file.chown
+    path: /tmp/f
+  - action: file.download
+    from: https://example.com/file.txt
+    to: /tmp/file.txt
+  - action: file.link
+    source: a
+    target: b
+  - action: file.remove
+    target: /tmp/f
+  - action: file.unarchive
+    from: a.tar.gz
+    to: /tmp/dest
+  - action: git.clone
+    repo_url: https://github.com/example/repo.git
+    directory: /tmp/repo
+  - action: group.add
+    group_name: mygroup
+  - action: macos.default
+    domain: com.example
+    key: k
+    kind: string
+    value: v
+  - action: package.install
+    name: htop
+  - action: package.repository
+    name: myrepo
+  - action: user.add
+    username: alice
+  - action: user.group
+    username: alice
+    group_name: staff
+"#;
+        let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
+
+        let expected_names = [
+            "command.run",
+            "directory.copy",
+            "directory.create",
+            "directory.remove",
+            "file.copy",
+            "file.chown",
+            "file.download",
+            "file.link",
+            "file.remove",
+            "file.unarchive",
+            "git.clone",
+            "group.add",
+            "macos.default",
+            "package.install",
+            "package.repository",
+            "user.add",
+            "user.group",
+        ];
+
+        for (action, expected) in manifest.actions.iter().zip(expected_names.iter()) {
+            assert_eq!(format!("{action}"), *expected);
+        }
+    }
+
+    #[test]
+    fn actions_inner_ref_and_deref_summarize() {
+        let yaml = r#"
+actions:
+  - action: command.run
+    command: echo
+"#;
+        let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
+        let action = &manifest.actions[0];
+
+        // Test inner_ref() returns a dyn Action
+        let inner = action.inner_ref();
+        let _ = inner.summarize();
+
+        // Test Deref to dyn Action
+        use std::ops::Deref;
+        let deref_action = action.deref();
+        let _ = deref_action.summarize();
+    }
+
+    #[test]
+    fn conditional_variant_action_with_no_condition_plans() {
+        let yaml = r#"
+actions:
+  - action: command.run
+    command: echo
+    args: [hello]
+"#;
+        use crate::config::Config;
+        use crate::contexts::build_contexts;
+        let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
+        let contexts = build_contexts(&Config::default());
+        let steps = manifest.actions[0].plan(&manifest, &contexts).unwrap();
+        assert_eq!(steps.len(), 1);
+    }
+
+    #[test]
+    fn conditional_variant_action_with_false_condition_returns_empty() {
+        let yaml = r#"
+actions:
+  - action: command.run
+    command: echo
+    where: "false"
+"#;
+        use crate::config::Config;
+        use crate::contexts::build_contexts;
+        let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
+        let contexts = build_contexts(&Config::default());
+        let steps = manifest.actions[0].plan(&manifest, &contexts).unwrap();
+        assert_eq!(steps.len(), 0);
+    }
+
+    #[test]
+    fn conditional_variant_action_with_true_condition_plans() {
+        let yaml = r#"
+actions:
+  - action: command.run
+    command: echo
+    where: "true"
+"#;
+        use crate::config::Config;
+        use crate::contexts::build_contexts;
+        let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
+        let contexts = build_contexts(&Config::default());
+        let steps = manifest.actions[0].plan(&manifest, &contexts).unwrap();
+        assert_eq!(steps.len(), 1);
+    }
+
+    #[test]
+    fn conditional_variant_action_with_invalid_condition_errors() {
+        let yaml = r#"
+actions:
+  - action: command.run
+    command: echo
+    where: "not valid rhai !!!"
+"#;
+        use crate::config::Config;
+        use crate::contexts::build_contexts;
+        let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
+        let contexts = build_contexts(&Config::default());
+        assert!(manifest.actions[0].plan(&manifest, &contexts).is_err());
+    }
+
+    #[test]
+    fn variant_new_constructor() {
+        use crate::actions::command::run::RunCommand;
+        use crate::actions::Variant;
+        let action = RunCommand::default();
+        let v = Variant::new(action.clone(), Some("true".to_string()));
+        assert_eq!(v.condition, Some("true".to_string()));
+
+        let v2 = Variant::new(action, None);
+        assert_eq!(v2.condition, None);
+    }
+
+    #[test]
+    fn binary_github_action_display() {
+        let yaml = r#"
+actions:
+  - action: binary.github
+    name: ripgrep
+    directory: /usr/local/bin
+    repository: BurntSushi/ripgrep
+    version: "13.0.0"
+"#;
+        let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
+        assert_eq!(format!("{}", manifest.actions[0]), "github.binary");
+    }
+
+    #[test]
+    fn plugin_action_display() {
+        let yaml = r#"
+actions:
+  - action: plugin
+    dir: /tmp/fake
+    actions:
+      myaction:
+        key: val
+"#;
+        let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
+        assert_eq!(format!("{}", manifest.actions[0]), "plugin");
+    }
+
+    #[test]
+    fn action_error_from_std_error() {
+        use crate::actions::ActionError;
+        let err = std::io::Error::new(std::io::ErrorKind::NotFound, "file not found");
+        let ae = ActionError::from(err);
+        assert!(ae.message.contains("file not found"));
+    }
+
+    #[test]
+    fn all_action_variants_inner_ref_and_deref() {
+        use std::ops::Deref;
+
+        // Parse all action types to exercise inner_ref() and Deref for each variant
+        let yaml = r#"
+actions:
+  - action: command.run
+    command: echo
+  - action: directory.copy
+    from: a
+    to: b
+  - action: directory.create
+    path: /tmp/d
+  - action: directory.remove
+    target: /tmp/d
+  - action: file.copy
+    from: a
+    to: b
+  - action: file.chown
+    path: /tmp/f
+  - action: file.download
+    from: https://example.com/file
+    to: /tmp/file
+  - action: file.link
+    source: a
+    target: b
+  - action: file.remove
+    target: /tmp/f
+  - action: file.unarchive
+    from: a.tar.gz
+    to: /tmp/dest
+  - action: binary.github
+    name: tool
+    directory: /usr/local/bin
+    repository: owner/repo
+  - action: git.clone
+    repo_url: https://github.com/example/repo.git
+    directory: /tmp/repo
+  - action: group.add
+    group_name: mygroup
+  - action: macos.default
+    domain: com.example
+    key: k
+    kind: string
+    value: v
+  - action: package.install
+    name: htop
+  - action: package.repository
+    name: myrepo
+  - action: user.add
+    username: alice
+  - action: user.group
+    username: alice
+    group_name: staff
+"#;
+        let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
+        assert_eq!(18, manifest.actions.len());
+
+        for action in &manifest.actions {
+            // Exercise inner_ref() for every variant
+            let inner = action.inner_ref();
+            let _ = inner.summarize();
+
+            // Exercise Deref for every variant
+            let deref_action = action.deref();
+            let _ = deref_action.summarize();
+        }
+    }
+
+    #[test]
+    fn variant_condition_skips_when_false() {
+        // When variant condition is false, that variant is not selected
+        let yaml = r#"
+actions:
+- action: command.run
+  command: echo
+  args: [fallback]
+  variants:
+    - where: "false"
+      command: halt
+"#;
+        use crate::config::Config;
+        use crate::contexts::build_contexts;
+        let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
+        let contexts = build_contexts(&Config::default());
+        // Should not error - false variant condition means fall through to main action
+        let steps = manifest.actions[0].plan(&manifest, &contexts).unwrap();
+        assert_eq!(steps.len(), 1);
+    }
+
+    #[test]
+    fn variant_condition_matches_when_true() {
+        let yaml = r#"
+actions:
+- action: command.run
+  command: echo
+  args: [main]
+  variants:
+    - where: "true"
+      command: echo
+      args: [variant]
+"#;
+        use crate::config::Config;
+        use crate::contexts::build_contexts;
+        let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
+        let contexts = build_contexts(&Config::default());
+        // The true variant should be selected
+        let steps = manifest.actions[0].plan(&manifest, &contexts).unwrap();
+        assert_eq!(steps.len(), 1);
+    }
+
+    #[test]
+    fn variant_error_in_condition_is_logged_not_panic() {
+        // When variant condition evaluation errors (not a bool), it logs and skips
+        let yaml = r#"
+actions:
+- action: command.run
+  command: echo
+  variants:
+    - where: "1 + 1"
+      command: halt
+"#;
+        use crate::config::Config;
+        use crate::contexts::build_contexts;
+        let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
+        let contexts = build_contexts(&Config::default());
+        // Non-bool expression logs error and returns false (skip variant)
+        let steps = manifest.actions[0].plan(&manifest, &contexts).unwrap();
+        assert_eq!(steps.len(), 1);
+    }
 }

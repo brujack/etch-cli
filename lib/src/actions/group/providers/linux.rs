@@ -41,15 +41,71 @@ impl GroupProvider for LinuxGroupProvider {
     }
 }
 
-#[cfg(target_os = "linux")]
 #[cfg(test)]
 mod test {
     use crate::actions::group::providers::{GroupProvider, LinuxGroupProvider};
     use crate::actions::group::GroupVariant;
     use crate::contexts::Contexts;
+    use serial_test::serial;
+    use std::os::unix::fs::PermissionsExt;
+
+    fn write_mock_bin(dir: &std::path::Path, name: &str) {
+        let path = dir.join(name);
+        std::fs::write(&path, "#!/usr/bin/env bash\nexit 0\n").unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
+    }
+
+    fn with_mock_bins<F: FnOnce()>(bins: &[&str], f: F) {
+        let tmp = tempfile::tempdir().unwrap();
+        for bin in bins {
+            write_mock_bin(tmp.path(), bin);
+        }
+        let old_path = std::env::var("PATH").unwrap_or_default();
+        std::env::set_var("PATH", format!("{}:{}", tmp.path().display(), old_path));
+        f();
+        std::env::set_var("PATH", old_path);
+    }
 
     #[test]
+    #[serial]
     fn test_add_group() {
+        with_mock_bins(&["groupadd"], || {
+            let group_provider = LinuxGroupProvider {};
+            let contexts = Contexts::default();
+            let steps = group_provider.add_group(
+                &GroupVariant {
+                    group_name: String::from("test"),
+                    ..Default::default()
+                },
+                &contexts,
+            );
+            assert_eq!(1, steps.len());
+        });
+    }
+
+    #[test]
+    #[serial]
+    fn test_add_group_no_group_name() {
+        with_mock_bins(&["groupadd"], || {
+            let group_provider = LinuxGroupProvider {};
+            let contexts = Contexts::default();
+            let steps = group_provider.add_group(
+                &GroupVariant {
+                    ..Default::default()
+                },
+                &contexts,
+            );
+            assert_eq!(0, steps.len());
+        });
+    }
+
+    #[test]
+    #[serial]
+    fn test_add_group_returns_empty_when_groupadd_not_found() {
+        let tmp = tempfile::tempdir().unwrap();
+        let old_path = std::env::var("PATH").unwrap_or_default();
+        std::env::set_var("PATH", tmp.path().display().to_string());
+
         let group_provider = LinuxGroupProvider {};
         let contexts = Contexts::default();
         let steps = group_provider.add_group(
@@ -60,21 +116,7 @@ mod test {
             &contexts,
         );
 
-        assert_eq!(steps.len(), 1);
-    }
-
-    #[test]
-    fn test_add_group_no_group_name() {
-        let group_provider = LinuxGroupProvider {};
-        let contexts = Contexts::default();
-        let steps = group_provider.add_group(
-            &GroupVariant {
-                // empty for test purposes
-                ..Default::default()
-            },
-            &contexts,
-        );
-
-        assert_eq!(steps.len(), 0);
+        std::env::set_var("PATH", old_path);
+        assert_eq!(0, steps.len());
     }
 }

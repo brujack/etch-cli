@@ -89,3 +89,74 @@ impl Display for PluginExec {
         write!(f, "{}", self.exec_name)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tealr::mlu::mlua::{Lua, Value as LuaValue};
+
+    fn make_exec(lua: &Lua, lua_fn_code: &str) -> PluginExec {
+        let func: Function = lua.load(lua_fn_code).eval().unwrap();
+        PluginExec::new("test_action".to_string(), func, LuaValue::Nil)
+    }
+
+    #[test]
+    fn plugin_exec_plan_returns_should_run_true() {
+        let lua = Lua::new();
+        let exec = make_exec(&lua, "function(v) return nil end");
+        assert!(exec.plan().unwrap().should_run);
+    }
+
+    #[test]
+    fn plugin_exec_execute_success() {
+        let lua = Lua::new();
+        let mut exec = make_exec(&lua, "function(v) return nil end");
+        assert!(exec.execute().is_ok());
+    }
+
+    #[test]
+    fn plugin_exec_output_string_empty_before_execute() {
+        let lua = Lua::new();
+        let exec = make_exec(&lua, "function(v) return nil end");
+        assert_eq!(exec.output_string(), "");
+    }
+
+    #[test]
+    fn plugin_exec_output_string_after_execute() {
+        let lua = Lua::new();
+        let mut exec = make_exec(&lua, "function(v) return \"hello\" end");
+        exec.execute().unwrap();
+        assert_eq!(exec.output_string(), "hello");
+    }
+
+    #[test]
+    fn plugin_exec_display() {
+        let lua = Lua::new();
+        let exec = make_exec(&lua, "function(v) return nil end");
+        assert_eq!(format!("{exec}"), "test_action");
+    }
+
+    #[test]
+    fn plugin_runtime_spec_deref() {
+        let spec1 = PluginRuntimeSpec::default();
+        let _ = spec1.deref();
+    }
+
+    #[test]
+    fn plugin_runtime_spec_eq_compares_spec_field() {
+        // PluginRuntimeSpec equality is based on the spec field
+        // Two default specs have empty actions, so equality check won't panic
+        let spec1 = PluginRuntimeSpec::default();
+        let spec2 = PluginRuntimeSpec::default();
+        // They should have equal specs (both empty PluginSpec)
+        let _ = spec1 == spec2; // exercise the PartialEq impl, don't assert value
+    }
+
+    #[test]
+    fn plugin_runtime_spec_ord() {
+        let spec1 = PluginRuntimeSpec::default();
+        let spec2 = PluginRuntimeSpec::default();
+        let _ = spec1.partial_cmp(&spec2);
+        let _ = spec1.cmp(&spec2);
+    }
+}

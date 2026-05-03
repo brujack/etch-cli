@@ -11,3 +11,6 @@ pub mod steps;
 pub mod tera_functions;
 mod utilities;
 pub mod values;
+
+#[cfg(test)]
+pub mod test_helpers;

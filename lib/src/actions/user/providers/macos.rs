@@ -133,8 +133,10 @@ mod test {
     use crate::actions::user::providers::{MacOSUserProvider, UserProvider};
     use crate::actions::user::{add_group::UserAddGroup, UserVariant};
     use crate::contexts::Contexts;
+    use serial_test::serial;
 
     #[test]
+    #[serial]
     fn test_add_user() {
         let user_provider = MacOSUserProvider {};
         let contexts = Contexts::default();
@@ -154,6 +156,7 @@ mod test {
     }
 
     #[test]
+    #[serial]
     fn test_add_user_no_username() {
         let user_provider = MacOSUserProvider {};
         let contexts = Contexts::default();
@@ -173,6 +176,7 @@ mod test {
     }
 
     #[test]
+    #[serial]
     fn test_add_to_group() {
         let user_provider = MacOSUserProvider {};
         let contexts = Contexts::default();
@@ -189,6 +193,7 @@ mod test {
     }
 
     #[test]
+    #[serial]
     fn test_create_user_add_to_group() {
         let user_provider = MacOSUserProvider {};
         let contexts = Contexts::default();

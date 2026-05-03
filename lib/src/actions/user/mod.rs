@@ -91,3 +91,39 @@ impl From<&User> for UserVariant {
         user
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::actions::Actions;
+
+    #[test]
+    fn user_add_can_be_deserialized() {
+        let yaml = r#"
+- action: user.add
+  username: john
+  shell: /bin/bash
+"#;
+        let mut actions: Vec<Actions> = serde_yaml_ng::from_str(yaml).unwrap();
+        match actions.pop() {
+            Some(Actions::UserAdd(action)) => {
+                assert_eq!(action.action.username, "john");
+                assert_eq!(action.action.shell, "/bin/bash");
+            }
+            _ => panic!("Expected UserAdd action"),
+        }
+    }
+
+    #[test]
+    fn user_variant_from_user_no_variants() {
+        use super::{User, UserVariant};
+
+        let user = User {
+            username: "alice".to_string(),
+            home_dir: "/home/alice".to_string(),
+            ..Default::default()
+        };
+        let variant: UserVariant = (&user).into();
+        assert_eq!(variant.username, "alice");
+        assert_eq!(variant.home_dir, "/home/alice");
+    }
+}

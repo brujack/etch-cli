@@ -108,4 +108,45 @@ mod test {
 
         assert_eq!(steps.unwrap().len(), 1);
     }
+
+    #[test]
+    fn available_does_not_panic() {
+        let snapcraft = Snapcraft {};
+        let _ = snapcraft.available();
+    }
+
+    #[test]
+    fn bootstrap_returns_one_step() {
+        let snapcraft = Snapcraft {};
+        let contexts = Contexts::default();
+        let steps = snapcraft.bootstrap(&contexts);
+        assert_eq!(steps.len(), 1);
+    }
+
+    #[test]
+    fn has_repository_always_returns_false() {
+        let snapcraft = Snapcraft {};
+        let repo = crate::actions::package::repository::PackageRepository::default();
+        assert!(!snapcraft.has_repository(&repo));
+    }
+
+    #[test]
+    fn name_returns_snapcraft() {
+        let snapcraft = Snapcraft {};
+        assert_eq!(snapcraft.name(), "Snapcraft");
+    }
+
+    #[test]
+    fn query_returns_all_packages() {
+        let snapcraft = Snapcraft {};
+        let package = PackageVariant {
+            name: Some(String::from("htop")),
+            list: vec![],
+            extra_args: vec![],
+            provider: PackageProviders::Snapcraft,
+            file: false,
+        };
+        let packages = snapcraft.query(&package).unwrap();
+        assert_eq!(packages.len(), 1);
+    }
 }

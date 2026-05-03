@@ -143,6 +143,32 @@ mod tests {
     }
 
     #[test]
+    fn display_format() {
+        use super::Copy;
+        let atom = Copy {
+            from: std::path::PathBuf::from("/src/file.txt"),
+            to: std::path::PathBuf::from("/dst/file.txt"),
+        };
+        let display = format!("{atom}");
+        assert!(display.contains("src/file.txt"));
+        assert!(display.contains("dst/file.txt"));
+    }
+
+    #[test]
+    fn get_path_returns_from() {
+        use super::super::FileAtom;
+        use super::Copy;
+        let tmp = tempfile::tempdir().unwrap();
+        let from = tmp.path().join("from.txt");
+        let to = tmp.path().join("to.txt");
+        let atom = Copy {
+            from: from.clone(),
+            to,
+        };
+        assert_eq!(atom.get_path(), &from);
+    }
+
+    #[test]
     fn it_wont_destroy_directories() {
         let to = match tempfile::TempDir::new() {
             std::result::Result::Ok(dir) => dir,

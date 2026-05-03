@@ -47,3 +47,76 @@ impl<'a> ContextProvider for VariableIncludeContextProvider<'a> {
         Ok(contexts)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::Config;
+    use std::io::Write;
+    use tempfile::NamedTempFile;
+
+    #[test]
+    fn no_variable_includes_returns_empty() -> Result<()> {
+        let config = Config {
+            include_variables: None,
+            ..Default::default()
+        };
+        let provider = VariableIncludeContextProvider { config: &config };
+        let contexts = provider.get_contexts()?;
+        assert!(contexts.is_empty());
+        Ok(())
+    }
+
+    #[test]
+    fn file_toml_include_loads_values() -> Result<()> {
+        let mut file = NamedTempFile::new()?;
+        writeln!(file.as_file_mut(), "ship = \"Prometheus\"")?;
+        let path = file.path().to_str().unwrap().to_string();
+
+        let config = Config {
+            include_variables: Some(vec![format!("file+toml://{path}")]),
+            ..Default::default()
+        };
+        let provider = VariableIncludeContextProvider { config: &config };
+        let contexts = provider.get_contexts()?;
+        assert!(!contexts.is_empty());
+        let found = contexts
+            .iter()
+            .any(|c| matches!(c, Context::KeyValueContext(k, _) if k == "ship"));
+        assert!(found);
+        Ok(())
+    }
+
+    #[test]
+    fn file_yaml_include_loads_values() -> Result<()> {
+        let mut file = NamedTempFile::new()?;
+        writeln!(file.as_file_mut(), "planet: Lantea")?;
+        let path = file.path().to_str().unwrap().to_string();
+
+        let config = Config {
+            include_variables: Some(vec![format!("file+yaml://{path}")]),
+            ..Default::default()
+        };
+        let provider = VariableIncludeContextProvider { config: &config };
+        let contexts = provider.get_contexts()?;
+        assert!(!contexts.is_empty());
+        Ok(())
+    }
+
+    #[test]
+    fn unknown_scheme_returns_error() {
+        let config = Config {
+            include_variables: Some(vec!["http://example.com/vars".to_string()]),
+            ..Default::default()
+        };
+        let provider = VariableIncludeContextProvider { config: &config };
+        assert!(provider.get_contexts().is_err());
+    }
+
+    #[test]
+    fn get_prefix_is_include_variables() {
+        let config = Config::default();
+        let provider = VariableIncludeContextProvider { config: &config };
+        assert_eq!(provider.get_prefix(), "include_variables");
+    }
+}

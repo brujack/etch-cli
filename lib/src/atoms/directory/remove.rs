@@ -69,6 +69,15 @@ mod tests {
     use tempfile::tempdir;
 
     #[test]
+    fn display_format() {
+        let atom = Remove {
+            target: std::path::PathBuf::from("/tmp/mydir"),
+        };
+        let display = format!("{atom}");
+        assert!(display.contains("mydir"));
+    }
+
+    #[test]
     fn it_can_plan() {
         let temp = tempdir().unwrap().keep();
         let atom = Remove {

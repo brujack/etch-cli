@@ -68,39 +68,51 @@ impl Action for PackageRepository {
     }
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use crate::actions::Actions;
+#[cfg(test)]
+mod tests {
+    use crate::actions::Actions;
 
-//     #[test]
-//     fn it_can_be_deserialized() {
-//         let yaml = r#"
-// - action: package.install
-//   name: curl
+    #[test]
+    fn package_repository_can_be_deserialized() {
+        let yaml = r#"
+- action: package.repository
+  name: https://download.docker.com/linux/ubuntu focal stable
+"#;
+        let mut actions: Vec<Actions> = serde_yaml_ng::from_str(yaml).unwrap();
+        match actions.pop() {
+            Some(Actions::PackageRepository(action)) => {
+                assert!(!action.action.name.is_empty());
+            }
+            _ => panic!("Expected PackageRepository"),
+        }
+    }
 
-// - action: package.install
-//   list:
-//     - bash
-// "#;
+    #[test]
+    fn package_repository_with_key() {
+        let yaml = r#"
+- action: package.repository
+  name: deb https://example.com stable main
+  key:
+    url: https://example.com/key.gpg
+"#;
+        let mut actions: Vec<Actions> = serde_yaml_ng::from_str(yaml).unwrap();
+        match actions.pop() {
+            Some(Actions::PackageRepository(action)) => {
+                assert!(action.action.key.is_some());
+            }
+            _ => panic!("Expected PackageRepository"),
+        }
+    }
 
-//         let mut actions: Vec<Actions> = serde_yaml::from_str(yaml).unwrap();
+    #[test]
+    fn package_repository_summarize() {
+        use super::PackageRepository;
+        use crate::actions::Action;
 
-//         match actions.pop() {
-//             Some(Actions::PackageInstall(action)) => {
-//                 assert_eq!(vec!["bash"], action.action.list);
-//             }
-//             _ => {
-//                 panic!("PackageInstall didn't deserialize to the correct type");
-//             }
-//         };
-
-//         match actions.pop() {
-//             Some(Actions::PackageInstall(action)) => {
-//                 assert_eq!("curl", action.action.name.unwrap());
-//             }
-//             _ => {
-//                 panic!("PackageInstall didn't deserialize to the correct type");
-//             }
-//         };
-//     }
-// }
+        let repo = PackageRepository {
+            name: "myrepo".to_string(),
+            ..Default::default()
+        };
+        assert!(repo.summarize().contains("myrepo"));
+    }
+}

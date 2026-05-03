@@ -434,6 +434,7 @@ mod test {
     use crate::values::{Number, NumberVariant, Value};
     use anyhow::Ok;
     use pretty_assertions::assert_eq;
+    use serde_json::json;
 
     #[test]
     fn from_string_tests() -> anyhow::Result<()> {
@@ -727,6 +728,416 @@ mod test {
                 })
             ),
             "Number(2)".to_string()
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn display_tests() -> anyhow::Result<()> {
+        assert_eq!(format!("{}", Value::Null), "null".to_string());
+
+        assert_eq!(
+            format!("{}", Value::String("Carson Beckett".to_string())),
+            "Carson Beckett".to_string()
+        );
+
+        assert_eq!(
+            format!(
+                "{}",
+                Value::Number(Number {
+                    inner: NumberVariant::Unsigned(42)
+                })
+            ),
+            "42".to_string()
+        );
+
+        assert_eq!(
+            format!(
+                "{}",
+                Value::Number(Number {
+                    inner: NumberVariant::Signed(-7)
+                })
+            ),
+            "-7".to_string()
+        );
+
+        assert_eq!(
+            format!(
+                "{}",
+                Value::Number(Number {
+                    inner: NumberVariant::Float(2.71)
+                })
+            ),
+            "2.71".to_string()
+        );
+
+        assert_eq!(
+            format!(
+                "{}",
+                Value::List(vec![
+                    Value::String("a".to_string()),
+                    Value::String("b".to_string()),
+                ])
+            ),
+            "a,b".to_string()
+        );
+
+        assert_eq!(format!("{}", Value::List(vec![])), "".to_string());
+
+        Ok(())
+    }
+
+    #[test]
+    fn serialize_deserialize_tests() -> anyhow::Result<()> {
+        // Serialize and deserialize Value::Null
+        let null_val = Value::Null;
+        let serialized = serde_json::to_value(&null_val)?;
+        assert_eq!(serialized, json!(null));
+
+        // Serialize and deserialize Value::String
+        let str_val = Value::String("Teyla Emmagan".to_string());
+        let serialized = serde_json::to_value(&str_val)?;
+        assert_eq!(serialized, json!("Teyla Emmagan"));
+
+        // Deserialize from string
+        let deserialized: Value = serde_json::from_str("\"Halling\"")?;
+        assert_eq!(deserialized, Value::String("Halling".to_string()));
+
+        // Serialize unsigned number
+        let u_val = Value::Number(Number {
+            inner: NumberVariant::Unsigned(99),
+        });
+        let serialized = serde_json::to_value(&u_val)?;
+        assert_eq!(serialized, json!(99u64));
+
+        // Serialize signed number
+        let s_val = Value::Number(Number {
+            inner: NumberVariant::Signed(-5),
+        });
+        let serialized = serde_json::to_value(&s_val)?;
+        assert_eq!(serialized, json!(-5i64));
+
+        // Serialize float number
+        let f_val = Value::Number(Number {
+            inner: NumberVariant::Float(2.5),
+        });
+        let serialized = serde_json::to_value(&f_val)?;
+        assert_eq!(serialized, json!(2.5f64));
+
+        // Serialize list
+        let list_val = Value::List(vec![
+            Value::String("x".to_string()),
+            Value::String("y".to_string()),
+        ]);
+        let serialized = serde_json::to_value(&list_val)?;
+        assert_eq!(serialized, json!(["x", "y"]));
+
+        // Deserialize i64
+        let deserialized: Value = serde_json::from_str("-42")?;
+        assert_eq!(
+            deserialized,
+            Value::Number(Number {
+                inner: NumberVariant::Signed(-42)
+            })
+        );
+
+        // Deserialize u64
+        let deserialized: Value = serde_json::from_str("100")?;
+        assert!(matches!(
+            deserialized,
+            Value::Number(Number {
+                inner: NumberVariant::Unsigned(100)
+            })
+        ));
+
+        // Deserialize f64
+        let deserialized: Value = serde_json::from_str("1.5")?;
+        assert!(matches!(
+            deserialized,
+            Value::Number(Number {
+                inner: NumberVariant::Float(_)
+            })
+        ));
+
+        // Deserialize null
+        let deserialized: Value = serde_json::from_str("null")?;
+        assert_eq!(deserialized, Value::Null);
+
+        // Deserialize sequence
+        let deserialized: Value = serde_json::from_str("[\"a\", \"b\"]")?;
+        assert_eq!(
+            deserialized,
+            Value::List(vec![
+                Value::String("a".to_string()),
+                Value::String("b".to_string()),
+            ])
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn try_from_json_value_tests() -> anyhow::Result<()> {
+        use serde_json::Value as JsonValue;
+        use std::convert::TryInto;
+
+        // Null
+        let v: Value = JsonValue::Null.try_into()?;
+        assert_eq!(v, Value::Null);
+
+        // Bool true -> unsigned 1
+        let v: Value = JsonValue::Bool(true).try_into()?;
+        assert_eq!(
+            v,
+            Value::Number(Number {
+                inner: NumberVariant::Unsigned(1)
+            })
+        );
+
+        // Bool false -> unsigned 0
+        let v: Value = JsonValue::Bool(false).try_into()?;
+        assert_eq!(
+            v,
+            Value::Number(Number {
+                inner: NumberVariant::Unsigned(0)
+            })
+        );
+
+        // u64 number
+        let v: Value = json!(42u64).try_into()?;
+        assert!(matches!(
+            v,
+            Value::Number(Number {
+                inner: NumberVariant::Unsigned(42)
+            })
+        ));
+
+        // i64 number (negative)
+        let v: Value = json!(-10i64).try_into()?;
+        assert!(matches!(
+            v,
+            Value::Number(Number {
+                inner: NumberVariant::Signed(-10)
+            })
+        ));
+
+        // f64 number
+        let v: Value = json!(2.71f64).try_into()?;
+        assert!(matches!(
+            v,
+            Value::Number(Number {
+                inner: NumberVariant::Float(_)
+            })
+        ));
+
+        // String
+        let v: Value = json!("hello").try_into()?;
+        assert_eq!(v, Value::String("hello".to_string()));
+
+        // Array
+        let v: Value = json!(["a", "b"]).try_into()?;
+        assert_eq!(
+            v,
+            Value::List(vec![
+                Value::String("a".to_string()),
+                Value::String("b".to_string()),
+            ])
+        );
+
+        // Object -> List of values
+        let v: Value = json!({"key": "val"}).try_into()?;
+        assert!(matches!(v, Value::List(_)));
+
+        Ok(())
+    }
+
+    #[test]
+    fn float_cross_type_compare_tests() -> anyhow::Result<()> {
+        // float with signed
+        assert_eq!(
+            true,
+            Value::Number(Number {
+                inner: NumberVariant::Float(2.0)
+            }) == Value::Number(Number {
+                inner: NumberVariant::Signed(2)
+            })
+        );
+
+        assert_eq!(
+            true,
+            Value::Number(Number {
+                inner: NumberVariant::Float(3.0)
+            }) > Value::Number(Number {
+                inner: NumberVariant::Signed(2)
+            })
+        );
+
+        assert_eq!(
+            true,
+            Value::Number(Number {
+                inner: NumberVariant::Float(1.0)
+            }) < Value::Number(Number {
+                inner: NumberVariant::Signed(2)
+            })
+        );
+
+        // float with unsigned
+        assert_eq!(
+            true,
+            Value::Number(Number {
+                inner: NumberVariant::Float(2.0)
+            }) == Value::Number(Number {
+                inner: NumberVariant::Unsigned(2)
+            })
+        );
+
+        assert_eq!(
+            true,
+            Value::Number(Number {
+                inner: NumberVariant::Float(3.0)
+            }) > Value::Number(Number {
+                inner: NumberVariant::Unsigned(2)
+            })
+        );
+
+        assert_eq!(
+            true,
+            Value::Number(Number {
+                inner: NumberVariant::Float(1.0)
+            }) < Value::Number(Number {
+                inner: NumberVariant::Unsigned(2)
+            })
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn nan_comparison_tests() {
+        // NaN comparisons - test the fallback paths in total_cmp
+        let nan = Value::Number(Number {
+            inner: NumberVariant::Float(f64::NAN),
+        });
+        let two = Value::Number(Number {
+            inner: NumberVariant::Float(2.0),
+        });
+
+        // NaN comparisons - just verify they don't panic
+        let _ = nan.partial_cmp(&two);
+        let _ = two.partial_cmp(&nan);
+        let _ = nan.partial_cmp(&nan);
+
+        // Float(NaN) vs Signed
+        let signed = Value::Number(Number {
+            inner: NumberVariant::Signed(2),
+        });
+        let _ = nan.partial_cmp(&signed);
+        let _ = signed.partial_cmp(&nan);
+
+        // Float(NaN) vs Unsigned
+        let unsigned = Value::Number(Number {
+            inner: NumberVariant::Unsigned(2),
+        });
+        let _ = nan.partial_cmp(&unsigned);
+        let _ = unsigned.partial_cmp(&nan);
+
+        // Test NumberVariant equality cross-type
+        let nv_f = NumberVariant::Float(2.0);
+        let nv_u = NumberVariant::Unsigned(2);
+        let nv_s = NumberVariant::Signed(2);
+        assert!(nv_f == nv_u);
+        assert!(nv_f == nv_s);
+        assert!(nv_u == nv_s);
+        assert!(nv_s == nv_u);
+        assert!(nv_f == NumberVariant::Float(2.0));
+
+        // NaN float inequality
+        let nv_nan = NumberVariant::Float(f64::NAN);
+        let _ = nv_nan == nv_f;
+        let _ = nv_nan == nv_u;
+        let _ = nv_nan == nv_s;
+    }
+
+    #[test]
+    fn debug_for_number() {
+        let n = Number {
+            inner: NumberVariant::Signed(42),
+        };
+        let s = format!("{n:?}");
+        assert!(s.contains("42"));
+    }
+
+    #[test]
+    fn deserialize_via_serde_yaml() -> anyhow::Result<()> {
+        // serde_yaml_ng uses visit_str and visit_unit, among others
+        let null_val: Value = serde_yaml_ng::from_str("null")?;
+        assert_eq!(null_val, Value::Null);
+
+        let str_val: Value = serde_yaml_ng::from_str("\"hello\"")?;
+        assert_eq!(str_val, Value::String("hello".to_string()));
+
+        let num_val: Value = serde_yaml_ng::from_str("42")?;
+        assert!(matches!(num_val, Value::Number(_)));
+
+        let list_val: Value = serde_yaml_ng::from_str("- a\n- b\n")?;
+        assert!(matches!(list_val, Value::List(_)));
+
+        Ok(())
+    }
+
+    #[test]
+    fn deserialize_option_via_serde_json() -> anyhow::Result<()> {
+        // Option<Value> deserialization exercises visit_none and visit_some
+        let none_val: Option<Value> = serde_json::from_str("null")?;
+        assert!(none_val.is_none());
+
+        let some_val: Option<Value> = serde_json::from_str("\"hello\"")?;
+        assert_eq!(some_val, Some(Value::String("hello".to_string())));
+
+        Ok(())
+    }
+
+    #[test]
+    fn from_numeric_types_tests() -> anyhow::Result<()> {
+        let v: Value = 42i64.into();
+        assert_eq!(
+            v,
+            Value::Number(Number {
+                inner: NumberVariant::Signed(42)
+            })
+        );
+
+        let v: Value = 100u64.into();
+        assert_eq!(
+            v,
+            Value::Number(Number {
+                inner: NumberVariant::Unsigned(100)
+            })
+        );
+
+        let v: Value = 1.5f64.into();
+        assert_eq!(
+            v,
+            Value::Number(Number {
+                inner: NumberVariant::Float(1.5)
+            })
+        );
+
+        let v: Value = true.into();
+        assert_eq!(
+            v,
+            Value::Number(Number {
+                inner: NumberVariant::Unsigned(1)
+            })
+        );
+
+        let v: Value = false.into();
+        assert_eq!(
+            v,
+            Value::Number(Number {
+                inner: NumberVariant::Unsigned(0)
+            })
         );
 
         Ok(())

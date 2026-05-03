@@ -221,4 +221,124 @@ mod tests {
             }
         };
     }
+
+    #[test]
+    fn plan_returns_steps_for_valid_source() {
+        use super::FileCopy;
+        use crate::actions::Action;
+        let tmp = tempfile::tempdir().unwrap();
+        let src = tmp.path().join("source.txt");
+        std::fs::write(&src, b"hello").unwrap();
+
+        let action = FileCopy {
+            from: src.display().to_string(),
+            to: tmp.path().join("dest.txt").display().to_string(),
+            ..Default::default()
+        };
+        let manifest = crate::test_helpers::make_manifest(tmp.path());
+        let contexts = crate::test_helpers::make_contexts();
+        let steps = action.plan(&manifest, &contexts).unwrap();
+        // DirCreate + Create + Chmod + SetContents = 4 steps
+        assert_eq!(4, steps.len());
+    }
+
+    #[test]
+    fn plan_errors_when_source_missing() {
+        use super::FileCopy;
+        use crate::actions::Action;
+        let tmp = tempfile::tempdir().unwrap();
+        let action = FileCopy {
+            from: tmp.path().join("nonexistent.txt").display().to_string(),
+            to: tmp.path().join("dest.txt").display().to_string(),
+            ..Default::default()
+        };
+        let manifest = crate::test_helpers::make_manifest(tmp.path());
+        let contexts = crate::test_helpers::make_contexts();
+        assert!(action.plan(&manifest, &contexts).is_err());
+    }
+
+    #[test]
+    fn plan_template_rendering() {
+        use super::FileCopy;
+        use crate::actions::Action;
+        let tmp = tempfile::tempdir().unwrap();
+        // Source file with a Tera template
+        let files_dir = tmp.path().join("files");
+        std::fs::create_dir_all(&files_dir).unwrap();
+        let src = files_dir.join("tmpl.txt");
+        std::fs::write(&src, b"hello world").unwrap();
+
+        let action = FileCopy {
+            from: "tmpl.txt".to_string(),
+            to: tmp.path().join("output.txt").display().to_string(),
+            template: true,
+            ..Default::default()
+        };
+        let manifest = crate::test_helpers::make_manifest(tmp.path());
+        let contexts = crate::test_helpers::make_contexts();
+        let steps = action.plan(&manifest, &contexts).unwrap();
+        assert_eq!(4, steps.len()); // DirCreate + Create + Chmod + SetContents
+    }
+
+    #[test]
+    fn plan_with_passphrase_uses_decrypt_step() {
+        use super::FileCopy;
+        use crate::actions::Action;
+        let tmp = tempfile::tempdir().unwrap();
+        let files_dir = tmp.path().join("files");
+        std::fs::create_dir_all(&files_dir).unwrap();
+        let src = files_dir.join("secret.txt");
+        std::fs::write(&src, b"encrypted content").unwrap();
+
+        let action = FileCopy {
+            from: "secret.txt".to_string(),
+            to: tmp.path().join("output.txt").display().to_string(),
+            passphrase: Some("password".to_string()),
+            ..Default::default()
+        };
+        let manifest = crate::test_helpers::make_manifest(tmp.path());
+        let contexts = crate::test_helpers::make_contexts();
+        let steps = action.plan(&manifest, &contexts).unwrap();
+        // DirCreate + Create + Chmod + Decrypt = 4 steps
+        assert_eq!(4, steps.len());
+    }
+
+    #[test]
+    fn plan_with_to_as_directory() {
+        use super::FileCopy;
+        use crate::actions::Action;
+        let tmp = tempfile::tempdir().unwrap();
+        let files_dir = tmp.path().join("files");
+        std::fs::create_dir_all(&files_dir).unwrap();
+        let src = files_dir.join("myfile.txt");
+        std::fs::write(&src, b"content").unwrap();
+
+        // dest_dir is an existing directory
+        let dest_dir = tmp.path().join("destdir");
+        std::fs::create_dir_all(&dest_dir).unwrap();
+
+        let action = FileCopy {
+            from: "myfile.txt".to_string(),
+            to: dest_dir.display().to_string(),
+            ..Default::default()
+        };
+        let manifest = crate::test_helpers::make_manifest(tmp.path());
+        let contexts = crate::test_helpers::make_contexts();
+        let steps = action.plan(&manifest, &contexts).unwrap();
+        assert_eq!(4, steps.len());
+    }
+
+    #[test]
+    fn summarize_includes_paths() {
+        use super::FileCopy;
+        use crate::actions::Action;
+        let action = FileCopy {
+            from: "src.txt".to_string(),
+            to: "dst.txt".to_string(),
+            ..Default::default()
+        };
+        let summary = action.summarize();
+        assert!(summary.contains("src.txt"));
+        assert!(summary.contains("dst.txt"));
+    }
 }

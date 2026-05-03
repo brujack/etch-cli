@@ -117,4 +117,57 @@ mod tests {
             }
         };
     }
+
+    #[test]
+    fn plan_returns_one_step_with_initializer_and_finalizer() {
+        use crate::actions::Action;
+        use crate::contexts::Contexts;
+        use crate::manifests::Manifest;
+        let action = super::RunCommand {
+            command: String::from("echo"),
+            args: vec![String::from("hello")],
+            ..Default::default()
+        };
+        let steps = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+        assert_eq!(1, steps.len());
+        assert_eq!(1, steps[0].initializers.len());
+        assert_eq!(1, steps[0].finalizers.len());
+    }
+
+    #[test]
+    fn plan_privileged_still_returns_one_step() {
+        use crate::actions::Action;
+        use crate::contexts::Contexts;
+        use crate::manifests::Manifest;
+        let action = super::RunCommand {
+            command: String::from("echo"),
+            privileged: true,
+            ..Default::default()
+        };
+        let steps = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+        assert_eq!(1, steps.len());
+    }
+
+    #[test]
+    fn plan_with_env_vars_includes_initializer() {
+        use crate::actions::Action;
+        use crate::contexts::Contexts;
+        use crate::manifests::Manifest;
+        let mut env = std::collections::HashMap::new();
+        env.insert(String::from("MY_VAR"), String::from("value"));
+        let action = super::RunCommand {
+            command: String::from("echo"),
+            env,
+            ..Default::default()
+        };
+        let steps = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+        assert_eq!(1, steps.len());
+        assert_eq!(1, steps[0].initializers.len());
+    }
 }

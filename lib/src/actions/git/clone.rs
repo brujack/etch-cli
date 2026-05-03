@@ -29,3 +29,52 @@ impl Action for GitClone {
         }])
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::actions::Actions;
+
+    #[test]
+    fn it_can_be_deserialized() {
+        let yaml = r#"
+- action: git.clone
+  repo_url: https://github.com/example/repo.git
+  directory: /tmp/repo
+"#;
+        let mut actions: Vec<Actions> = serde_yaml_ng::from_str(yaml).unwrap();
+        match actions.pop() {
+            Some(Actions::GitClone(action)) => {
+                assert_eq!(
+                    "https://github.com/example/repo.git",
+                    action.action.repo_url
+                );
+                assert_eq!("/tmp/repo", action.action.directory);
+            }
+            _ => panic!("GitClone didn't deserialize"),
+        }
+    }
+
+    #[test]
+    fn plan_returns_one_step_for_valid_url() {
+        let action = GitClone {
+            repo_url: String::from("https://github.com/example/repo.git"),
+            directory: String::from("/tmp/repo"),
+        };
+        let steps = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+        assert_eq!(1, steps.len());
+    }
+
+    #[test]
+    fn plan_errors_on_invalid_url() {
+        let action = GitClone {
+            repo_url: String::from("not a url ://"),
+            directory: String::from("/tmp/repo"),
+        };
+        assert!(action
+            .plan(&Manifest::default(), &Contexts::default())
+            .is_err());
+    }
+}

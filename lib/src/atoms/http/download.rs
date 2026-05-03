@@ -46,6 +46,30 @@ mod tests {
     use tempfile::tempdir;
 
     #[test]
+    fn display_format() {
+        let atom = Download {
+            url: "https://example.com/file.zip".to_string(),
+            to: std::path::PathBuf::from("/tmp/file.zip"),
+        };
+        let display = format!("{atom}");
+        assert!(display.contains("example.com"));
+        assert!(display.contains("file.zip"));
+    }
+
+    #[test]
+    fn plan_should_not_run_when_file_exists() {
+        let tmp = tempfile::tempdir().unwrap();
+        let existing = tmp.path().join("existing.txt");
+        std::fs::write(&existing, b"content").unwrap();
+
+        let atom = Download {
+            url: "https://example.com/file".to_string(),
+            to: existing,
+        };
+        assert!(!atom.plan().unwrap().should_run);
+    }
+
+    #[test]
     fn it_can() {
         let tmpdir = tempdir().unwrap();
         let to_file = tmpdir.path().join("download");

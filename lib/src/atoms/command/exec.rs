@@ -178,6 +178,7 @@ mod tests {
     use super::*;
     use crate::contexts::privilege::Privilege;
     use pretty_assertions::assert_eq;
+    use serial_test::serial;
 
     #[test]
     fn defaults() {
@@ -269,5 +270,108 @@ mod tests {
     fn error_propagation() {
         let mut command_run = new_run_command(String::from("non-existant-command"));
         command_run.execute().expect_err("Command should fail");
+    }
+
+    #[test]
+    #[serial]
+    fn execute_succeeds_for_echo() {
+        let mut exec = Exec {
+            command: String::from("echo"),
+            arguments: vec![String::from("hello")],
+            ..Default::default()
+        };
+        assert!(exec.execute().is_ok());
+    }
+
+    #[test]
+    #[serial]
+    fn execute_fails_for_false_command() {
+        let mut exec = Exec {
+            command: String::from("false"),
+            ..Default::default()
+        };
+        assert!(exec.execute().is_err());
+    }
+
+    #[test]
+    #[serial]
+    fn execute_with_working_dir() {
+        let tmp = tempfile::tempdir().unwrap();
+        let mut exec = Exec {
+            command: String::from("echo"),
+            arguments: vec![String::from("hello")],
+            working_dir: Some(tmp.path().display().to_string()),
+            ..Default::default()
+        };
+        assert!(exec.execute().is_ok());
+    }
+
+    #[test]
+    fn plan_always_returns_should_run_true() {
+        let exec = Exec {
+            command: String::from("echo"),
+            ..Default::default()
+        };
+        assert!(exec.plan().unwrap().should_run);
+    }
+
+    #[test]
+    #[serial]
+    fn output_string_after_execute() {
+        let mut exec = Exec {
+            command: String::from("echo"),
+            arguments: vec![String::from("hello-output")],
+            ..Default::default()
+        };
+        exec.execute().unwrap();
+        assert!(exec.output_string().contains("hello-output"));
+    }
+
+    #[test]
+    fn output_string_empty_before_execute() {
+        let exec = Exec {
+            command: String::from("echo"),
+            ..Default::default()
+        };
+        assert_eq!(exec.output_string(), "");
+    }
+
+    #[test]
+    #[serial]
+    fn error_message_empty_after_successful_execute() {
+        let mut exec = Exec {
+            command: String::from("echo"),
+            arguments: vec![String::from("hi")],
+            ..Default::default()
+        };
+        exec.execute().unwrap();
+        assert_eq!(exec.error_message(), "");
+    }
+
+    #[test]
+    fn display_format() {
+        let exec = Exec {
+            command: String::from("ls"),
+            arguments: vec![String::from("-la")],
+            privileged: true,
+            ..Default::default()
+        };
+        let display = format!("{exec}");
+        assert!(display.contains("ls"));
+        assert!(display.contains("-la"));
+        assert!(display.contains("privileged=true"));
+    }
+
+    #[test]
+    #[serial]
+    fn execute_with_environment() {
+        let mut exec = Exec {
+            command: String::from("env"),
+            environment: vec![(String::from("MY_TEST_VAR"), String::from("test_value"))],
+            ..Default::default()
+        };
+        let result = exec.execute();
+        assert!(result.is_ok());
+        assert!(exec.output_string().contains("MY_TEST_VAR=test_value"));
     }
 }

@@ -62,4 +62,19 @@ mod tests {
             }
         };
     }
+
+    #[test]
+    fn plan_returns_remove_step() {
+        use super::FileRemove;
+        use crate::actions::Action;
+        use crate::contexts::Contexts;
+        use crate::manifests::Manifest;
+        let action = FileRemove {
+            target: String::from("/tmp/somefile"),
+        };
+        let steps = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+        assert_eq!(1, steps.len());
+    }
 }
