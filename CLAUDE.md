@@ -95,9 +95,10 @@ privilege: sudo # sudo | doas | run0
 
 **Run tests:** `make test`
 
-The test suite covers unit tests in `lib/src/` and integration tests in `app/tests/`. Current coverage is approximately 75% — the floor for the tarpaulin CI gate is set at 75%.
+The test suite covers unit tests in `lib/src/` and integration tests in `app/tests/`. Current coverage is ~75% locally (macOS) and ~65% on Linux CI — the gap is macOS provider tests gated with `#[cfg(target_os = "macos")]` that don't run on ubuntu-latest.
 
 Coverage ceiling is approximately 83% due to hard-to-cover code:
+
 - Network operations (GitHub API, git clone, DNS lookups)
 - CLI binary dispatch (`app/src/commands/apply.rs`, etc. — only coverable via binary test harnesses)
 - Privilege-escalation atoms (`sudo`/`root` required)
@@ -107,21 +108,21 @@ Coverage ceiling is approximately 83% due to hard-to-cover code:
 cargo test                                                          # all tests
 cargo test -p etch-lib                                              # lib tests only
 cargo test -p etch-cli                                              # integration tests only
-cargo tarpaulin --exclude-files 'jsonschemagen/*' --fail-under 75  # coverage check (matches CI)
+cargo tarpaulin --exclude-files 'jsonschemagen/*' --fail-under 65  # coverage check (matches CI)
 ```
 
-**Coverage floor: 75%** (matches CI gate; theoretical maximum ~83% due to structural constraints above).
+**Coverage floor: 65%** (Linux CI gate; local macOS measures ~75% due to platform-specific tests).
 
 ## CI
 
 Single workflow `.github/workflows/ci.yml`, triggers on `pull_request` to `main`/`master` only.
 
-| Job           | What it does                                                                           |
-| ------------- | -------------------------------------------------------------------------------------- |
+| Job           | What it does                                                                             |
+| ------------- | ---------------------------------------------------------------------------------------- |
 | `test`        | `make test` (fmt check + clippy + cargo test) + tarpaulin ≥75% (excluding jsonschemagen) |
-| `secret-scan` | gitleaks v8.30.1 binary (advisory, non-blocking)                                       |
-| `snyk-scan`   | Snyk code test (advisory, non-blocking)                                                |
-| `auto-merge`  | Squash-merges the PR when all jobs pass                                                |
+| `secret-scan` | gitleaks v8.30.1 binary (advisory, non-blocking)                                         |
+| `snyk-scan`   | Snyk code test (advisory, non-blocking)                                                  |
+| `auto-merge`  | Squash-merges the PR when all jobs pass                                                  |
 
 > **Note:** `build` job is temporarily disabled — restore when build times improve.
 
