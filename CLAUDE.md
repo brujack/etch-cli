@@ -49,9 +49,12 @@ etch-cli/
 ```bash
 make lint          # cargo fmt --check + cargo clippy --all-targets -D warnings
 make test          # lint, then cargo test
-make build         # cargo build --release → target/release/etch
+make build         # cargo build --release → target/release/etch (macOS aarch64)
+make build-linux   # cargo zigbuild → target/x86_64-unknown-linux-gnu/release/etch + ~/Downloads/etch-linux
 make install-hooks # install pre-commit and pre-push hooks (run once per checkout)
 ```
+
+**Cross-compilation toolchain:** `cargo-zigbuild` + Zig (installed via `brew install zig` + `cargo install cargo-zigbuild`). Uses Zig's built-in C cross-compiler — no Docker required. `cross` (Docker-based) was attempted but has a known Apple Silicon bug in v0.2.5.
 
 ## Action Catalog
 

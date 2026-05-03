@@ -1,4 +1,4 @@
-.PHONY: all test lint build install-hooks
+.PHONY: all test lint build build-linux install-hooks
 
 all: test build
 
@@ -12,6 +12,10 @@ lint:
 build:
 	cargo build --release
 	cp target/release/etch ~/Downloads/etch
+
+build-linux:
+	cargo zigbuild --release --target x86_64-unknown-linux-gnu
+	cp target/x86_64-unknown-linux-gnu/release/etch ~/Downloads/etch-linux
 
 install-hooks:
 	cp scripts/pre-commit .git/hooks/pre-commit
