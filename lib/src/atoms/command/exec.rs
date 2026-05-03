@@ -178,6 +178,7 @@ mod tests {
     use super::*;
     use crate::contexts::privilege::Privilege;
     use pretty_assertions::assert_eq;
+    use serial_test::serial;
 
     #[test]
     fn defaults() {
@@ -272,6 +273,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn execute_succeeds_for_echo() {
         let mut exec = Exec {
             command: String::from("echo"),
@@ -282,6 +284,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn execute_fails_for_false_command() {
         let mut exec = Exec {
             command: String::from("false"),
@@ -291,6 +294,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn execute_with_working_dir() {
         let tmp = tempfile::tempdir().unwrap();
         let mut exec = Exec {
@@ -312,6 +316,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn output_string_after_execute() {
         let mut exec = Exec {
             command: String::from("echo"),
@@ -332,6 +337,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn error_message_empty_after_successful_execute() {
         let mut exec = Exec {
             command: String::from("echo"),
@@ -357,6 +363,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn execute_with_environment() {
         let mut exec = Exec {
             command: String::from("env"),
