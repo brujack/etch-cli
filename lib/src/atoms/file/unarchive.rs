@@ -62,3 +62,68 @@ impl std::fmt::Display for Unarchive {
         )
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn plan_should_run_when_dest_does_not_exist() {
+        let fixture =
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/fixtures/test.tar.gz");
+        let tmp = tempfile::tempdir().unwrap();
+        let dest = tmp.path().join("output");
+
+        let atom = Unarchive {
+            origin: fixture,
+            dest,
+            force: true,
+        };
+        assert!(atom.plan().unwrap().should_run);
+    }
+
+    #[test]
+    fn plan_should_not_run_when_dest_exists_and_force_false() {
+        let fixture =
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/fixtures/test.tar.gz");
+        let tmp = tempfile::tempdir().unwrap();
+
+        let atom = Unarchive {
+            origin: fixture,
+            dest: tmp.path().to_path_buf(),
+            force: false,
+        };
+        assert!(!atom.plan().unwrap().should_run);
+    }
+
+    #[test]
+    fn plan_should_run_when_dest_exists_and_force_true() {
+        let fixture =
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/fixtures/test.tar.gz");
+        let tmp = tempfile::tempdir().unwrap();
+
+        let atom = Unarchive {
+            origin: fixture,
+            dest: tmp.path().to_path_buf(),
+            force: true,
+        };
+        assert!(atom.plan().unwrap().should_run);
+    }
+
+    #[test]
+    fn execute_extracts_archive() {
+        let fixture =
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/fixtures/test.tar.gz");
+        let tmp = tempfile::tempdir().unwrap();
+        let dest = tmp.path().join("extracted");
+        std::fs::create_dir_all(&dest).unwrap();
+
+        let mut atom = Unarchive {
+            origin: fixture,
+            dest: dest.clone(),
+            force: true,
+        };
+        assert!(atom.execute().is_ok());
+        assert!(dest.join("etch_hello.txt").exists());
+    }
+}

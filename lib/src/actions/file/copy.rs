@@ -221,4 +221,39 @@ mod tests {
             }
         };
     }
+
+    #[test]
+    fn plan_returns_steps_for_valid_source() {
+        use super::FileCopy;
+        use crate::actions::Action;
+        let tmp = tempfile::tempdir().unwrap();
+        let src = tmp.path().join("source.txt");
+        std::fs::write(&src, b"hello").unwrap();
+
+        let action = FileCopy {
+            from: src.display().to_string(),
+            to: tmp.path().join("dest.txt").display().to_string(),
+            ..Default::default()
+        };
+        let manifest = crate::test_helpers::make_manifest(tmp.path());
+        let contexts = crate::test_helpers::make_contexts();
+        let steps = action.plan(&manifest, &contexts).unwrap();
+        // DirCreate + Create + Chmod + SetContents = 4 steps
+        assert_eq!(4, steps.len());
+    }
+
+    #[test]
+    fn plan_errors_when_source_missing() {
+        use super::FileCopy;
+        use crate::actions::Action;
+        let tmp = tempfile::tempdir().unwrap();
+        let action = FileCopy {
+            from: tmp.path().join("nonexistent.txt").display().to_string(),
+            to: tmp.path().join("dest.txt").display().to_string(),
+            ..Default::default()
+        };
+        let manifest = crate::test_helpers::make_manifest(tmp.path());
+        let contexts = crate::test_helpers::make_contexts();
+        assert!(action.plan(&manifest, &contexts).is_err());
+    }
 }

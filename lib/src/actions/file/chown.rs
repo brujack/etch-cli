@@ -85,4 +85,40 @@ mod tests {
             }
         };
     }
+
+    #[test]
+    fn plan_returns_chown_step() {
+        use super::FileChown;
+        use crate::actions::Action;
+        let action = FileChown {
+            path: String::from("/tmp/testfile"),
+            user: Some(String::from("alice")),
+            group: Some(String::from("staff")),
+        };
+        let steps = action
+            .plan(
+                &crate::manifests::Manifest::default(),
+                &crate::contexts::Contexts::default(),
+            )
+            .unwrap();
+        assert_eq!(1, steps.len());
+    }
+
+    #[test]
+    fn plan_uses_empty_string_for_missing_user() {
+        use super::FileChown;
+        use crate::actions::Action;
+        let action = FileChown {
+            path: String::from("/tmp/testfile"),
+            user: None,
+            group: Some(String::from("staff")),
+        };
+        let steps = action
+            .plan(
+                &crate::manifests::Manifest::default(),
+                &crate::contexts::Contexts::default(),
+            )
+            .unwrap();
+        assert_eq!(1, steps.len());
+    }
 }

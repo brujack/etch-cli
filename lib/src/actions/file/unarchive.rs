@@ -65,4 +65,38 @@ mod tests {
             }
         };
     }
+
+    #[test]
+    fn plan_returns_unarchive_step() {
+        use super::FileUnarchive;
+        use crate::actions::Action;
+        use crate::contexts::Contexts;
+        use crate::manifests::Manifest;
+        let action = FileUnarchive {
+            from: String::from("/tmp/archive.tar.gz"),
+            to: String::from("/tmp/dest"),
+            force: None,
+        };
+        let steps = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+        assert_eq!(1, steps.len());
+    }
+
+    #[test]
+    fn plan_with_force_false() {
+        use super::FileUnarchive;
+        use crate::actions::Action;
+        use crate::contexts::Contexts;
+        use crate::manifests::Manifest;
+        let action = FileUnarchive {
+            from: String::from("/tmp/archive.tar.gz"),
+            to: String::from("/tmp/dest"),
+            force: Some(false),
+        };
+        let steps = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+        assert_eq!(1, steps.len());
+    }
 }
