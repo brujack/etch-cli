@@ -56,8 +56,10 @@ mod test {
     use crate::actions::group::providers::{GroupProvider, MacOsGroupProvider};
     use crate::actions::group::GroupVariant;
     use crate::contexts::Contexts;
+    use serial_test::serial;
 
     #[test]
+    #[serial]
     fn test_add_group() {
         let group_provider = MacOsGroupProvider {};
         let contexts = Contexts::default();
@@ -73,6 +75,7 @@ mod test {
     }
 
     #[test]
+    #[serial]
     fn test_add_group_no_group_name() {
         let group_provider = MacOsGroupProvider {};
         let contexts = Contexts::default();
