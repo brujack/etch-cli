@@ -5,9 +5,7 @@ use crate::{
     tera_functions::register_functions,
 };
 use ignore::WalkBuilder;
-use std::{
-    collections::HashMap, error::Error, ffi::OsStr, fs::canonicalize, ops::Deref, path::PathBuf,
-};
+use std::{collections::HashMap, ffi::OsStr, fs::canonicalize, ops::Deref, path::PathBuf};
 use tera::Tera;
 use tracing::{error, span};
 
@@ -68,13 +66,9 @@ pub fn load(manifest_path: PathBuf, contexts: &Contexts) -> HashMap<String, Mani
                 let template = match tera.render_str(template, &to_tera(contexts)) {
                     Ok(template) => template,
                     Err(err) => {
-                        match err.source() {
-                            Some(err) => error!(message = err.source()),
-                            None => error!(message = err.to_string().as_str()),
-                        }
-
+                        let chain = format!("{:#}", anyhow::Error::from(err));
+                        error!(message = chain.as_str());
                         span.exit();
-
                         return;
                     }
                 };
@@ -127,6 +121,7 @@ mod tests {
     use crate::config::Config;
     use crate::contexts::build_contexts;
     use tempfile::tempdir;
+    use tracing_test::traced_test;
 
     #[test]
     fn load_yaml_manifest_from_directory() {
@@ -184,5 +179,29 @@ mod tests {
         let contexts = build_contexts(&Config::default());
         let manifests = load(real_dir, &contexts);
         assert!(!manifests.is_empty());
+    }
+
+    #[traced_test]
+    #[test]
+    fn load_skips_manifest_with_tera_render_error_and_logs_cause() {
+        let dir = tempdir().unwrap();
+        let real_dir = dir.path().canonicalize().unwrap();
+        let bad_tera = real_dir.join("bad.yaml");
+        // read_file_contents with a nonexistent path causes a Tera render error
+        std::fs::write(
+            &bad_tera,
+            "{{ read_file_contents(path=\"/no/such/path/abc123xyz\") }}\nactions: []\n",
+        )
+        .unwrap();
+
+        let contexts = build_contexts(&Config::default());
+        let manifests = load(real_dir, &contexts);
+
+        assert!(manifests.is_empty());
+        // The error message must contain the actual cause, not be silently dropped
+        assert!(
+            logs_contain("os error") || logs_contain("No such file") || logs_contain("not found"),
+            "error log should contain the IO error cause"
+        );
     }
 }
