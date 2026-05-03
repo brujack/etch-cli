@@ -22,26 +22,26 @@ cd ~/etch-cli && cargo build --release && cp target/release/etch ~/bin/etch
 
 ```shell
 # 1. Smoke — confirms etch can parse and run a manifest
-etch apply -d ~/etch-smoke -m 01-smoke
+etch -d ~/etch-smoke apply -m 01-smoke
 
 # 2. Files — directory create, file copy, symlink (no sudo)
-etch apply -d ~/etch-smoke -m 02-files
+etch -d ~/etch-smoke apply -m 02-files
 ls ~/etch-test-output/
 
 # 3. Packages — SNAPSHOT FIRST
-etch apply -d ~/etch-smoke -m 03-packages
+etch -d ~/etch-smoke apply -m 03-packages
 htop --version
 
 # 4. Templates — Tera rendering with user/os context vars
-etch apply -d ~/etch-smoke -m 04-templates
+etch -d ~/etch-smoke apply -m 04-templates
 cat ~/etch-test-output/greeting.txt
 
 # 5. Git clone — exercises network egress
-etch apply -d ~/etch-smoke -m 05-git
+etch -d ~/etch-smoke apply -m 05-git
 ls ~/etch-test-output/etch-src/
 
 # 6. Idempotency — must report no-op for every action
-etch apply -d ~/etch-smoke -m 99-idempotency
+etch -d ~/etch-smoke apply -m 99-idempotency
 ```
 
 Any action in step 6 that re-executes instead of no-op'ing is a bug in that action's check logic.
