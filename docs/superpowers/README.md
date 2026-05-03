@@ -24,10 +24,11 @@ Master status index for all specs and implementation plans in this directory.
 
 ## Backlog
 
-| Feature                         | Notes                               |
-| ------------------------------- | ----------------------------------- |
-| ntfy notification action        | Matches existing notification infra |
-| macOS defaults write ergonomics | If etch-cli's current API is rough  |
+| Feature                         | Notes                                                                                     |
+| ------------------------------- | ----------------------------------------------------------------------------------------- |
+| ntfy notification action        | Matches existing notification infra                                                       |
+| macOS defaults write ergonomics | If etch-cli's current API is rough                                                        |
+| fix manifest load error logging | `load.rs:72` calls `err.source()` twice — error message always dropped, renders as `None` |
 
 ---
 
