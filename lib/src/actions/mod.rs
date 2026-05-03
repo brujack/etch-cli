@@ -329,4 +329,49 @@ actions:
         assert_eq!(variant.condition, Some(String::from("Debian")));
         assert_eq!(variant.action.command, "halt");
     }
+
+    #[test]
+    fn all_major_action_variants_can_be_deserialized() {
+        let yaml = r#"
+actions:
+  - action: command.run
+    command: echo
+  - action: directory.copy
+    from: a
+    to: b
+  - action: directory.create
+    path: /tmp/d
+  - action: directory.remove
+    target: /tmp/d
+  - action: file.copy
+    from: a
+    to: b
+  - action: file.chown
+    path: /tmp/f
+  - action: file.link
+    source: a
+    target: b
+  - action: file.remove
+    target: /tmp/f
+  - action: file.unarchive
+    from: a.tar.gz
+    to: /tmp/dest
+  - action: git.clone
+    repo_url: https://github.com/example/repo.git
+    directory: /tmp/repo
+  - action: group.add
+    group_name: mygroup
+  - action: macos.default
+    domain: com.example
+    key: k
+    kind: string
+    value: v
+  - action: package.install
+    name: htop
+  - action: user.add
+    username: alice
+"#;
+        let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
+        assert_eq!(14, manifest.actions.len());
+    }
 }
