@@ -11,6 +11,7 @@ lint:
 
 build:
 	cargo build --release
+	cp target/release/etch ~/Downloads/etch
 
 install-hooks:
 	cp scripts/pre-commit .git/hooks/pre-commit
