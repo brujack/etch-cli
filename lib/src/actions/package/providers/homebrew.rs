@@ -104,3 +104,48 @@ impl PackageProvider for Homebrew {
         }])
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::contexts::Contexts;
+
+    #[test]
+    fn name_returns_homebrew() {
+        let homebrew = Homebrew {};
+        assert_eq!(homebrew.name(), "Homebrew");
+    }
+
+    #[test]
+    fn available_does_not_panic() {
+        let homebrew = Homebrew {};
+        let _ = homebrew.available();
+    }
+
+    #[test]
+    fn bootstrap_returns_one_step() {
+        let homebrew = Homebrew {};
+        let contexts = Contexts::default();
+        let steps = homebrew.bootstrap(&contexts);
+        assert_eq!(steps.len(), 1);
+    }
+
+    #[test]
+    fn has_repository_always_returns_false() {
+        let homebrew = Homebrew {};
+        let repo = PackageRepository::default();
+        assert!(!homebrew.has_repository(&repo));
+    }
+
+    #[test]
+    fn add_repository_returns_one_step() {
+        let homebrew = Homebrew {};
+        let repo = PackageRepository {
+            name: String::from("homebrew/cask"),
+            ..Default::default()
+        };
+        let contexts = Contexts::default();
+        let steps = homebrew.add_repository(&repo, &contexts).unwrap();
+        assert_eq!(steps.len(), 1);
+    }
+}
