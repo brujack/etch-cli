@@ -89,4 +89,30 @@ mod tests {
         let variant: GroupVariant = (&group).into();
         assert_eq!(variant.group_name, "developers");
     }
+
+    #[test]
+    fn group_variant_from_group_with_matching_os_variant() {
+        use super::{Group, GroupVariant};
+        use std::collections::HashMap;
+
+        let os = os_info::get();
+        let mut variants = HashMap::new();
+        variants.insert(
+            os.os_type(),
+            GroupVariant {
+                group_name: "variant_group".to_string(),
+                ..Default::default()
+            },
+        );
+
+        let group = Group {
+            group_name: "base_group".to_string(),
+            variants,
+            ..Default::default()
+        };
+
+        let variant: GroupVariant = (&group).into();
+        // Base fields are preserved; only provider is overridden by variant
+        assert_eq!(variant.group_name, "base_group");
+    }
 }
