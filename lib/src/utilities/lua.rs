@@ -251,6 +251,22 @@ mod tests {
     }
 
     #[test]
+    fn lua_function_json_schema_body() {
+        use schemars::SchemaGenerator;
+        let schema = LuaFunction::json_schema(&mut SchemaGenerator::default());
+        let v = serde_json::to_value(&schema).unwrap();
+        assert_eq!(v["type"], json!("object"));
+    }
+
+    #[test]
+    fn lua_runtime_json_schema_body() {
+        use schemars::SchemaGenerator;
+        let schema = LuaRuntime::json_schema(&mut SchemaGenerator::default());
+        let v = serde_json::to_value(&schema).unwrap();
+        assert_eq!(v["type"], json!("object"));
+    }
+
+    #[test]
     fn json_to_lua_null() {
         let lua = Lua::new();
         let result = json_to_lua(&JsonValue::Null, &lua).unwrap();

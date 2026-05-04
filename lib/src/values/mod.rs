@@ -1099,6 +1099,18 @@ mod test {
     }
 
     #[test]
+    fn deserialize_visit_string_via_serde_yaml() -> anyhow::Result<()> {
+        // serde_yaml_ng calls visit_string (owned String) for quoted strings
+        let v: Value = serde_yaml_ng::from_str("'Daniel Jackson'")?;
+        assert_eq!(v, Value::String("Daniel Jackson".to_string()));
+
+        let v: Value = serde_yaml_ng::from_str("\"Jack O'Neill\"")?;
+        assert_eq!(v, Value::String("Jack O'Neill".to_string()));
+
+        Ok(())
+    }
+
+    #[test]
     fn from_numeric_types_tests() -> anyhow::Result<()> {
         let v: Value = 42i64.into();
         assert_eq!(
