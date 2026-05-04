@@ -153,6 +153,44 @@ mod tests {
         Ok(())
     }
 
+    #[test]
+    fn display_format() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("secret.txt");
+        let atom = Decrypt {
+            encrypted_content: vec![],
+            passphrase: "pass".to_string(),
+            path: path.clone(),
+        };
+        let s = format!("{atom}");
+        assert!(s.contains("secret.txt"));
+    }
+
+    #[test]
+    fn get_path_returns_path() {
+        use super::super::FileAtom;
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("secret.txt");
+        let atom = Decrypt {
+            encrypted_content: vec![],
+            passphrase: "pass".to_string(),
+            path: path.clone(),
+        };
+        assert_eq!(atom.get_path(), &path);
+    }
+
+    #[test]
+    fn plan_returns_should_run_true_when_path_does_not_exist() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("nonexistent.txt");
+        let atom = Decrypt {
+            encrypted_content: vec![],
+            passphrase: "pass".to_string(),
+            path,
+        };
+        assert!(atom.plan().unwrap().should_run);
+    }
+
     fn encrypt(passphrase: String, content: Vec<u8>) -> anyhow::Result<Vec<u8>> {
         let secret = SecretString::from(passphrase);
         let encryptor = age::Encryptor::with_user_passphrase(secret);

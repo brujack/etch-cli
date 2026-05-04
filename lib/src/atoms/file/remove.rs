@@ -157,4 +157,28 @@ mod tests {
         };
         assert_eq!(atom.get_path(), &path);
     }
+
+    #[cfg(unix)]
+    #[test]
+    fn plan_returns_false_when_parent_dir_is_readonly() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("target.txt");
+        std::fs::write(&file_path, "content").unwrap();
+
+        let mut perms = std::fs::metadata(dir.path()).unwrap().permissions();
+        perms.set_mode(0o444);
+        std::fs::set_permissions(dir.path(), perms).unwrap();
+
+        let atom = Remove { target: file_path };
+        let result = atom.plan().unwrap();
+
+        // Restore permissions so tempdir cleanup can succeed
+        let mut perms = std::fs::metadata(dir.path()).unwrap().permissions();
+        perms.set_mode(0o755);
+        std::fs::set_permissions(dir.path(), perms).unwrap();
+
+        assert!(!result.should_run);
+    }
 }
