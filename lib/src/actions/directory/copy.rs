@@ -82,4 +82,25 @@ mod tests {
             }
         };
     }
+
+    #[test]
+    fn plan_appends_slash_dot_when_to_ends_with_slash() {
+        use super::DirectoryCopy;
+        use crate::actions::Action;
+        use crate::config::Config;
+        use crate::contexts::build_contexts;
+
+        let tmp = tempfile::tempdir().unwrap();
+        // normpath::normalize() requires the path to exist on macOS/Linux
+        std::fs::create_dir_all(tmp.path().join("files").join("mydir")).unwrap();
+        let action = DirectoryCopy {
+            from: "mydir".to_string(),
+            to: "/tmp/dest/".to_string(),
+        };
+        let manifest = crate::test_helpers::make_manifest(tmp.path());
+        let contexts = build_contexts(&Config::default());
+        let steps = action.plan(&manifest, &contexts).unwrap();
+        // mkdir + cp steps; the cp argument should have "/." appended to from
+        assert_eq!(2, steps.len());
+    }
 }

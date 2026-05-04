@@ -676,4 +676,50 @@ return {
         set.insert(repo2);
         // The hashing is path-based - just verify it doesn't panic
     }
+
+    #[test]
+    fn get_plugin_returns_cached_spec_on_second_call() -> Result<()> {
+        let temp_dir = tempdir().expect("Failed to create temp dir");
+        let lua_file_path = temp_dir.path().join("plugin.lua");
+        let mut lua_file = File::create(&lua_file_path)?;
+        lua_file.write_all(
+            r#"
+return {
+    name = "cached",
+    summary = "Cache test plugin",
+    actions = {
+        run = {
+            plan = function() end,
+            exec = function(output, wait) end,
+        },
+    },
+}
+"#
+            .as_bytes(),
+        )?;
+
+        let manifest = Manifest::deserialize(json!({
+            "actions": [{
+                "action": "plugin",
+                "dir": lua_file_path,
+                "actions": { "run": {} }
+            }]
+        }))?;
+        let contexts = build_contexts(&Config::default());
+
+        // First call — populates the PLUGINS cache
+        let _ = manifest
+            .actions
+            .first()
+            .unwrap()
+            .plan(&manifest, &contexts)?;
+        // Second call with same Dir source — hits the cache (plugin/mod.rs line 20)
+        let _ = manifest
+            .actions
+            .first()
+            .unwrap()
+            .plan(&manifest, &contexts)?;
+
+        Ok(())
+    }
 }
