@@ -713,4 +713,26 @@ actions:
         let steps = manifest.actions[0].plan(&manifest, &contexts).unwrap();
         assert_eq!(steps.len(), 1);
     }
+
+    #[test]
+    fn variant_with_no_condition_is_skipped_in_find() {
+        // A variant with no "where" clause has condition=None; the find() closure
+        // returns false immediately (line 79), skipping it. The base action runs.
+        let yaml = r#"
+actions:
+- action: command.run
+  command: echo
+  args: [base]
+  variants:
+    - command: echo
+      args: [variant-no-condition]
+"#;
+        use crate::config::Config;
+        use crate::contexts::build_contexts;
+        let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
+        let contexts = build_contexts(&Config::default());
+        let steps = manifest.actions[0].plan(&manifest, &contexts).unwrap();
+        // No variant matched, base action runs (1 step)
+        assert_eq!(steps.len(), 1);
+    }
 }
