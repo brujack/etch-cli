@@ -19,7 +19,7 @@ Master status index for all specs and implementation plans in this directory.
 | 2026-05-02 | [etch-cli-phase1](plans/2026-05-02-etch-cli-phase1.md)   | —                                                                 | In Progress |
 | 2026-05-02 | [platform-pruning](plans/2026-05-02-platform-pruning.md) | [platform-pruning](specs/2026-05-02-platform-pruning-design.md)   | Done        |
 | 2026-05-02 | [test-coverage](plans/2026-05-02-test-coverage.md)       | [test-coverage](specs/2026-05-02-test-coverage-design.md)         | Pending     |
-| 2026-05-04 | —                                                        | [dead-code-removal](specs/2026-05-04-dead-code-removal-design.md) | In Progress |
+| 2026-05-04 | —                                                        | [dead-code-removal](specs/2026-05-04-dead-code-removal-design.md) | Done        |
 
 ---
 
@@ -29,7 +29,6 @@ Master status index for all specs and implementation plans in this directory.
 | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | ntfy notification action           | Matches existing notification infra                                                                                                                                        |
 | macOS defaults write ergonomics    | If etch-cli's current API is rough                                                                                                                                         |
-| fix lua_value_to_json object table | `utilities/lua.rs` lines 35-42: string-keyed tables fall through to array branch because `pairs::<i64, LuaValue>()` counts conversion errors as pairs, so count is never 0 |
 
 ---
 
