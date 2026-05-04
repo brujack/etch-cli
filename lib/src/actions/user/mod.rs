@@ -126,4 +126,32 @@ mod tests {
         assert_eq!(variant.username, "alice");
         assert_eq!(variant.home_dir, "/home/alice");
     }
+
+    #[test]
+    fn user_variant_from_user_with_matching_os_variant() {
+        use super::{User, UserVariant};
+        use std::collections::HashMap;
+
+        let os = os_info::get();
+        let mut variants = HashMap::new();
+        variants.insert(
+            os.os_type(),
+            UserVariant {
+                username: "variant_user".to_string(),
+                ..Default::default()
+            },
+        );
+
+        let user = User {
+            username: "base_user".to_string(),
+            home_dir: "/home/base".to_string(),
+            variants,
+            ..Default::default()
+        };
+
+        let variant: UserVariant = (&user).into();
+        // Base user fields are preserved; only provider is overridden by the variant
+        assert_eq!(variant.username, "base_user");
+        assert_eq!(variant.home_dir, "/home/base");
+    }
 }
