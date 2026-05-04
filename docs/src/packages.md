@@ -5,43 +5,32 @@
 
 ## Package Providers
 
-Packages is a group of actions that utilize the local system's package manager, however it is a bit special. Unlike some other actions, packages can also contain _providers_. Some operating systems may have multiple package managers available and providers allow the user to choose which package manager to use. For example, macOS will automatically utilize homebrew as the default package manager, but this default can be overridden for another package manager on the system such as pkgin, which also supports macOS, or macports.
+Packages is a group of actions that utilize the local system's package manager. Unlike some other actions, packages can also contain _providers_. Some operating systems may have multiple package managers available and providers allow the user to choose which package manager to use.
 
 ### Supported package providers
 
-Not all package managers are supported. This is a list of currently supported package providers:
+| Provider         | OS            |
+| :--------------- | :------------ |
+| apt / apt-get    | Ubuntu/Debian |
+| brew / homebrew  | macOS         |
+| snap / snapcraft | Linux         |
 
-| Provider   | OS                |
-| :--------- | :---------------- |
-| pacman/yay | Arch              |
-| paru       | Arch              |
-| apt        | Debian/Ubuntu     |
-| pkg        | FreeBSD           |
-| pkgin      | NetBSD (Multiple) |
-| brew       | macOS             |
-| xbps       | Void Linux        |
-| zypper     | OpenSUSE          |
-| macports   | macOS             |
-| dnf        | Fedora            |
-| snapcraft  | Linux             |
-
-If you would like support to be added for a package provider, feel free to contribute the support or request support in the [repository](https://github.com/brujack/etch-cli) issue tracker.
+If you would like support added for another package provider, open an issue at the [repository](https://github.com/brujack/etch-cli).
 
 ### Important note on homebrew and macOS
 
-Some package manager providers can implement a `bootstrap` method that will automatically configure the package manager on the system if it is not part of the default installation. This is the case with macOS. etch can automatically install `homebrew` to a macOS system and will do so if a manifest specifies a `package.install` action and does not overridfe the macOS default of homebrew.
+Some package manager providers implement a `bootstrap` method that will automatically configure the package manager if it is not part of the default installation. etch can automatically install `homebrew` to a macOS system if a manifest specifies a `package.install` action without overriding the macOS default.
 
 ## package.install
 
-| Key        | Type   | Optional | Description                                                 |
-| :--------- | :----- | :------- | :---------------------------------------------------------- |
-| action     | string | no       | `package.install`                                           |
-| name       | string | no       | name of target package                                      |
-| list       | list   | yes      | list of multiple packages                                   |
-| provider   | string | yes      | Specify package provider                                    |
-| repository | string | yes      | specific repository for a provider and package              |
-| file       | bool   | yes      | Specify that package is a local package on the file system. |
-|            |        |          | Default value is `false`                                    |
+| Key        | Type   | Optional | Description                                                                 |
+| :--------- | :----- | :------- | :-------------------------------------------------------------------------- |
+| action     | string | no       | `package.install`                                                           |
+| name       | string | no       | name of target package                                                      |
+| list       | list   | yes      | list of multiple packages                                                   |
+| provider   | string | yes      | Specify package provider                                                    |
+| repository | string | yes      | specific repository for a provider and package                              |
+| file       | bool   | yes      | Specify that package is a local package on the file system. Default `false` |
 
 ### Example
 
@@ -57,9 +46,9 @@ Some package manager providers can implement a `bootstrap` method that will auto
       - wget
 
 # Install a package using a specific package provider
-- action: package install
+- action: package.install
   name: curl
-  provider: pkgin
+  provider: apt
 
 # Install a package specifying a repository
 - action: package.install
@@ -70,20 +59,17 @@ Some package manager providers can implement a `bootstrap` method that will auto
 
 ### Local package install support
 
-Some package providers allow for installing a package from the local file system. An example of this would be `.pkg` files that can be installed using FreeBSD's package manager `pkg`. As of this time, it requires that the file property be set in the action's definition.
+Some package providers allow for installing a package from the local file system. It requires that the `file` property be set to `true`.
 
-List of supported package providers:
+Providers supporting local install:
 
-- pkg (FreeBSD)
-- aptitude (debian/ubuntu)
-
-If you would like to have this feature supported on another package provider, please open an issue at the [etch GitHub repository](https://github.com/brujack/etch-cli).
+- apt / aptitude (Ubuntu/Debian)
 
 #### Example
 
 ```yaml
 - action: package.install
-  name: /some/path/to/file/nano-8.1.pkg
+  name: /some/path/to/file/nano_8.1_amd64.deb
   file: true
 ```
 
@@ -93,7 +79,7 @@ If you would like to have this feature supported on another package provider, pl
 | -------- | ------------- | -------- | ----------------------------------------------- |
 | name     | string        | no       | Alias of url                                    |
 | key      | RepositoryKey | yes      | See table below                                 |
-| provider | string        | yes      | Defaukt value provided, specify package manager |
+| provider | string        | yes      | Default value provided, specify package manager |
 
 ### RepositoryKey
 
