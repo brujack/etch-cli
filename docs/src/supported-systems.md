@@ -2,10 +2,5 @@
 
 The following operating systems are officially supported by etch:
 
-- FreeBSD
-- Linux
+- Linux (Ubuntu 24.04 / 26.04)
 - macOS
-- NetBSD
-- Windows
-
-If your operating system is not listed, file an issue on the projects [GitHub](https://github.com/brujack/etch-cli) and the team will see what needs to be done to add support.

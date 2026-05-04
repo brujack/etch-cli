@@ -2,7 +2,7 @@
 
 ## Escalating actions
 
-Some actions may be run either *privileged* or *unprivileged*. For those unfamiliar, this means for example utilizing sudo or running something as admin. A common action this may be required for is [command.run](./command). Perhaps you wish to run a command that etch does not directly supply an action for, but that command requires elevated privileges to make changes to the system. Some actions allow that to be specified. Here is an example making use of `command.run`:
+Some actions may be run either _privileged_ or _unprivileged_. For those unfamiliar, this means for example utilizing sudo or running something as admin. A common action this may be required for is [command.run](./command). Perhaps you wish to run a command that etch does not directly supply an action for, but that command requires elevated privileges to make changes to the system. Some actions allow that to be specified. Here is an example making use of `command.run`:
 
 ```yaml
 - action: command.run
@@ -10,7 +10,7 @@ Some actions may be run either *privileged* or *unprivileged*. For those unfamil
   sudo: true
 ```
 
-etch knows two keywords for escalating privilege. In older versions, it had to be done using sudo, however sudo is a term typically associated with a specific application and has little meaning to a Windows user for example. Even on Unix-like systems, there are alternatives available. etch's architecture allows for using other providers for privilege escalation. A more generic way to write the above action would be to use `privileged` in lieu of `sudo`.
+etch knows two keywords for escalating privilege. In older versions, it had to be done using sudo, however there are alternatives available on Unix-like systems. etch's architecture allows for using other providers for privilege escalation. A more generic way to write the above action would be to use `privileged` in lieu of `sudo`.
 
 ```yaml
 - action: command.run
@@ -29,15 +29,15 @@ In order to utilize different privilege providers, you must have a `etch.yaml` f
 privilege: doas
 
 variables:
-  test: "one"
+    test: "one"
 ```
 
 The `privilege` specifies which provider. Below are the providers and relevant values to be set for `privilege`:
 
 | Provider | Value |
-|----------|-------|
+| -------- | ----- |
 | Sudo     | sudo  |
 | Doas     | doas  |
 | Run0     | run0  |
 
-As a note, etch will always fall back to utilizing sudo. An example is when an action is being  executed, but no privilege escalation provider is specified.
+As a note, etch will always fall back to utilizing sudo. An example is when an action is being executed, but no privilege escalation provider is specified.

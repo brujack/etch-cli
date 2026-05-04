@@ -1,6 +1,5 @@
 use super::FileAction;
 use super::{default_chmod, from_octal};
-#[cfg(unix)]
 use crate::atoms::file::Chown;
 use crate::manifests::Manifest;
 use crate::steps::Step;
@@ -83,38 +82,28 @@ impl Action for FileDownload {
             },
         ];
 
-        #[cfg(unix)]
-        {
-            let mut steps = steps;
-            if let Some(user) = self.owner_user.clone() {
-                if let Some(group) = self.owner_group.clone() {
-                    steps.push(Step {
-                        atom: Box::new(Chown {
-                            path: path.clone(),
-                            owner: user.clone(),
-                            group: group.clone(),
-                        }),
-                        initializers: vec![],
-                        finalizers: vec![],
-                    })
-                }
+        let mut steps = steps;
+        if let Some(user) = self.owner_user.clone() {
+            if let Some(group) = self.owner_group.clone() {
+                steps.push(Step {
+                    atom: Box::new(Chown {
+                        path: path.clone(),
+                        owner: user.clone(),
+                        group: group.clone(),
+                    }),
+                    initializers: vec![],
+                    finalizers: vec![],
+                })
             }
-
-            Ok(steps)
         }
 
-        #[cfg(not(unix))]
-        {
-            Ok(steps)
-        }
+        Ok(steps)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    #[cfg(unix)]
     use crate::actions::file::download::FileDownload;
-    #[cfg(unix)]
     use crate::actions::Action;
     use crate::actions::Actions;
 
@@ -140,7 +129,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(unix)]
     fn it_can_be_deserialized_owners() {
         let yaml = r#"
 - action: file.download
@@ -166,7 +154,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(unix)]
     fn contains_chown_step() {
         let file_download = FileDownload {
             from: "test".to_string(),

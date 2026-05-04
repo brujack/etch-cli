@@ -77,21 +77,6 @@ impl Atom for Chmod {
     }
 }
 
-#[cfg(not(unix))]
-impl Atom for Chmod {
-    fn plan(&self) -> anyhow::Result<Outcome> {
-        // Never run
-        Ok(Outcome {
-            side_effects: vec![],
-            should_run: false,
-        })
-    }
-
-    fn execute(&mut self) -> anyhow::Result<()> {
-        Ok(())
-    }
-}
-
 #[cfg(test)]
 #[cfg(unix)]
 mod tests {
