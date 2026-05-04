@@ -17,8 +17,9 @@ use tracing::error;
 
 use schemars::{json_schema, JsonSchema, Schema, SchemaGenerator};
 
+// Used in tests and reserved for Lua→JSON roundtrip once plugin output is wired up.
 #[allow(dead_code)]
-pub fn lua_value_to_json(value: LuaValue) -> JsonValue {
+pub(crate) fn lua_value_to_json(value: LuaValue) -> JsonValue {
     match value {
         LuaValue::Nil => JsonValue::Null,
         LuaValue::Boolean(b) => JsonValue::Bool(b),

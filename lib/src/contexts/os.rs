@@ -64,9 +64,6 @@ mod test {
                 "name" => assert_eq!(v.to_string(), String::from("macos")),
                 _ => (),
             },
-            Context::ListContext(_, _) => {
-                assert_eq!(true, false);
-            }
         })
     }
 
@@ -82,9 +79,6 @@ mod test {
                 "name" => assert_eq!(v.to_string(), String::from("linux")),
                 _ => (),
             },
-            Context::ListContext(_, _) => {
-                assert_eq!(true, false);
-            }
         })
     }
 }
