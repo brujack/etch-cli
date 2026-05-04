@@ -1,5 +1,0 @@
-{
-    "yaml.schemas": {
-        "https://schema.etch-cli.dev/schema.json": "/examples/**/*.yaml"
-    }
-}
