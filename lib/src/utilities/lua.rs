@@ -28,10 +28,12 @@ pub fn lua_value_to_json(value: LuaValue) -> JsonValue {
         }
         LuaValue::String(s) => JsonValue::String(s.to_string_lossy()),
         LuaValue::Table(t) => {
-            if t.clone().pairs::<LuaValue, LuaValue>().count() > 0
-                && t.clone().pairs::<i64, LuaValue>().count() == 0
-            {
-                // Treat as object
+            // Use sequence_values to detect array tables (consecutive integer keys from 1).
+            // If the table has pairs but no sequence values, treat it as a string-keyed object.
+            let seq_count = t.clone().sequence_values::<LuaValue>().count();
+            let all_count = t.clone().pairs::<LuaValue, LuaValue>().count();
+            if all_count > 0 && seq_count == 0 {
+                // Treat as object (has pairs, none are sequential integer keys)
                 let mut map = serde_json::Map::new();
                 for pair in t.pairs::<LuaValue, LuaValue>() {
                     let (k, v) = pair.unwrap();
@@ -41,11 +43,10 @@ pub fn lua_value_to_json(value: LuaValue) -> JsonValue {
                 }
                 JsonValue::Object(map)
             } else {
-                // Treat as array
+                // Treat as array (empty, or has sequential integer keys)
                 let mut array = Vec::new();
-                for pair in t.pairs::<i64, LuaValue>() {
-                    let (_, v) = pair.unwrap();
-                    array.push(lua_value_to_json(v));
+                for v in t.sequence_values::<LuaValue>() {
+                    array.push(lua_value_to_json(v.unwrap()));
                 }
                 JsonValue::Array(array)
             }
@@ -248,6 +249,18 @@ mod tests {
         // (already covered by Nil test above)
         let result = lua_value_to_json(LuaValue::Nil);
         assert_eq!(result, JsonValue::Null);
+    }
+
+    #[test]
+    fn lua_value_to_json_object_table_with_string_keys() {
+        let lua = Lua::new();
+        let table = lua.create_table().unwrap();
+        table.set("name", "Teal'c").unwrap();
+        table.set("rank", "First Prime").unwrap();
+        let result = lua_value_to_json(LuaValue::Table(table));
+        assert!(result.is_object(), "expected object, got: {result:?}");
+        assert_eq!(result["name"], json!("Teal'c"));
+        assert_eq!(result["rank"], json!("First Prime"));
     }
 
     #[test]

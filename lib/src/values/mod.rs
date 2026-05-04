@@ -192,71 +192,11 @@ impl NumberVariant {
             (NumberVariant::Signed(a), NumberVariant::Signed(b)) => a.cmp(&b),
             (NumberVariant::Unsigned(a), NumberVariant::Signed(b)) => (a as i64).cmp(&b),
             (NumberVariant::Signed(a), NumberVariant::Unsigned(b)) => a.cmp(&(b as i64)),
-            (NumberVariant::Float(a), NumberVariant::Float(b)) => {
-                // FIXME: change to total_cmp for Rust >= 1.62.0
-                a.partial_cmp(&b).unwrap_or_else(|| {
-                    // arbitrarily sort the NaN last
-                    if !a.is_nan() {
-                        Ordering::Less
-                    } else if !b.is_nan() {
-                        Ordering::Greater
-                    } else {
-                        Ordering::Equal
-                    }
-                })
-            }
-            (NumberVariant::Signed(a), NumberVariant::Float(b)) => {
-                // FIXME: change to total_cmp for Rust >= 1.62.0
-                (a as f64).partial_cmp(&b).unwrap_or_else(|| {
-                    // arbitrarily sort the NaN last
-                    if !(a as f64).is_nan() {
-                        Ordering::Less
-                    } else if !b.is_nan() {
-                        Ordering::Greater
-                    } else {
-                        Ordering::Equal
-                    }
-                })
-            }
-            (NumberVariant::Unsigned(a), NumberVariant::Float(b)) => {
-                // FIXME: change to total_cmp for Rust >= 1.62.0
-                (a as f64).partial_cmp(&b).unwrap_or_else(|| {
-                    // arbitrarily sort the NaN last
-                    if !(a as f64).is_nan() {
-                        Ordering::Less
-                    } else if !b.is_nan() {
-                        Ordering::Greater
-                    } else {
-                        Ordering::Equal
-                    }
-                })
-            }
-            (NumberVariant::Float(a), NumberVariant::Signed(b)) => {
-                // FIXME: change to total_cmp for Rust >= 1.62.0
-                a.partial_cmp(&(b as f64)).unwrap_or_else(|| {
-                    // arbitrarily sort the NaN last
-                    if !a.is_nan() {
-                        Ordering::Less
-                    } else if !(b as f64).is_nan() {
-                        Ordering::Greater
-                    } else {
-                        Ordering::Equal
-                    }
-                })
-            }
-            (NumberVariant::Float(a), NumberVariant::Unsigned(b)) => {
-                // FIXME: change to total_cmp for Rust >= 1.62.0
-                a.partial_cmp(&(b as f64)).unwrap_or_else(|| {
-                    // arbitrarily sort the NaN last
-                    if !a.is_nan() {
-                        Ordering::Less
-                    } else if !(b as f64).is_nan() {
-                        Ordering::Greater
-                    } else {
-                        Ordering::Equal
-                    }
-                })
-            }
+            (NumberVariant::Float(a), NumberVariant::Float(b)) => a.total_cmp(&b),
+            (NumberVariant::Signed(a), NumberVariant::Float(b)) => (a as f64).total_cmp(&b),
+            (NumberVariant::Unsigned(a), NumberVariant::Float(b)) => (a as f64).total_cmp(&b),
+            (NumberVariant::Float(a), NumberVariant::Signed(b)) => a.total_cmp(&(b as f64)),
+            (NumberVariant::Float(a), NumberVariant::Unsigned(b)) => a.total_cmp(&(b as f64)),
         }
     }
 }
@@ -360,32 +300,14 @@ impl TryFrom<JsonValue> for Value {
             JsonValue::Bool(b) => b.into(),
             JsonValue::Number(number) => {
                 if number.is_u64() {
-                    match number.as_u64() {
-                        Some(n) => n.into(),
-                        None => {
-                            return Err(anyhow::anyhow!(
-                                "Failed converting number {number:?} to json."
-                            ))
-                        }
-                    }
+                    number.as_u64().expect("is_u64 guarantees Some").into()
                 } else if number.is_i64() {
-                    match number.as_i64() {
-                        Some(n) => n.into(),
-                        None => {
-                            return Err(anyhow::anyhow!(
-                                "Failed converting number {number:?} to json."
-                            ))
-                        }
-                    }
+                    number.as_i64().expect("is_i64 guarantees Some").into()
                 } else {
-                    match number.as_f64() {
-                        Some(n) => n.into(),
-                        None => {
-                            return Err(anyhow::anyhow!(
-                                "Failed converting number {number:?} to json."
-                            ))
-                        }
-                    }
+                    number
+                        .as_f64()
+                        .expect("as_f64 is Some for all finite JSON numbers")
+                        .into()
                 }
             }
             JsonValue::String(s) => Self::String(s),

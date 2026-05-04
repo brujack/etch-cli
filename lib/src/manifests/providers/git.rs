@@ -14,6 +14,7 @@ pub struct GitManifestProvider;
 #[derive(Debug, PartialEq)]
 pub(crate) struct GitConfig {
     repository: String,
+    // TODO: implement branch checkout and subdirectory path support in fetch_and_clone
     branch: Option<String>,
     path: Option<String>,
 }
