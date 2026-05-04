@@ -64,8 +64,8 @@ pub fn build_contexts(config: &Config) -> Contexts {
             })
             .unwrap_or_default()
             .iter()
-            .for_each(|context| match context {
-                Context::KeyValueContext(k, v) => {
+            .for_each(|context| {
+                if let Context::KeyValueContext(k, v) = context {
                     trace!(
                         context = provider.get_prefix().as_str(),
                         key = k.clone().as_str(),
@@ -74,16 +74,7 @@ pub fn build_contexts(config: &Config) -> Contexts {
                     );
                     values.insert(k.clone(), v.clone());
                 }
-                Context::ListContext(k, v) => {
-                    trace!(
-                        context = provider.get_prefix().as_str(),
-                        key = k.clone().as_str(),
-                        values = format!("{:?}", v), // debug of the vector values is good enough
-                        message = ""
-                    );
-
-                    values.insert(k.clone(), v.clone().into());
-                }
+                // Context::ListContext is reserved for future use; no provider currently produces it
             });
 
         contexts.insert(provider.get_prefix(), values);
