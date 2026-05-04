@@ -144,4 +144,30 @@ mod tests {
         let variant: PackageVariant = (&pkg).into();
         assert!(variant.packages().is_empty());
     }
+
+    #[test]
+    fn package_variant_from_package_with_matching_os_variant() {
+        use std::collections::HashMap;
+
+        let os = os_info::get();
+        let mut variants = HashMap::new();
+        variants.insert(
+            os.os_type(),
+            PackageVariant {
+                name: Some("variant-pkg".to_string()),
+                list: vec!["extra-pkg".to_string()],
+                ..Default::default()
+            },
+        );
+
+        let pkg = Package {
+            name: Some("base-pkg".to_string()),
+            variants,
+            ..Default::default()
+        };
+
+        let variant: PackageVariant = (&pkg).into();
+        // variant.name overrides base name; variant.list overrides base list
+        assert_eq!(variant.packages(), vec!["variant-pkg"]);
+    }
 }
