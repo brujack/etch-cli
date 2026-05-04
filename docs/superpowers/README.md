@@ -24,10 +24,11 @@ Master status index for all specs and implementation plans in this directory.
 
 ## Backlog
 
-| Feature                         | Notes                                                                                     |
-| ------------------------------- | ----------------------------------------------------------------------------------------- |
-| ntfy notification action        | Matches existing notification infra                                                       |
-| macOS defaults write ergonomics | If etch-cli's current API is rough                                                        |
+| Feature                            | Notes                                                                                                                                                                      |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ntfy notification action           | Matches existing notification infra                                                                                                                                        |
+| macOS defaults write ergonomics    | If etch-cli's current API is rough                                                                                                                                         |
+| fix lua_value_to_json object table | `utilities/lua.rs` lines 35-42: string-keyed tables fall through to array branch because `pairs::<i64, LuaValue>()` counts conversion errors as pairs, so count is never 0 |
 
 ---
 
