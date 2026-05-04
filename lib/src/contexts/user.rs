@@ -52,13 +52,7 @@ impl ContextProvider for UserContextProvider {
 }
 
 impl UserContextProvider {
-    #[cfg(unix)]
     fn get_uid(&self) -> u32 {
         uzers::get_current_uid()
-    }
-
-    #[cfg(not(unix))]
-    fn get_uid(&self) -> u32 {
-        0
     }
 }
