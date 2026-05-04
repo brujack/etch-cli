@@ -146,3 +146,163 @@ impl GitManifestProvider {
             .replace([':', '.', '/'], "")
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::manifests::providers::ManifestProvider;
+
+    fn provider() -> GitManifestProvider {
+        GitManifestProvider
+    }
+
+    // --- looks_familiar ---
+
+    #[test]
+    fn looks_familiar_https_url_returns_true() {
+        assert!(provider().looks_familiar("https://github.com/user/repo"));
+    }
+
+    #[test]
+    fn looks_familiar_git_url_returns_true() {
+        assert!(provider().looks_familiar("git://github.com/user/repo"));
+    }
+
+    #[test]
+    fn looks_familiar_ssh_url_returns_true() {
+        assert!(provider().looks_familiar("ssh://git@github.com/user/repo"));
+    }
+
+    #[test]
+    fn looks_familiar_local_path_returns_false() {
+        assert!(!provider().looks_familiar("/local/path/to/manifests"));
+    }
+
+    #[test]
+    fn looks_familiar_relative_path_returns_false() {
+        assert!(!provider().looks_familiar("../relative/path"));
+    }
+
+    #[test]
+    fn looks_familiar_empty_string_returns_false() {
+        assert!(!provider().looks_familiar(""));
+    }
+
+    #[test]
+    fn looks_familiar_scp_style_returns_false() {
+        // git@github.com:user/repo has no :// so is not recognized
+        assert!(!provider().looks_familiar("git@github.com:user/repo"));
+    }
+
+    // --- parse_config_url ---
+
+    #[test]
+    fn parse_config_url_no_fragment_returns_repository_only() {
+        let config = provider().parse_config_url("https://github.com/user/repo");
+        assert_eq!(
+            config,
+            GitConfig {
+                repository: "https://github.com/user/repo".into(),
+                branch: None,
+                path: None,
+            }
+        );
+    }
+
+    #[test]
+    fn parse_config_url_fragment_with_branch_only() {
+        let config = provider().parse_config_url("https://github.com/user/repo#main");
+        assert_eq!(
+            config,
+            GitConfig {
+                repository: "https://github.com/user/repo".into(),
+                branch: Some("main".into()),
+                path: None,
+            }
+        );
+    }
+
+    #[test]
+    fn parse_config_url_fragment_with_path_only() {
+        // #:manifests → empty branch, path present
+        let config = provider().parse_config_url("https://github.com/user/repo#:manifests");
+        assert_eq!(
+            config,
+            GitConfig {
+                repository: "https://github.com/user/repo".into(),
+                branch: None,
+                path: Some("manifests".into()),
+            }
+        );
+    }
+
+    #[test]
+    fn parse_config_url_fragment_with_branch_and_path() {
+        let config = provider().parse_config_url("https://github.com/user/repo#main:manifests");
+        assert_eq!(
+            config,
+            GitConfig {
+                repository: "https://github.com/user/repo".into(),
+                branch: Some("main".into()),
+                path: Some("manifests".into()),
+            }
+        );
+    }
+
+    #[test]
+    fn parse_config_url_fragment_with_branch_and_empty_path() {
+        // #main: → branch present, empty path becomes None
+        let config = provider().parse_config_url("https://github.com/user/repo#main:");
+        assert_eq!(
+            config,
+            GitConfig {
+                repository: "https://github.com/user/repo".into(),
+                branch: Some("main".into()),
+                path: None,
+            }
+        );
+    }
+
+    // --- clean_git_url ---
+
+    #[test]
+    fn clean_git_url_strips_https_and_special_chars() {
+        let result = provider().clean_git_url("https://github.com/user/repo");
+        assert_eq!(result, "githubcomuserrepo");
+    }
+
+    #[test]
+    fn clean_git_url_strips_git_protocol_and_special_chars() {
+        let result = provider().clean_git_url("git://github.com/user/repo");
+        assert_eq!(result, "gitgithubcomuserrepo");
+    }
+
+    #[test]
+    fn clean_git_url_strips_ssh_protocol_and_special_chars() {
+        let result = provider().clean_git_url("ssh://github.com/user/repo");
+        assert_eq!(result, "sshgithubcomuserrepo");
+    }
+
+    // --- resolve (cache-hit path — no network required) ---
+
+    #[test]
+    fn resolve_returns_cache_path_when_already_cloned() {
+        let p = provider();
+        let url = "https://github.com/user/repo-cache-hit-test";
+        let clean = p.clean_git_url("https://github.com/user/repo-cache-hit-test");
+        let cache_path = dirs_next::cache_dir()
+            .unwrap()
+            .join("etch")
+            .join("manifests")
+            .join("git")
+            .join(&clean);
+
+        std::fs::create_dir_all(&cache_path).unwrap();
+
+        let result = p.resolve(url);
+
+        std::fs::remove_dir_all(&cache_path).unwrap();
+
+        assert_eq!(result.unwrap(), cache_path);
+    }
+}
