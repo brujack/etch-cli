@@ -40,3 +40,23 @@ impl Action for UserAddGroup {
         Ok(atoms)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::actions::Action;
+    use crate::config::Config;
+    use crate::contexts::build_contexts;
+
+    #[test]
+    fn plan_returns_ok() {
+        let action = UserAddGroup {
+            username: "testuser".to_string(),
+            group: vec!["sudo".to_string()],
+            ..Default::default()
+        };
+        let manifest = crate::test_helpers::make_manifest(std::path::Path::new("/tmp"));
+        let contexts = build_contexts(&Config::default());
+        assert!(action.plan(&manifest, &contexts).is_ok());
+    }
+}

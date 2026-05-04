@@ -14,3 +14,20 @@ impl GroupProvider for NoneGroupProvider {
         vec![]
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::actions::group::GroupVariant;
+    use crate::config::Config;
+    use crate::contexts::build_contexts;
+
+    #[test]
+    fn add_group_returns_empty_steps() {
+        let provider = NoneGroupProvider {};
+        let group = GroupVariant::default();
+        let contexts = build_contexts(&Config::default());
+        let steps = provider.add_group(&group, &contexts);
+        assert!(steps.is_empty());
+    }
+}
