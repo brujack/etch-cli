@@ -373,4 +373,27 @@ mod tests {
             Ok(_) => panic!("expected plan to fail on invalid template"),
         }
     }
+
+    #[test]
+    fn plan_errors_when_source_is_directory() {
+        // fs::read() on a directory returns an OS error (not NotFound), covering
+        // the _ => branch in FileAction::load()
+        use super::FileCopy;
+        use crate::actions::Action;
+        let tmp = tempfile::tempdir().unwrap();
+        let files_dir = tmp.path().join("files");
+        std::fs::create_dir_all(&files_dir).unwrap();
+        // Create a directory where a file is expected
+        std::fs::create_dir(files_dir.join("mydir.txt")).unwrap();
+
+        let action = FileCopy {
+            from: "mydir.txt".to_string(),
+            to: tmp.path().join("output.txt").display().to_string(),
+            ..Default::default()
+        };
+        let manifest = crate::test_helpers::make_manifest(tmp.path());
+        let contexts = crate::test_helpers::make_contexts();
+        let result = action.plan(&manifest, &contexts);
+        assert!(result.is_err());
+    }
 }
