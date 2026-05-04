@@ -341,4 +341,36 @@ mod tests {
         assert!(summary.contains("src.txt"));
         assert!(summary.contains("dst.txt"));
     }
+
+    #[test]
+    fn plan_template_rendering_error_returns_err() {
+        use super::FileCopy;
+        use crate::actions::Action;
+        let tmp = tempfile::tempdir().unwrap();
+        let files_dir = tmp.path().join("files");
+        std::fs::create_dir_all(&files_dir).unwrap();
+        let src = files_dir.join("bad_tmpl.txt");
+        // read_file_contents with a nonexistent path causes a Tera render error
+        std::fs::write(
+            &src,
+            b"{{ read_file_contents(path=\"/no/such/path/xyz\") }}",
+        )
+        .unwrap();
+
+        let action = FileCopy {
+            from: "bad_tmpl.txt".to_string(),
+            to: tmp.path().join("output.txt").display().to_string(),
+            template: true,
+            ..Default::default()
+        };
+        let manifest = crate::test_helpers::make_manifest(tmp.path());
+        let contexts = crate::test_helpers::make_contexts();
+        let result = action.plan(&manifest, &contexts);
+        match result {
+            Err(e) => assert!(e
+                .to_string()
+                .contains("Failed to render contents for FileCopy action")),
+            Ok(_) => panic!("expected plan to fail on invalid template"),
+        }
+    }
 }
