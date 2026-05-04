@@ -6,7 +6,6 @@
 
 Not all systems are currently supported. The following is a list of group providers:
 
-- FreeBSD
 - Linux
 - macOS
 
@@ -17,16 +16,14 @@ If your OS of choice is not listed, feel free to either contribute support by op
 Adds a group to the system.
 
 | Key        | Type   | Optional | Description          |
-|:-----------|:-------|:---------|:---------------------|
+| :--------- | :----- | :------- | :------------------- |
 | action     | string | no       | `group.add`          |
 | group_name | string | no       | name of group to add |
-
 
 ### Example
 
 ```yaml
 actions:
-  - action: group.add
-    group_name: testgroup
+    - action: group.add
+      group_name: testgroup
 ```
-

@@ -67,10 +67,30 @@ jobs:
         run: snyk code test
         continue-on-error: true
 
+  docs-lint:
+    name: Docs Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Check docs for stale platform/provider references
+        run: bash scripts/check-docs.sh
+
+  docs-build:
+    name: Docs Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install mdbook
+        run: |
+          curl -sSL https://github.com/rust-lang/mdBook/releases/download/v0.4.40/mdbook-v0.4.40-x86_64-unknown-linux-gnu.tar.gz \
+            | tar -xz -C /usr/local/bin
+      - name: Build docs
+        run: mdbook build docs/
+
   auto-merge:
     name: Auto Merge
     runs-on: ubuntu-latest
-    needs: [test, secret-scan, snyk-scan]
+    needs: [test, secret-scan, snyk-scan, docs-lint, docs-build]
     if: github.event_name == 'pull_request'
     permissions:
       contents: write
