@@ -165,6 +165,11 @@ impl EtchCommand for Apply {
 
         let dry_run = self.dry_run;
 
+        if dry_run {
+            println!("[dry run] no changes will be made");
+            println!();
+        }
+
         let engine = Engine::new();
         let mut scope = to_rhai(contexts);
 
@@ -271,8 +276,13 @@ impl EtchCommand for Apply {
                         continue;
                     }
 
+                    let mut dry_run_count = 0usize;
                     for mut step in steps {
                         if dry_run {
+                            dry_run_count += 1;
+                            if runtime.args.verbose > 0 {
+                                println!("  would: {}", step.atom);
+                            }
                             continue;
                         }
 
@@ -291,7 +301,15 @@ impl EtchCommand for Apply {
                             break;
                         }
                     }
-                    info!("{}", action.summarize());
+                    if dry_run {
+                        println!(
+                            "[dry run] {}: {} step(s) would run",
+                            action.summarize(),
+                            dry_run_count
+                        );
+                    } else {
+                        info!("{}", action.summarize());
+                    }
                     span_action.exit();
                 }
 
