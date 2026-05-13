@@ -187,3 +187,38 @@ actions:
         .success()
         .stdout(predicates::str::contains("  would:"));
 }
+
+#[test]
+fn dry_run_nothing_to_do() {
+    let t = TempDir::new().expect("could not create tempdir");
+    let path = t.keep();
+
+    // Pre-create the directory the manifest will try to create.
+    // directory.create resolves path relative to CWD (= path), so
+    // path/existing_dir must exist before etch runs.
+    std::fs::create_dir(path.join("existing_dir")).expect("could not create existing_dir");
+
+    dir(
+        "directory",
+        vec![dir(
+            "create",
+            vec![f(
+                "main.yaml",
+                r#"
+actions:
+  - action: directory.create
+    path: existing_dir
+"#,
+            )],
+        )],
+    )
+    .create_in(&path)
+    .expect("should have created test directories");
+
+    cd(path)
+        .run("--no-color -d ./directory apply -m create --dry-run")
+        .success()
+        .stdout(predicates::prelude::PredicateBooleanExt::not(
+            predicates::str::contains("step(s) would run"),
+        ));
+}
