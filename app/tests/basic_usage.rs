@@ -145,5 +145,5 @@ actions:
     cd(path)
         .run("--no-color -d ./directory apply -m copy --dry-run")
         .success()
-        .stdout(predicates::str::contains("step(s) would run"));
+        .stdout(predicates::str::contains("2 step(s) would run"));
 }
