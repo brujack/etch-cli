@@ -165,6 +165,10 @@ impl EtchCommand for Apply {
 
         let dry_run = self.dry_run;
 
+        if dry_run {
+            println!("[dry run] no changes will be made\n");
+        }
+
         let engine = Engine::new();
         let mut scope = to_rhai(contexts);
 
