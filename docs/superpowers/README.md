@@ -20,6 +20,7 @@ Master status index for all specs and implementation plans in this directory.
 | 2026-05-02 | [platform-pruning](plans/2026-05-02-platform-pruning.md) | [platform-pruning](specs/2026-05-02-platform-pruning-design.md)   | Done        |
 | 2026-05-02 | [test-coverage](plans/2026-05-02-test-coverage.md)       | [test-coverage](specs/2026-05-02-test-coverage-design.md)         | Pending     |
 | 2026-05-04 | —                                                        | [dead-code-removal](specs/2026-05-04-dead-code-removal-design.md) | Done        |
+| 2026-05-13 | —                                                        | [dry-run](specs/2026-05-13-dry-run-design.md)                     | Pending     |
 
 ---
 
@@ -38,7 +39,6 @@ Master status index for all specs and implementation plans in this directory.
 | Machine profiles / capability groups | Dotfiles has hostname→profile→`[HAS_K8S]`/`[HAS_DEVTOOLS]`/etc. capability matrix; etch-cli `where:` is per-action rhai with no named-group abstraction — needs profile concept for applying manifest sets to machine classes             |
 | systemd service management           | Linux daemon installs in dotfiles use `systemctl enable --now`; no `service.enable`/`service.start`/`service.disable` action exists                                                                                                       |
 | Git config management                | Dotfiles manages per-machine gitconfig variants (mac vs linux); etch-cli has `git.clone` but no `git.config` action for setting `user.name`, `user.email`, credential helpers, etc.                                                       |
-| Dry-run mode                         | Dotfiles has `DRY_RUN` support; etch-cli has no `--dry-run` flag to preview changes without applying them                                                                                                                                 |
 
 ---
 
