@@ -95,10 +95,15 @@ actions:
     .create_in(&path)
     .expect("should have created test directories");
 
-    cd(path)
+    cd(path.clone())
         .run("--no-color -d ./directory apply -m copy --dry-run")
         .success()
         .stdout(predicates::str::contains(
             "[dry run] no changes will be made",
         ));
+
+    assert!(
+        !path.join("mydircopy").exists(),
+        "dry-run must not create mydircopy"
+    );
 }
