@@ -107,3 +107,43 @@ actions:
         "dry-run must not create mydircopy"
     );
 }
+
+#[test]
+fn dry_run_shows_action_summary() {
+    let t = TempDir::new().expect("could not create tempdir");
+    let path = t.keep();
+    dir(
+        "directory",
+        vec![dir(
+            "copy",
+            vec![
+                dir(
+                    "files",
+                    vec![dir(
+                        "mydir",
+                        vec![
+                            f("file-a", "some content a"),
+                            f("file-b", "some other thing"),
+                        ],
+                    )],
+                ),
+                f(
+                    "main.yaml",
+                    r#"
+actions:
+  - action: directory.copy
+    from: mydir
+    to: mydircopy
+"#,
+                ),
+            ],
+        )],
+    )
+    .create_in(&path)
+    .expect("should have created test directories");
+
+    cd(path)
+        .run("--no-color -d ./directory apply -m copy --dry-run")
+        .success()
+        .stdout(predicates::str::contains("step(s) would run"));
+}

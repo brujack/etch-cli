@@ -276,8 +276,10 @@ impl EtchCommand for Apply {
                         continue;
                     }
 
+                    let mut dry_run_count = 0usize;
                     for mut step in steps {
                         if dry_run {
+                            dry_run_count += 1;
                             continue;
                         }
 
@@ -296,7 +298,15 @@ impl EtchCommand for Apply {
                             break;
                         }
                     }
-                    info!("{}", action.summarize());
+                    if dry_run {
+                        println!(
+                            "[dry run] {}: {} step(s) would run",
+                            action.summarize(),
+                            dry_run_count
+                        );
+                    } else {
+                        info!("{}", action.summarize());
+                    }
                     span_action.exit();
                 }
 
