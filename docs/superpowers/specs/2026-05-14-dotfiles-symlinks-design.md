@@ -11,9 +11,20 @@ Phase 2 of etch-cli development: migrate the `setup_dotfile_symlinks()` workflow
 
 Four manifest files added to the dotfiles repo. One `etch.yaml` config file set up manually (one-time bootstrap). No changes to etch-cli source code in this phase — gaps are documented and added to the backlog.
 
-## Prerequisite: etch.yaml
+## etch.yaml — Version-Controlled and Symlinked
 
-`~/.config/etch/etch.yaml` must be created manually before running etch. This is a one-time bootstrap step not managed by etch itself:
+`etch.yaml` is committed to the dotfiles repo at `~/git-repos/personal/dotfiles/etch.yaml` and symlinked to `~/.config/etch/etch.yaml` by `core.yaml`. This means it is version-controlled and available on every machine that clones dotfiles.
+
+**Bootstrap catch:** `core.yaml` creates the symlink, but etch needs `~/.config/etch/etch.yaml` to find `core.yaml` in the first place. On a **fresh machine only**, one manual command is needed before etch can run:
+
+```bash
+mkdir -p ~/.config/etch
+ln -s ~/git-repos/personal/dotfiles/etch.yaml ~/.config/etch/etch.yaml
+```
+
+After that, `etch apply` self-manages the symlink on every subsequent run.
+
+**Contents of `dotfiles/etch.yaml`:**
 
 ```yaml
 manifest_paths:
@@ -77,9 +88,10 @@ Depends: `./tools`
 
 | Action             | Path                                     |
 | ------------------ | ---------------------------------------- |
+| `directory.create` | `{{ user.home_dir }}/.config/etch`       |
 | `directory.create` | `{{ user.home_dir }}/.config/powershell` |
 
-**Core symlinks** (17 × `file.link`):
+**Core symlinks** (18 × `file.link`, including etch.yaml):
 
 | Source (relative to dotfiles root) | Target                                       |
 | ---------------------------------- | -------------------------------------------- |
@@ -100,6 +112,7 @@ Depends: `./tools`
 | `profile.ps1`                      | `~/.config/powershell/profile.ps1`           |
 | `bruce.omp.json`                   | `~/.config/powershell/bruce.omp.json`        |
 | `starship.toml`                    | `~/.config/starship.toml`                    |
+| `etch.yaml`                        | `~/.config/etch/etch.yaml`                   |
 
 ### gitconfig.yaml
 
