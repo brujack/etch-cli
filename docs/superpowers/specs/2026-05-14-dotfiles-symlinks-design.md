@@ -45,9 +45,9 @@ manifest_paths:
 
 Dependency chain: `core` depends on `tools`; `gitconfig` and `ai-config` both depend on `core`.
 
-## Verify os.family Values Before Implementing
+## Platform Conditionals — use os.name, not os.name
 
-Before writing the manifests, run `etch contexts` on both machines to confirm the exact rhai string values for `os.family`. The spec uses `"macos"` and `"linux"` but the actual value on macOS may be `"darwin"` (sys_info) or `"macos"` (Rust std). Use whatever `etch contexts` reports — correct it in every `where:` condition in `gitconfig.yaml` and `ai-config.yaml`.
+`os.name` is `"unix"` on both macOS and Linux (Rust's `std::env::consts::FAMILY`). Use `os.name` instead: `"macos"` on macOS, `"linux"` on Linux. Every `where:` condition in `gitconfig.yaml` and `ai-config.yaml` uses `os.name`.
 
 ## Path Conventions
 
@@ -118,13 +118,13 @@ Depends: `./tools`
 
 Depends: `./core`
 
-| Action             | Where                  | Detail                                                               |
-| ------------------ | ---------------------- | -------------------------------------------------------------------- |
-| `directory.create` | —                      | `{{ user.home_dir }}/git-repos/gitlab`                               |
-| `file.link`        | `os.family == "macos"` | `dotfiles/.gitconfig_mac` → `~/.gitconfig`                           |
-| `file.link`        | `os.family == "macos"` | `dotfiles/.gitconfig_mac_gitlab` → `~/git-repos/gitlab/.gitconfig`   |
-| `file.link`        | `os.family == "linux"` | `dotfiles/.gitconfig_linux` → `~/.gitconfig`                         |
-| `file.link`        | `os.family == "linux"` | `dotfiles/.gitconfig_linux_gitlab` → `~/git-repos/gitlab/.gitconfig` |
+| Action             | Where                | Detail                                                               |
+| ------------------ | -------------------- | -------------------------------------------------------------------- |
+| `directory.create` | —                    | `{{ user.home_dir }}/git-repos/gitlab`                               |
+| `file.link`        | `os.name == "macos"` | `dotfiles/.gitconfig_mac` → `~/.gitconfig`                           |
+| `file.link`        | `os.name == "macos"` | `dotfiles/.gitconfig_mac_gitlab` → `~/git-repos/gitlab/.gitconfig`   |
+| `file.link`        | `os.name == "linux"` | `dotfiles/.gitconfig_linux` → `~/.gitconfig`                         |
+| `file.link`        | `os.name == "linux"` | `dotfiles/.gitconfig_linux_gitlab` → `~/git-repos/gitlab/.gitconfig` |
 
 `~/git-repos/gitlab/` is always created (removes the directory-existence conditional from the shell script — creating an empty dir is harmless).
 
@@ -157,15 +157,15 @@ Depends: `./core`. Sources from `{{ user.home_dir }}/git-repos/personal/ai-confi
 
 **`.cursor/User/` symlinks** — platform-split, no Cursor-installed check (dangling symlinks are harmless):
 
-| Action             | Where                  | Source                          | Target                                                       |
-| ------------------ | ---------------------- | ------------------------------- | ------------------------------------------------------------ |
-| `directory.create` | `os.family == "linux"` | —                               | `~/.config/Cursor/User`                                      |
-| `file.link`        | `os.family == "macos"` | `.cursor/User/settings.json`    | `~/Library/Application Support/Cursor/User/settings.json`    |
-| `file.link`        | `os.family == "macos"` | `.cursor/User/keybindings.json` | `~/Library/Application Support/Cursor/User/keybindings.json` |
-| `file.link`        | `os.family == "macos"` | `.cursor/User/snippets`         | `~/Library/Application Support/Cursor/User/snippets`         |
-| `file.link`        | `os.family == "linux"` | `.cursor/User/settings.json`    | `~/.config/Cursor/User/settings.json`                        |
-| `file.link`        | `os.family == "linux"` | `.cursor/User/keybindings.json` | `~/.config/Cursor/User/keybindings.json`                     |
-| `file.link`        | `os.family == "linux"` | `.cursor/User/snippets`         | `~/.config/Cursor/User/snippets`                             |
+| Action             | Where                | Source                          | Target                                                       |
+| ------------------ | -------------------- | ------------------------------- | ------------------------------------------------------------ |
+| `directory.create` | `os.name == "linux"` | —                               | `~/.config/Cursor/User`                                      |
+| `file.link`        | `os.name == "macos"` | `.cursor/User/settings.json`    | `~/Library/Application Support/Cursor/User/settings.json`    |
+| `file.link`        | `os.name == "macos"` | `.cursor/User/keybindings.json` | `~/Library/Application Support/Cursor/User/keybindings.json` |
+| `file.link`        | `os.name == "macos"` | `.cursor/User/snippets`         | `~/Library/Application Support/Cursor/User/snippets`         |
+| `file.link`        | `os.name == "linux"` | `.cursor/User/settings.json`    | `~/.config/Cursor/User/settings.json`                        |
+| `file.link`        | `os.name == "linux"` | `.cursor/User/keybindings.json` | `~/.config/Cursor/User/keybindings.json`                     |
+| `file.link`        | `os.name == "linux"` | `.cursor/User/snippets`         | `~/.config/Cursor/User/snippets`                             |
 
 ## Gaps Surfaced and Backlog Entries
 
