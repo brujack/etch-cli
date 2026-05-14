@@ -1,5 +1,7 @@
 # Dotfiles Symlinks Migration Implementation Plan
 
+> **Status: IN PROGRESS**
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Migrate `setup_dotfile_symlinks()` from dotfiles shell scripts into four etch manifests that run on both macOS and Linux.

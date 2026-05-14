@@ -21,7 +21,7 @@ Master status index for all specs and implementation plans in this directory.
 | 2026-05-02 | [test-coverage](plans/2026-05-02-test-coverage.md)         | [test-coverage](specs/2026-05-02-test-coverage-design.md)         | Pending     |
 | 2026-05-04 | —                                                          | [dead-code-removal](specs/2026-05-04-dead-code-removal-design.md) | Done        |
 | 2026-05-13 | [dry-run](plans/2026-05-13-dry-run.md)                     | [dry-run](specs/2026-05-13-dry-run-design.md)                     | Done        |
-| 2026-05-14 | [dotfiles-symlinks](plans/2026-05-14-dotfiles-symlinks.md) | [dotfiles-symlinks](specs/2026-05-14-dotfiles-symlinks-design.md) | Pending     |
+| 2026-05-14 | [dotfiles-symlinks](plans/2026-05-14-dotfiles-symlinks.md) | [dotfiles-symlinks](specs/2026-05-14-dotfiles-symlinks-design.md) | In Progress |
 
 ---
 
