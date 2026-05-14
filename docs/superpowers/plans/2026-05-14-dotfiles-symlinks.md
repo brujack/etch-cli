@@ -1,6 +1,6 @@
 # Dotfiles Symlinks Migration Implementation Plan
 
-> **Status: IN PROGRESS**
+> **Status: DONE**
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -551,7 +551,7 @@ In `~/git-repos/personal/etch-cli/docs/superpowers/README.md`, the row for `dotf
 
 - [ ] **Step 2: Add status banner to this plan file**
 
-Add `> **Status: IN PROGRESS**` immediately after the plan header (before the Goal line) when work starts. Change to `> **Status: DONE**` once all tasks are verified.
+Add `> **Status: DONE**` immediately after the plan header (before the Goal line) when work starts. Change to `> **Status: DONE**` once all tasks are verified.
 
 - [ ] **Step 3: Commit etch-cli docs**
 
