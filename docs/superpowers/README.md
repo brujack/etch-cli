@@ -22,6 +22,7 @@ Master status index for all specs and implementation plans in this directory.
 | 2026-05-04 | —                                                          | [dead-code-removal](specs/2026-05-04-dead-code-removal-design.md) | Done        |
 | 2026-05-13 | [dry-run](plans/2026-05-13-dry-run.md)                     | [dry-run](specs/2026-05-13-dry-run-design.md)                     | Done        |
 | 2026-05-14 | [dotfiles-symlinks](plans/2026-05-14-dotfiles-symlinks.md) | [dotfiles-symlinks](specs/2026-05-14-dotfiles-symlinks-design.md) | Done        |
+| 2026-05-15 | —                                                          | [file-chmod](specs/2026-05-15-file-chmod-design.md)               | Pending     |
 
 ---
 
@@ -36,7 +37,7 @@ Master status index for all specs and implementation plans in this directory.
 | Mac App Store (mas) support          | 15 apps installed via `mas install` in dotfiles; no etch action exists — needs `mas.install` action wrapping the `mas` CLI                                                                                                                         |
 | Homebrew Bundle (Brewfile)           | Dotfiles uses a single Brewfile for all formulae/casks/mas/taps; a `brew.bundle` action running `brew bundle --file=<path>` would allow bulk migration of the Brewfile                                                                             |
 | Binary install from arbitrary URL    | Many tools (Go, Docker Compose, YQ, Vault, Nomad, Packer, Vagrant, Consul, Terraform) download from non-GitHub URLs (go.dev, releases.hashicorp.com, etc.); `binary` action is GitHub-only — needs URL + sha256 checksum support                   |
-| File permissions (chmod/chown)       | Every Linux binary install in dotfiles ends with `chmod 755 + chown root:root`; no declarative `file.chmod`/`file.chown` action exists                                                                                                             |
+| File permissions (chmod/chown)       | `file.chown` already exists; `file.chmod` is being implemented (see spec). Both lack `privileged` support on the other file actions — see "Privileged support for file actions" entry                                                              |
 | Machine profiles / capability groups | Dotfiles has hostname→profile→`[HAS_K8S]`/`[HAS_DEVTOOLS]`/etc. capability matrix; etch-cli `where:` is per-action rhai with no named-group abstraction — needs profile concept for applying manifest sets to machine classes                      |
 | systemd service management           | Linux daemon installs in dotfiles use `systemctl enable --now`; no `service.enable`/`service.start`/`service.disable` action exists                                                                                                                |
 | Git config management                | Dotfiles manages per-machine gitconfig variants (mac vs linux); etch-cli has `git.clone` but no `git.config` action for setting `user.name`, `user.email`, credential helpers, etc.                                                                |
