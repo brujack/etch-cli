@@ -115,4 +115,50 @@ mod tests {
         };
         assert!(repo.summarize().contains("myrepo"));
     }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn plan_includes_bootstrap_steps_when_provider_unavailable() {
+        use super::PackageRepository;
+        use crate::actions::package::providers::PackageProviders;
+        use crate::actions::Action;
+        use crate::contexts::Contexts;
+        use crate::manifests::Manifest;
+
+        // Snapcraft is not available on macOS → bootstrap branch runs
+        // has_repository always returns false → add_repository branch runs (returns empty for Snapcraft)
+        let repo = PackageRepository {
+            name: String::from("stable"),
+            provider: PackageProviders::Snapcraft,
+            key: None,
+        };
+        let steps = repo
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+        // bootstrap step (1) + add_repository (0 for Snapcraft) = at least 1
+        assert!(!steps.is_empty());
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn plan_with_available_provider_adds_repository() {
+        use super::PackageRepository;
+        use crate::actions::package::providers::PackageProviders;
+        use crate::actions::Action;
+        use crate::contexts::Contexts;
+        use crate::manifests::Manifest;
+
+        // Homebrew is available on macOS; has_repository always returns false for Homebrew
+        // so this exercises: provider available (no bootstrap) → add_repository
+        let repo = PackageRepository {
+            name: String::from("homebrew/cask"),
+            provider: PackageProviders::Homebrew,
+            key: None,
+        };
+        let steps = repo
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+        // Homebrew available → no bootstrap; add_repository returns 1 step (brew tap)
+        assert_eq!(1, steps.len());
+    }
 }

@@ -100,4 +100,46 @@ mod tests {
             }
         };
     }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn plan_includes_bootstrap_steps_when_provider_unavailable() {
+        use super::PackageInstall;
+        use crate::actions::package::providers::PackageProviders;
+        use crate::actions::Action;
+        use crate::contexts::Contexts;
+        use crate::manifests::Manifest;
+
+        // Snapcraft is not available on macOS, so this exercises the bootstrap branch
+        let pkg = PackageInstall {
+            name: Some(String::from("htop")),
+            provider: PackageProviders::Snapcraft,
+            ..Default::default()
+        };
+        let steps = pkg
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+        // bootstrap (1 step) + install (1 step) = 2 steps
+        assert!(steps.len() >= 2);
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn plan_errors_for_file_install_with_non_aptitude_provider() {
+        use super::PackageInstall;
+        use crate::actions::package::providers::PackageProviders;
+        use crate::actions::Action;
+        use crate::contexts::Contexts;
+        use crate::manifests::Manifest;
+
+        // Snapcraft is unavailable on macOS; file=true with non-Aptitude should error
+        let pkg = PackageInstall {
+            name: Some(String::from("htop")),
+            provider: PackageProviders::Snapcraft,
+            file: true,
+            ..Default::default()
+        };
+        let result = pkg.plan(&Manifest::default(), &Contexts::default());
+        assert!(result.is_err());
+    }
 }
