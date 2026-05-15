@@ -100,12 +100,33 @@ mod tests {
             mode: String::from("xyz"),
             privileged: false,
         };
-        assert!(action
+        let result = action.plan(
+            &crate::manifests::Manifest::default(),
+            &crate::contexts::Contexts::default(),
+        );
+        match result {
+            Err(e) => assert!(e.to_string().contains("invalid mode")),
+            Ok(_) => panic!("expected an error for invalid mode"),
+        }
+    }
+
+    #[test]
+    fn plan_accepts_0o_prefixed_mode() {
+        use super::FileChmod;
+        use crate::actions::Action;
+        let action = FileChmod {
+            path: String::from("/tmp/testdir"),
+            mode: String::from("0o700"),
+            privileged: false,
+        };
+        let steps = action
             .plan(
                 &crate::manifests::Manifest::default(),
                 &crate::contexts::Contexts::default(),
             )
-            .is_err());
+            .unwrap();
+        assert_eq!(1, steps.len());
+        assert!(steps[0].atom.to_string().contains("need to be set"));
     }
 
     #[test]
