@@ -43,6 +43,7 @@ Master status index for all specs and implementation plans in this directory.
 | command.run skip-if condition        | No way to skip a `command.run` action when a path/file already exists without embedding a shell guard inline (`[ -d path ] \|\| ...`); surfaced by oh-my-zsh install in Phase 2 symlinks migration                                                 |
 | Wildcard / glob file.link            | `file.link` requires enumerating each source explicitly; no support for `link all files matching .claude/*` pattern; surfaced by ai-config Claude/Cursor symlinks in Phase 2                                                                       |
 | Tilde expansion in manifest_paths    | `manifest_paths` in `etch.yaml` does not expand `~`; `PathBuf::canonicalize()` is called verbatim, requiring absolute paths and breaking cross-user/cross-platform configs — fix via `shellexpand` crate in `lib/src/manifests/providers/local.rs` |
+| Privileged support for file actions  | `file.link`, `file.copy`, `file.chown` have no `privileged: true` field — only `command.run` and `file.chmod` support sudo escalation; file actions that need to write to root-owned paths require a `command.run` workaround                      |
 
 ---
 
