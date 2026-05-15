@@ -98,7 +98,7 @@ privilege: sudo # sudo | doas | run0
 
 **Run tests:** `make test`
 
-The test suite covers unit tests in `lib/src/` and integration tests in `app/tests/`. Current coverage is ~79.4% locally (macOS) and ~65% on Linux CI — the gap is macOS provider tests gated with `#[cfg(target_os = "macos")]` that don't run on ubuntu-latest. Practical ceiling is ~80-81% due to network operations, package managers, privilege escalation, and dead code that cannot be unit-tested.
+The test suite covers unit tests in `lib/src/` and integration tests in `app/tests/`. Current coverage is ~80% locally (macOS) and ~75%+ on Linux CI — the gap is macOS provider tests gated with `#[cfg(target_os = "macos")]` that don't run on ubuntu-latest. Practical ceiling is ~83% due to network operations, package managers, privilege escalation, and dead code that cannot be unit-tested.
 
 Coverage ceiling is approximately 83% due to hard-to-cover code:
 
@@ -111,10 +111,10 @@ Coverage ceiling is approximately 83% due to hard-to-cover code:
 cargo test                                                          # all tests
 cargo test -p etch-lib                                              # lib tests only
 cargo test -p etch-cli                                              # integration tests only
-cargo tarpaulin --exclude-files 'jsonschemagen/*' --fail-under 65  # coverage check (matches CI)
+cargo tarpaulin --exclude-files 'jsonschemagen/*' --fail-under 75  # coverage check (matches CI)
 ```
 
-**Coverage floor: 65%** (Linux CI gate; local macOS measures ~75% due to platform-specific tests).
+**Coverage floor: 75%** (Linux CI gate; local macOS measures ~80% due to platform-specific tests).
 
 ## CI
 

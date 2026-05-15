@@ -59,3 +59,26 @@ pub trait PackageProvider {
     fn query(&self, package: &PackageVariant) -> anyhow::Result<Vec<String>>;
     fn install(&self, package: &PackageVariant, contexts: &Contexts) -> anyhow::Result<Vec<Step>>;
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn homebrew_get_provider_returns_homebrew() {
+        let provider = PackageProviders::Homebrew.get_provider();
+        assert_eq!("Homebrew", provider.name());
+    }
+
+    #[test]
+    fn snapcraft_get_provider_returns_snapcraft() {
+        let provider = PackageProviders::Snapcraft.get_provider();
+        assert_eq!("Snapcraft", provider.name());
+    }
+
+    #[test]
+    fn aptitude_get_provider_returns_aptitude() {
+        let provider = PackageProviders::Aptitude.get_provider();
+        assert_eq!("Aptitude", provider.name());
+    }
+}
