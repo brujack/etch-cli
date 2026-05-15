@@ -1,0 +1,143 @@
+use crate::actions::Action;
+use crate::atoms::file::Chmod;
+use crate::contexts::Contexts;
+use crate::manifests::Manifest;
+use crate::steps::Step;
+use crate::utilities;
+use anyhow::anyhow;
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
+
+use super::FileAction;
+
+// Task 2 will register FileChmod in the Actions enum; until then suppress dead-code warnings.
+#[allow(dead_code)]
+#[derive(JsonSchema, Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FileChmod {
+    pub path: String,
+    pub mode: String,
+    #[serde(default = "get_false", alias = "sudo")]
+    pub privileged: bool,
+}
+
+#[allow(dead_code)]
+fn get_false() -> bool {
+    false
+}
+
+#[allow(dead_code)]
+fn parse_mode(mode: &str) -> anyhow::Result<u32> {
+    let stripped = mode.strip_prefix("0o").unwrap_or(mode);
+    u32::from_str_radix(stripped, 8).map_err(|_| anyhow!("invalid mode: {}", mode))
+}
+
+impl FileAction for FileChmod {}
+
+impl Action for FileChmod {
+    fn summarize(&self) -> String {
+        format!("Set permissions {} on {}", self.mode, self.path)
+    }
+
+    fn plan(&self, _: &Manifest, contexts: &Contexts) -> anyhow::Result<Vec<Step>> {
+        if self.privileged {
+            use crate::atoms::command::Exec;
+            let privilege_provider =
+                utilities::get_privilege_provider(contexts).unwrap_or_else(|| "sudo".to_string());
+            return Ok(vec![Step {
+                atom: Box::new(Exec {
+                    command: "chmod".into(),
+                    arguments: vec![self.mode.clone(), self.path.clone()],
+                    privileged: true,
+                    privilege_provider,
+                    ..Default::default()
+                }),
+                initializers: vec![],
+                finalizers: vec![],
+            }]);
+        }
+
+        let mode = parse_mode(&self.mode)?;
+        Ok(vec![Step {
+            atom: Box::new(Chmod {
+                path: self.path.clone().parse()?,
+                mode,
+            }),
+            initializers: vec![],
+            finalizers: vec![],
+        }])
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    // NOTE: it_can_be_deserialized is defined in Task 2 after Actions::FileChmod is registered.
+
+    #[test]
+    fn plan_returns_chmod_step() {
+        use super::FileChmod;
+        use crate::actions::Action;
+        let action = FileChmod {
+            path: String::from("/tmp/testdir"),
+            mode: String::from("700"),
+            privileged: false,
+        };
+        let steps = action
+            .plan(
+                &crate::manifests::Manifest::default(),
+                &crate::contexts::Contexts::default(),
+            )
+            .unwrap();
+        assert_eq!(1, steps.len());
+        assert!(steps[0].atom.to_string().contains("need to be set"));
+    }
+
+    #[test]
+    fn plan_errors_on_invalid_mode() {
+        use super::FileChmod;
+        use crate::actions::Action;
+        let action = FileChmod {
+            path: String::from("/tmp/testdir"),
+            mode: String::from("xyz"),
+            privileged: false,
+        };
+        assert!(action
+            .plan(
+                &crate::manifests::Manifest::default(),
+                &crate::contexts::Contexts::default(),
+            )
+            .is_err());
+    }
+
+    #[test]
+    fn plan_returns_exec_step_when_privileged() {
+        use super::FileChmod;
+        use crate::actions::Action;
+        let action = FileChmod {
+            path: String::from("/tmp/testdir"),
+            mode: String::from("700"),
+            privileged: true,
+        };
+        let steps = action
+            .plan(
+                &crate::manifests::Manifest::default(),
+                &crate::contexts::Contexts::default(),
+            )
+            .unwrap();
+        assert_eq!(1, steps.len());
+        assert!(!steps[0].atom.to_string().contains("need to be set"));
+    }
+
+    #[test]
+    fn summarize_includes_path_and_mode() {
+        use super::FileChmod;
+        use crate::actions::Action;
+        let action = FileChmod {
+            path: String::from("/tmp/testdir"),
+            mode: String::from("755"),
+            privileged: false,
+        };
+        let summary = action.summarize();
+        assert!(summary.contains("/tmp/testdir"));
+        assert!(summary.contains("755"));
+    }
+}
