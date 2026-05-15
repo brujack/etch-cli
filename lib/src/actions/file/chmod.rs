@@ -10,8 +10,6 @@ use serde::{Deserialize, Serialize};
 
 use super::FileAction;
 
-// Task 2 will register FileChmod in the Actions enum; until then suppress dead-code warnings.
-#[allow(dead_code)]
 #[derive(JsonSchema, Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FileChmod {
     pub path: String,
@@ -20,12 +18,10 @@ pub struct FileChmod {
     pub privileged: bool,
 }
 
-#[allow(dead_code)]
 fn get_false() -> bool {
     false
 }
 
-#[allow(dead_code)]
 fn parse_mode(mode: &str) -> anyhow::Result<u32> {
     let stripped = mode.strip_prefix("0o").unwrap_or(mode);
     u32::from_str_radix(stripped, 8).map_err(|_| anyhow!("invalid mode: {}", mode))
@@ -70,7 +66,24 @@ impl Action for FileChmod {
 
 #[cfg(test)]
 mod tests {
-    // NOTE: it_can_be_deserialized is defined in Task 2 after Actions::FileChmod is registered.
+    #[test]
+    fn it_can_be_deserialized() {
+        use crate::actions::Actions;
+        let yaml = r#"
+- action: file.chmod
+  path: /tmp/testdir
+  mode: "700"
+"#;
+        let mut actions: Vec<Actions> = serde_yaml_ng::from_str(yaml).unwrap();
+        match actions.pop() {
+            Some(Actions::FileChmod(action)) => {
+                assert_eq!("/tmp/testdir", action.action.path);
+                assert_eq!("700", action.action.mode);
+                assert!(!action.action.privileged);
+            }
+            _ => panic!("FileChmod didn't deserialize to the correct type"),
+        }
+    }
 
     #[test]
     fn plan_returns_chmod_step() {
