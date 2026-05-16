@@ -6,6 +6,7 @@ mod file;
 mod git;
 mod group;
 mod macos;
+mod mas;
 mod package;
 mod plugin;
 mod user;
