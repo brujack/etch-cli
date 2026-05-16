@@ -1,4 +1,4 @@
-use super::FileAction;
+use super::{FileAction, FileActionConfig};
 use crate::manifests::Manifest;
 use crate::steps::initializers::FileExists;
 use crate::steps::initializers::FlowControl::Ensure;
@@ -21,6 +21,9 @@ pub struct FileLink {
 
     #[serde(default = "walk_dir_default")]
     pub walk_dir: bool,
+
+    #[serde(flatten)]
+    pub config: FileActionConfig,
 }
 
 fn walk_dir_default() -> bool {
@@ -114,7 +117,11 @@ impl FileLink {
     }
 }
 
-impl FileAction for FileLink {}
+impl FileAction for FileLink {
+    fn file_action_config(&self) -> &FileActionConfig {
+        &self.config
+    }
+}
 
 impl Action for FileLink {
     fn summarize(&self) -> String {

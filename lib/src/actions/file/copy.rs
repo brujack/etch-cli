@@ -1,5 +1,5 @@
-use super::FileAction;
 use super::{default_chmod, from_octal};
+use super::{FileAction, FileActionConfig};
 #[cfg(unix)]
 use crate::atoms::file::Chown;
 use crate::atoms::file::Decrypt;
@@ -35,6 +35,9 @@ pub struct FileCopy {
 
     #[serde(rename = "owned_by_group")]
     pub owner_group: Option<String>,
+
+    #[serde(flatten)]
+    pub config: FileActionConfig,
 }
 
 fn default_template() -> bool {
@@ -43,7 +46,11 @@ fn default_template() -> bool {
 
 impl FileCopy {}
 
-impl FileAction for FileCopy {}
+impl FileAction for FileCopy {
+    fn file_action_config(&self) -> &FileActionConfig {
+        &self.config
+    }
+}
 
 impl Action for FileCopy {
     fn summarize(&self) -> String {

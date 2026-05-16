@@ -2,7 +2,7 @@ use crate::actions::Action;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use super::FileAction;
+use super::{FileAction, FileActionConfig};
 use crate::atoms::file::Chown;
 
 #[derive(JsonSchema, Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -10,11 +10,17 @@ pub struct FileChown {
     pub path: String,
     pub user: Option<String>,
     pub group: Option<String>,
+    #[serde(flatten)]
+    pub config: FileActionConfig,
 }
 
 impl FileChown {}
 
-impl FileAction for FileChown {}
+impl FileAction for FileChown {
+    fn file_action_config(&self) -> &FileActionConfig {
+        &self.config
+    }
+}
 
 impl Action for FileChown {
     fn summarize(&self) -> String {
@@ -94,6 +100,7 @@ mod tests {
             path: String::from("/tmp/testfile"),
             user: Some(String::from("alice")),
             group: Some(String::from("staff")),
+            ..Default::default()
         };
         let steps = action
             .plan(
@@ -112,6 +119,7 @@ mod tests {
             path: String::from("/tmp/testfile"),
             user: None,
             group: Some(String::from("staff")),
+            ..Default::default()
         };
         let steps = action
             .plan(

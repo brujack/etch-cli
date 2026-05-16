@@ -10,10 +10,25 @@ use crate::actions::Action;
 use crate::manifests::Manifest;
 use anyhow::{anyhow, Result};
 use normpath::PathExt;
-use serde::{de::Error, Deserialize, Deserializer};
+use schemars::JsonSchema;
+use serde::{de::Error, Deserialize, Deserializer, Serialize};
 use std::path::PathBuf;
 
+#[derive(JsonSchema, Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FileActionConfig {
+    #[serde(default = "get_false", alias = "sudo")]
+    pub privileged: bool,
+}
+
+fn get_false() -> bool {
+    false
+}
+
 pub trait FileAction: Action {
+    // Task 2 will call this when wiring privileged execution through all file action atoms.
+    #[allow(dead_code)]
+    fn file_action_config(&self) -> &FileActionConfig;
+
     fn resolve(&self, manifest: &Manifest, path: &str) -> anyhow::Result<PathBuf> {
         Ok(manifest
             .root_dir
