@@ -6,11 +6,13 @@ mod file;
 mod git;
 mod group;
 mod macos;
+mod mas;
 mod package;
 mod plugin;
 mod user;
 
 use crate::actions::macos::MacOSDefault;
+use crate::actions::mas::MasInstall;
 use crate::{contexts::Contexts, manifests::Manifest, steps::Step};
 use anyhow::anyhow;
 use binary::BinaryGitHub;
@@ -168,6 +170,9 @@ pub enum Actions {
     #[serde(rename = "macos.default")]
     MacOSDefault(ConditionalVariantAction<MacOSDefault>),
 
+    #[serde(rename = "mas.install")]
+    MasInstall(ConditionalVariantAction<MasInstall>),
+
     #[serde(rename = "package.install", alias = "package.installed")]
     PackageInstall(ConditionalVariantAction<PackageInstall>),
 
@@ -201,6 +206,7 @@ impl Actions {
             Actions::GitClone(a) => a,
             Actions::GroupAdd(a) => a,
             Actions::MacOSDefault(a) => a,
+            Actions::MasInstall(a) => a,
             Actions::PackageInstall(a) => a,
             Actions::PackageRepository(a) => a,
             Actions::UserAdd(a) => a,
@@ -230,6 +236,7 @@ impl Deref for Actions {
             Actions::GitClone(a) => a,
             Actions::GroupAdd(a) => a,
             Actions::MacOSDefault(a) => a,
+            Actions::MasInstall(a) => a,
             Actions::PackageInstall(a) => a,
             Actions::PackageRepository(a) => a,
             Actions::UserAdd(a) => a,
@@ -260,6 +267,7 @@ impl Display for Actions {
             Actions::GitClone(_) => "git.clone",
             Actions::GroupAdd(_) => "group.add",
             Actions::MacOSDefault(_) => "macos.default",
+            Actions::MasInstall(_) => "mas.install",
             Actions::PackageInstall(_) => "package.install",
             Actions::PackageRepository(_) => "package.repository",
             Actions::UserAdd(_) => "user.add",
@@ -384,6 +392,9 @@ actions:
     key: k
     kind: string
     value: v
+  - action: mas.install
+    name: "Better Rename 9"
+    id: 414209656
   - action: package.install
     name: htop
   - action: user.add
@@ -392,7 +403,7 @@ actions:
     file: /tmp/Brewfile
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(16, manifest.actions.len());
+        assert_eq!(17, manifest.actions.len());
     }
 
     #[test]
@@ -437,6 +448,9 @@ actions:
     key: k
     kind: string
     value: v
+  - action: mas.install
+    name: "Better Rename 9"
+    id: 414209656
   - action: package.install
     name: htop
   - action: package.repository
@@ -466,6 +480,7 @@ actions:
             "git.clone",
             "group.add",
             "macos.default",
+            "mas.install",
             "package.install",
             "package.repository",
             "user.add",
@@ -658,6 +673,9 @@ actions:
     key: k
     kind: string
     value: v
+  - action: mas.install
+    name: "Better Rename 9"
+    id: 414209656
   - action: package.install
     name: htop
   - action: package.repository
@@ -671,7 +689,7 @@ actions:
     file: /tmp/Brewfile
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(20, manifest.actions.len());
+        assert_eq!(21, manifest.actions.len());
 
         for action in &manifest.actions {
             // Exercise inner_ref() for every variant
