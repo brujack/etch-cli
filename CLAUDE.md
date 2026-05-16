@@ -37,6 +37,7 @@ etch-cli/
 ├── smoke-tests/   # VM smoke test manifests (run on Proxmox VM, not in CI)
 ├── examples/      # Example manifests by action type
 ├── docs/          # mdbook documentation (inherited from comtrya, not built in CI)
+│   ├── adr/           # Architectural Decision Records (repo-specific)
 │   ├── superpowers/   # Implementation plans
 │   └── cursor/        # Cursor docs
 ├── Makefile       # lint, test, build, install-hooks
