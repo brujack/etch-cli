@@ -25,7 +25,7 @@ etch-cli/
 │       └── basic_usage.rs
 ├── lib/          # etch-lib — core engine (actions, atoms, contexts, manifests, steps)
 │   └── src/
-│       ├── actions/          # 10 action types (see Action Catalog below)
+│       ├── actions/          # 14 documented action types (see Action Catalog below)
 │       ├── atoms/            # Low-level OS operations (file, dir, command, http, plugin)
 │       ├── config/mod.rs     # Config struct (manifest_paths, variables, privilege, etc.)
 │       ├── contexts/         # Context providers: user, os, variables, rhai engine
@@ -60,23 +60,67 @@ make install-hooks # install pre-commit and pre-push hooks (run once per checkou
 
 Manifest actions map to `lib/src/actions/<name>/`:
 
-| Action             | Description                                     | Key fields                                                                                                               |
-| ------------------ | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `command.run`      | Run shell commands                              | `command`, `args`, `privileged` (bool)                                                                                   |
-| `directory.create` | Create a directory                              | `path`                                                                                                                   |
-| `directory.copy`   | Copy a directory                                | `from`, `to`                                                                                                             |
-| `file.chmod`       | Set file/directory permissions                  | `path`, `mode` (string: `"700"`, `"0o700"`), `privileged` (bool)                                                         |
-| `file.chown`       | Change file/directory ownership                 | `path`, `user`, `group`, `privileged` (bool)                                                                             |
-| `file.copy`        | Copy a file; optionally render as Tera template | `from` (or `source`), `to` (or `target`), `template` (bool), `privileged` (bool)                                         |
-| `file.link`        | Symlink a file                                  | `source`, `target` (`from`/`to` deprecated), `privileged` (bool)                                                         |
-| `brew.bundle`      | Install packages from a Brewfile                | `file` (path), `no_upgrade` (bool, default false), `cleanup` (bool, default false — destructive)                         |
-| `mas.install`      | Install a Mac App Store app (macOS only)        | `name` (string, for readability), `id` (u64, App Store numeric ID)                                                       |
-| `git.clone`        | Clone a git repo                                | `repo_url`, `directory`                                                                                                  |
-| `package.install`  | Install OS packages                             | `name` (single) or `list` (multiple); `provider` (`apt`, `snap`, `brew`); `cask` (bool, Homebrew only — passes `--cask`) |
-| `macos.defaults`   | Write macOS defaults                            | domain, key, type, value fields                                                                                          |
-| `binary`           | Install a binary from a GitHub release          | `name`, `version`, `url`                                                                                                 |
+| Action               | Description                                     | Key fields                                                                                                                                                                                                                                           |
+| -------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `command.run`        | Run shell commands                              | `command`, `args`, `privileged` (bool)                                                                                                                                                                                                               |
+| `directory.create`   | Create a directory                              | `path`                                                                                                                                                                                                                                               |
+| `directory.copy`     | Copy a directory                                | `from`, `to`                                                                                                                                                                                                                                         |
+| `file.chmod`         | Set file/directory permissions                  | `path`, `mode` (string: `"700"`, `"0o700"`), `privileged` (bool)                                                                                                                                                                                     |
+| `file.chown`         | Change file/directory ownership                 | `path`, `user`, `group`, `privileged` (bool)                                                                                                                                                                                                         |
+| `file.copy`          | Copy a file; optionally render as Tera template | `from` (or `source`), `to` (or `target`), `template` (bool), `privileged` (bool)                                                                                                                                                                     |
+| `file.link`          | Symlink a file                                  | `source`, `target` (`from`/`to` deprecated), `privileged` (bool)                                                                                                                                                                                     |
+| `brew.bundle`        | Install packages from a Brewfile (macOS)        | `file` (path), `no_upgrade` (bool, default false), `cleanup` (bool, default false — removes packages not in Brewfile)                                                                                                                                |
+| `mas.install`        | Install a Mac App Store app (macOS only)        | `name` (string, for readability), `id` (u64, App Store numeric ID). Requires `mas` CLI (`brew install mas`). Use `where: 'os.name == "macos"'` in manifests.                                                                                         |
+| `git.clone`          | Clone a git repo                                | `repo_url`, `directory`                                                                                                                                                                                                                              |
+| `package.install`    | Install OS packages                             | `name` (single) or `list` (multiple); `provider` (`apt`, `snap`, `brew`); `cask` (bool, Homebrew only — passes `--cask`). If a base package has `cask: true` but an OS variant exists without setting `cask`, the variant defaults to `cask: false`. |
+| `package.repository` | Add a package repository or Homebrew tap        | `name` (repo URL or tap name e.g. `go-task/tap`), `provider` (`apt`, `brew`). For Homebrew: idempotent — re-tapping is fast so `has_repository()` always returns false.                                                                              |
+| `macos.defaults`     | Write macOS defaults                            | domain, key, type, value fields                                                                                                                                                                                                                      |
+| `binary`             | Install a binary from a GitHub release          | `name`, `version`, `url`                                                                                                                                                                                                                             |
 
 Template engine is [Tera](https://keats.github.io/tera/). Available context variables: `user.username`, `user.home_dir`, `user.name`, `os.hostname`, `os.name`, `os.family`, `os.distribution`, `manifest_dir`.
+
+## Homebrew macOS Workflow
+
+All four Homebrew install mechanisms are supported. **Recommended approach for dotfiles migration: use `brew.bundle` with the existing Brewfile** — it handles taps, formulae, casks, and MAS apps in one action.
+
+```yaml
+# All-in-one: delegates to the Brewfile (covers taps + formulae + casks + MAS)
+- action: brew.bundle
+  file: "{{ user.home_dir }}/git-repos/personal/dotfiles/Brewfile"
+```
+
+Piece-by-piece alternative (when you need per-app `where:` conditions):
+
+```yaml
+# 1. Add a custom tap first — required before installing formulae from that tap
+- action: package.repository
+  name: go-task/tap
+  provider: homebrew
+
+# 2. Install a formula from the tap (or any formula)
+- action: package.install
+  name: go-task/tap/go-task
+  provider: homebrew
+
+# 3. Install a cask (GUI app)
+- action: package.install
+  name: alfred
+  provider: homebrew
+  cask: true
+
+# 4. Install a Mac App Store app (requires `mas` CLI: brew install mas)
+- action: mas.install
+  name: "Better Rename 9"
+  id: 414209656
+  where: 'os.name == "macos"'
+```
+
+**Key gotchas:**
+
+- `mas.install` requires the `mas` CLI to be installed first (`brew install mas`). Always pair with `where: 'os.name == "macos"'` since `mas` is macOS-only.
+- `brew.bundle cleanup: true` removes all packages NOT listed in the Brewfile — destructive, use carefully.
+- `package.repository` for Homebrew taps is always idempotent (re-tapping is fast; etch always runs `brew tap` rather than checking first).
+- `package.install cask: true` is Homebrew-only; other providers silently ignore the field. If a base package has `cask: true` but an OS variant exists without explicitly setting `cask:`, the variant defaults to `cask: false`.
 
 ## Config File
 
