@@ -44,6 +44,8 @@ Master status index for all specs and implementation plans in this directory.
 | Git config management                | Dotfiles manages per-machine gitconfig variants (mac vs linux); etch-cli has `git.clone` but no `git.config` action for setting `user.name`, `user.email`, credential helpers, etc.                                                       |
 | command.run skip-if condition        | No way to skip a `command.run` action when a path/file already exists without embedding a shell guard inline (`[ -d path ] \|\| ...`); surfaced by oh-my-zsh install in Phase 2 symlinks migration                                        |
 | Wildcard / glob file.link            | `file.link` requires enumerating each source explicitly; no support for `link all files matching .claude/*` pattern; surfaced by ai-config Claude/Cursor symlinks in Phase 2                                                              |
+| brew.upgrade action                  | No action to run `brew upgrade [--greedy]` to update installed formulae and casks; currently requires `command.run` workaround                                                                                                            |
+| mas.upgrade action                   | No action to run `mas upgrade` to update App Store apps; currently requires `command.run` workaround                                                                                                                                      |
 
 ---
 
