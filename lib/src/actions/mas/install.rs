@@ -6,7 +6,6 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 #[derive(JsonSchema, Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct MasInstall {
     pub name: String,
     pub id: u64,
@@ -34,8 +33,23 @@ impl Action for MasInstall {
 
 #[cfg(test)]
 mod tests {
-    // NOTE: it_can_be_deserialized requires Actions::MasInstall from the enum.
-    // Added in Task 2 after the enum variant is registered.
+    #[test]
+    fn it_can_be_deserialized() {
+        use crate::actions::Actions;
+        let yaml = r#"
+- action: mas.install
+  name: "Better Rename 9"
+  id: 414209656
+"#;
+        let mut actions: Vec<Actions> = serde_yaml_ng::from_str(yaml).unwrap();
+        match actions.pop() {
+            Some(Actions::MasInstall(action)) => {
+                assert_eq!("Better Rename 9", action.action.name);
+                assert_eq!(414209656u64, action.action.id);
+            }
+            _ => panic!("MasInstall didn't deserialize to the correct type"),
+        }
+    }
 
     #[test]
     fn plan_returns_exec_step() {
