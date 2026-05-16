@@ -1,5 +1,5 @@
-use super::FileAction;
 use super::{default_chmod, from_octal};
+use super::{FileAction, FileActionConfig};
 #[cfg(unix)]
 use crate::atoms::file::Chown;
 use crate::atoms::file::Decrypt;
@@ -35,6 +35,9 @@ pub struct FileCopy {
 
     #[serde(rename = "owned_by_group")]
     pub owner_group: Option<String>,
+
+    #[serde(flatten)]
+    pub config: FileActionConfig,
 }
 
 fn default_template() -> bool {
@@ -43,7 +46,11 @@ fn default_template() -> bool {
 
 impl FileCopy {}
 
-impl FileAction for FileCopy {}
+impl FileAction for FileCopy {
+    fn file_action_config(&self) -> &FileActionConfig {
+        &self.config
+    }
+}
 
 impl Action for FileCopy {
     fn summarize(&self) -> String {
@@ -91,6 +98,7 @@ impl Action for FileCopy {
 
         use crate::atoms::directory::Create as DirCreate;
         use crate::atoms::file::{Chmod, Create, SetContents};
+        use crate::utilities;
 
         let mut path = PathBuf::from(&self.to);
 
@@ -98,6 +106,121 @@ impl Action for FileCopy {
             if let Some(file_name) = PathBuf::from(self.from.clone()).file_name() {
                 path = path.join(file_name);
             }
+        }
+
+        if self.config.privileged {
+            use crate::atoms::command::Exec;
+
+            let privilege_provider =
+                utilities::get_privilege_provider(context).unwrap_or_else(|| "sudo".to_string());
+
+            let temp_name = format!(
+                "etch-{}",
+                path.display()
+                    .to_string()
+                    .replace('/', "-")
+                    .trim_matches('-')
+            );
+            let temp_path = std::env::temp_dir().join(&temp_name);
+
+            let dest_parent = path
+                .parent()
+                .ok_or_else(|| anyhow!("Failed to get parent directory for FileCopy action"))?
+                .to_path_buf();
+
+            let mut steps: Vec<crate::steps::Step> = vec![];
+
+            // Write content to tempfile (non-privileged)
+            if let Some(passphrase) = self.passphrase.clone() {
+                steps.push(crate::steps::Step {
+                    atom: Box::new(crate::atoms::file::Decrypt {
+                        encrypted_content: contents,
+                        path: temp_path.clone(),
+                        passphrase,
+                    }),
+                    initializers: vec![],
+                    finalizers: vec![],
+                });
+            } else {
+                steps.push(crate::steps::Step {
+                    atom: Box::new(SetContents {
+                        path: temp_path.clone(),
+                        contents,
+                    }),
+                    initializers: vec![],
+                    finalizers: vec![],
+                });
+            }
+
+            // sudo mkdir -p dest_parent
+            steps.push(crate::steps::Step {
+                atom: Box::new(Exec {
+                    command: "mkdir".into(),
+                    arguments: vec!["-p".to_string(), dest_parent.display().to_string()],
+                    privileged: true,
+                    privilege_provider: privilege_provider.clone(),
+                    ..Default::default()
+                }),
+                initializers: vec![],
+                finalizers: vec![],
+            });
+
+            // sudo cp tempfile dest
+            steps.push(crate::steps::Step {
+                atom: Box::new(Exec {
+                    command: "cp".into(),
+                    arguments: vec![temp_path.display().to_string(), path.display().to_string()],
+                    privileged: true,
+                    privilege_provider: privilege_provider.clone(),
+                    ..Default::default()
+                }),
+                initializers: vec![],
+                finalizers: vec![],
+            });
+
+            // sudo chmod mode dest
+            steps.push(crate::steps::Step {
+                atom: Box::new(Exec {
+                    command: "chmod".into(),
+                    arguments: vec![format!("{:o}", self.chmod), path.display().to_string()],
+                    privileged: true,
+                    privilege_provider: privilege_provider.clone(),
+                    ..Default::default()
+                }),
+                initializers: vec![],
+                finalizers: vec![],
+            });
+
+            // sudo chown (unix only, both user AND group required)
+            #[cfg(unix)]
+            if let (Some(user), Some(group)) = (&self.owner_user, &self.owner_group) {
+                steps.push(crate::steps::Step {
+                    atom: Box::new(Exec {
+                        command: "chown".into(),
+                        arguments: vec![format!("{}:{}", user, group), path.display().to_string()],
+                        privileged: true,
+                        privilege_provider: privilege_provider.clone(),
+                        ..Default::default()
+                    }),
+                    initializers: vec![],
+                    finalizers: vec![],
+                });
+            }
+
+            // rm tempfile (cleanup, non-privileged)
+            steps.push(crate::steps::Step {
+                atom: Box::new(Exec {
+                    command: "rm".into(),
+                    arguments: vec!["-f".to_string(), temp_path.display().to_string()],
+                    privileged: false,
+                    privilege_provider,
+                    ..Default::default()
+                }),
+                initializers: vec![],
+                finalizers: vec![],
+            });
+
+            return Ok(steps);
         }
 
         let parent = path.clone();
@@ -372,6 +495,89 @@ mod tests {
                 .contains("Failed to render contents for FileCopy action")),
             Ok(_) => panic!("expected plan to fail on invalid template"),
         }
+    }
+
+    #[test]
+    fn it_can_be_deserialized_with_privileged() {
+        use crate::actions::Actions;
+        let yaml = r#"
+- action: file.copy
+  from: a
+  to: /etc/b
+  privileged: true
+"#;
+        let mut actions: Vec<Actions> = serde_yaml_ng::from_str(yaml).unwrap();
+        match actions.pop() {
+            Some(Actions::FileCopy(action)) => {
+                assert!(action.action.config.privileged);
+            }
+            _ => panic!("FileCopy didn't deserialize"),
+        }
+    }
+
+    #[test]
+    fn plan_returns_exec_steps_when_privileged_no_template() {
+        use super::FileCopy;
+        use crate::actions::file::FileActionConfig;
+        use crate::actions::Action;
+
+        let tmp = tempfile::tempdir().unwrap();
+        let real_tmp = tmp.path().canonicalize().unwrap();
+        let files_dir = real_tmp.join("files");
+        std::fs::create_dir_all(&files_dir).unwrap();
+        std::fs::write(files_dir.join("source.txt"), b"content").unwrap();
+
+        let manifest = crate::manifests::Manifest {
+            root_dir: Some(real_tmp.clone()),
+            ..Default::default()
+        };
+
+        let action = FileCopy {
+            from: "source.txt".to_string(),
+            to: real_tmp.join("dest.txt").display().to_string(),
+            config: FileActionConfig { privileged: true },
+            ..Default::default()
+        };
+        let steps = action
+            .plan(&manifest, &crate::contexts::Contexts::default())
+            .unwrap();
+        // SetContents(tempfile) + mkdir + cp + chmod + rm = 5 steps
+        assert_eq!(5, steps.len());
+        // First step writes to a tempfile
+        assert!(steps[0].atom.to_string().contains("etch-"));
+    }
+
+    #[test]
+    fn plan_returns_setcontents_then_exec_when_privileged_template() {
+        use super::FileCopy;
+        use crate::actions::file::FileActionConfig;
+        use crate::actions::Action;
+
+        let tmp = tempfile::tempdir().unwrap();
+        let real_tmp = tmp.path().canonicalize().unwrap();
+        let files_dir = real_tmp.join("files");
+        std::fs::create_dir_all(&files_dir).unwrap();
+        std::fs::write(files_dir.join("tmpl.txt"), b"hello world").unwrap();
+
+        let manifest = crate::manifests::Manifest {
+            root_dir: Some(real_tmp.clone()),
+            ..Default::default()
+        };
+
+        let action = FileCopy {
+            from: "tmpl.txt".to_string(),
+            to: real_tmp.join("out.txt").display().to_string(),
+            template: true,
+            config: FileActionConfig { privileged: true },
+            ..Default::default()
+        };
+        let steps = action
+            .plan(&manifest, &crate::contexts::Contexts::default())
+            .unwrap();
+        // SetContents(tempfile) + mkdir + cp + chmod + rm = 5 steps
+        assert_eq!(5, steps.len());
+        // First step writes to a tempfile path containing "etch-"
+        assert!(steps[0].atom.to_string().contains("etch-"));
     }
 
     #[test]

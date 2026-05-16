@@ -1,9 +1,10 @@
-use super::FileAction;
 use super::{default_chmod, from_octal};
+use super::{FileAction, FileActionConfig};
 use crate::atoms::file::Chown;
 use crate::manifests::Manifest;
 use crate::steps::Step;
 use crate::{actions::Action, contexts::Contexts};
+use anyhow::anyhow;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -25,6 +26,9 @@ pub struct FileDownload {
 
     #[serde(rename = "owned_by_group")]
     pub owner_group: Option<String>,
+
+    #[serde(flatten)]
+    pub config: FileActionConfig,
 }
 
 fn default_template() -> bool {
@@ -33,7 +37,11 @@ fn default_template() -> bool {
 
 impl FileDownload {}
 
-impl FileAction for FileDownload {}
+impl FileAction for FileDownload {
+    fn file_action_config(&self) -> &FileActionConfig {
+        &self.config
+    }
+}
 
 impl Action for FileDownload {
     fn summarize(&self) -> String {
@@ -41,6 +49,10 @@ impl Action for FileDownload {
     }
 
     fn plan(&self, _manifest: &Manifest, _context: &Contexts) -> anyhow::Result<Vec<Step>> {
+        if self.config.privileged {
+            return Err(anyhow!("file.download does not support privileged mode"));
+        }
+
         use crate::atoms::directory::Create as DirCreate;
         use crate::atoms::file::Chmod;
         use crate::atoms::http::Download;
@@ -162,11 +174,31 @@ mod tests {
             template: false,
             owner_user: Some("test".to_string()),
             owner_group: Some("test".to_string()),
+            ..Default::default()
         };
 
         let steps = file_download.plan(&Default::default(), &Default::default());
         assert!(steps.is_ok());
         let steps = steps.unwrap();
         assert_eq!(4, steps.len());
+    }
+
+    #[test]
+    fn plan_errors_when_privileged_not_supported() {
+        use super::FileDownload;
+        use crate::actions::file::FileActionConfig;
+        use crate::actions::Action;
+        let action = FileDownload {
+            from: "https://example.com/file".to_string(),
+            to: "/tmp/file".to_string(),
+            config: FileActionConfig { privileged: true },
+            ..Default::default()
+        };
+        assert!(action
+            .plan(
+                &crate::manifests::Manifest::default(),
+                &crate::contexts::Contexts::default()
+            )
+            .is_err());
     }
 }

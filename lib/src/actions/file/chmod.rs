@@ -8,18 +8,14 @@ use anyhow::anyhow;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use super::FileAction;
+use super::{FileAction, FileActionConfig};
 
 #[derive(JsonSchema, Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FileChmod {
     pub path: String,
     pub mode: String,
-    #[serde(default = "get_false", alias = "sudo")]
-    pub privileged: bool,
-}
-
-fn get_false() -> bool {
-    false
+    #[serde(flatten)]
+    pub config: FileActionConfig,
 }
 
 fn parse_mode(mode: &str) -> anyhow::Result<u32> {
@@ -27,7 +23,11 @@ fn parse_mode(mode: &str) -> anyhow::Result<u32> {
     u32::from_str_radix(stripped, 8).map_err(|_| anyhow!("invalid mode: {}", mode))
 }
 
-impl FileAction for FileChmod {}
+impl FileAction for FileChmod {
+    fn file_action_config(&self) -> &FileActionConfig {
+        &self.config
+    }
+}
 
 impl Action for FileChmod {
     fn summarize(&self) -> String {
@@ -35,7 +35,7 @@ impl Action for FileChmod {
     }
 
     fn plan(&self, _: &Manifest, contexts: &Contexts) -> anyhow::Result<Vec<Step>> {
-        if self.privileged {
+        if self.config.privileged {
             use crate::atoms::command::Exec;
             let privilege_provider =
                 utilities::get_privilege_provider(contexts).unwrap_or_else(|| "sudo".to_string());
@@ -79,7 +79,7 @@ mod tests {
             Some(Actions::FileChmod(action)) => {
                 assert_eq!("/tmp/testdir", action.action.path);
                 assert_eq!("700", action.action.mode);
-                assert!(!action.action.privileged);
+                assert!(!action.action.config.privileged);
             }
             _ => panic!("FileChmod didn't deserialize to the correct type"),
         }
@@ -88,11 +88,12 @@ mod tests {
     #[test]
     fn plan_returns_chmod_step() {
         use super::FileChmod;
+        use crate::actions::file::FileActionConfig;
         use crate::actions::Action;
         let action = FileChmod {
             path: String::from("/tmp/testdir"),
             mode: String::from("700"),
-            privileged: false,
+            config: FileActionConfig { privileged: false },
         };
         let steps = action
             .plan(
@@ -107,11 +108,12 @@ mod tests {
     #[test]
     fn plan_errors_on_invalid_mode() {
         use super::FileChmod;
+        use crate::actions::file::FileActionConfig;
         use crate::actions::Action;
         let action = FileChmod {
             path: String::from("/tmp/testdir"),
             mode: String::from("xyz"),
-            privileged: false,
+            config: FileActionConfig { privileged: false },
         };
         let result = action.plan(
             &crate::manifests::Manifest::default(),
@@ -126,11 +128,12 @@ mod tests {
     #[test]
     fn plan_accepts_0o_prefixed_mode() {
         use super::FileChmod;
+        use crate::actions::file::FileActionConfig;
         use crate::actions::Action;
         let action = FileChmod {
             path: String::from("/tmp/testdir"),
             mode: String::from("0o700"),
-            privileged: false,
+            config: FileActionConfig { privileged: false },
         };
         let steps = action
             .plan(
@@ -145,11 +148,12 @@ mod tests {
     #[test]
     fn plan_returns_exec_step_when_privileged() {
         use super::FileChmod;
+        use crate::actions::file::FileActionConfig;
         use crate::actions::Action;
         let action = FileChmod {
             path: String::from("/tmp/testdir"),
             mode: String::from("700"),
-            privileged: true,
+            config: FileActionConfig { privileged: true },
         };
         let steps = action
             .plan(
@@ -164,11 +168,12 @@ mod tests {
     #[test]
     fn summarize_includes_path_and_mode() {
         use super::FileChmod;
+        use crate::actions::file::FileActionConfig;
         use crate::actions::Action;
         let action = FileChmod {
             path: String::from("/tmp/testdir"),
             mode: String::from("755"),
-            privileged: false,
+            config: FileActionConfig { privileged: false },
         };
         let summary = action.summarize();
         assert!(summary.contains("/tmp/testdir"));
