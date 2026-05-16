@@ -1,20 +1,27 @@
 use std::path::PathBuf;
 
+use anyhow::anyhow;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::{actions::Action, steps::Step};
 
-use super::FileAction;
+use super::{FileAction, FileActionConfig};
 
 #[derive(JsonSchema, Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FileRemove {
     pub target: String,
+    #[serde(flatten)]
+    pub config: FileActionConfig,
 }
 
 impl FileRemove {}
 
-impl FileAction for FileRemove {}
+impl FileAction for FileRemove {
+    fn file_action_config(&self) -> &FileActionConfig {
+        &self.config
+    }
+}
 
 impl Action for FileRemove {
     fn summarize(&self) -> String {
@@ -26,6 +33,10 @@ impl Action for FileRemove {
         _: &crate::manifests::Manifest,
         _: &crate::contexts::Contexts,
     ) -> anyhow::Result<Vec<crate::steps::Step>> {
+        if self.config.privileged {
+            return Err(anyhow!("file.remove does not support privileged mode"));
+        }
+
         use crate::atoms::file::Remove as RemoveFile;
 
         let path = PathBuf::from(&self.target);
@@ -71,10 +82,28 @@ mod tests {
         use crate::manifests::Manifest;
         let action = FileRemove {
             target: String::from("/tmp/somefile"),
+            ..Default::default()
         };
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
             .unwrap();
         assert_eq!(1, steps.len());
+    }
+
+    #[test]
+    fn plan_errors_when_privileged_not_supported() {
+        use super::FileRemove;
+        use crate::actions::file::FileActionConfig;
+        use crate::actions::Action;
+        let action = FileRemove {
+            target: String::from("/tmp/somefile"),
+            config: FileActionConfig { privileged: true },
+        };
+        assert!(action
+            .plan(
+                &crate::manifests::Manifest::default(),
+                &crate::contexts::Contexts::default()
+            )
+            .is_err());
     }
 }

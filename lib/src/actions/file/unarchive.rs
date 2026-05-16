@@ -1,8 +1,9 @@
-use super::FileAction;
+use super::{FileAction, FileActionConfig};
 use crate::atoms::file::Unarchive;
 use crate::manifests::Manifest;
 use crate::steps::Step;
 use crate::{actions::Action, contexts::Contexts};
+use anyhow::anyhow;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -15,11 +16,18 @@ pub struct FileUnarchive {
     pub to: String,
 
     pub force: Option<bool>,
+
+    #[serde(flatten)]
+    pub config: FileActionConfig,
 }
 
 impl FileUnarchive {}
 
-impl FileAction for FileUnarchive {}
+impl FileAction for FileUnarchive {
+    fn file_action_config(&self) -> &FileActionConfig {
+        &self.config
+    }
+}
 
 impl Action for FileUnarchive {
     fn summarize(&self) -> String {
@@ -27,6 +35,10 @@ impl Action for FileUnarchive {
     }
 
     fn plan(&self, _manifest: &Manifest, _context: &Contexts) -> anyhow::Result<Vec<Step>> {
+        if self.config.privileged {
+            return Err(anyhow!("file.unarchive does not support privileged mode"));
+        }
+
         let steps = vec![Step {
             atom: Box::new(Unarchive {
                 origin: self.from.clone().into(),
@@ -76,6 +88,7 @@ mod tests {
             from: String::from("/tmp/archive.tar.gz"),
             to: String::from("/tmp/dest"),
             force: None,
+            ..Default::default()
         };
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
@@ -93,10 +106,30 @@ mod tests {
             from: String::from("/tmp/archive.tar.gz"),
             to: String::from("/tmp/dest"),
             force: Some(false),
+            ..Default::default()
         };
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
             .unwrap();
         assert_eq!(1, steps.len());
+    }
+
+    #[test]
+    fn plan_errors_when_privileged_not_supported() {
+        use super::FileUnarchive;
+        use crate::actions::file::FileActionConfig;
+        use crate::actions::Action;
+        let action = FileUnarchive {
+            from: "/tmp/archive.tar.gz".to_string(),
+            to: "/tmp/dest".to_string(),
+            force: None,
+            config: FileActionConfig { privileged: true },
+        };
+        assert!(action
+            .plan(
+                &crate::manifests::Manifest::default(),
+                &crate::contexts::Contexts::default()
+            )
+            .is_err());
     }
 }

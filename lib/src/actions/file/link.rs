@@ -1,8 +1,9 @@
-use super::FileAction;
+use super::{FileAction, FileActionConfig};
 use crate::manifests::Manifest;
 use crate::steps::initializers::FileExists;
 use crate::steps::initializers::FlowControl::Ensure;
 use crate::steps::Step;
+use crate::utilities;
 use crate::{actions::Action, contexts::Contexts};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -21,6 +22,9 @@ pub struct FileLink {
 
     #[serde(default = "walk_dir_default")]
     pub walk_dir: bool,
+
+    #[serde(flatten)]
+    pub config: FileActionConfig,
 }
 
 fn walk_dir_default() -> bool {
@@ -81,6 +85,69 @@ impl FileLink {
         }
     }
 
+    pub fn plan_privileged(
+        from: PathBuf,
+        to: PathBuf,
+        privilege_provider: &str,
+        walk_dir: bool,
+    ) -> Vec<Step> {
+        use crate::atoms::command::Exec;
+
+        let make_mkdir = |parent: &std::path::Path| -> Step {
+            Step {
+                atom: Box::new(Exec {
+                    command: "mkdir".into(),
+                    arguments: vec!["-p".to_string(), parent.display().to_string()],
+                    privileged: true,
+                    privilege_provider: privilege_provider.to_string(),
+                    ..Default::default()
+                }),
+                initializers: vec![],
+                finalizers: vec![],
+            }
+        };
+
+        let make_ln = |src: &std::path::Path, tgt: &std::path::Path| -> Step {
+            Step {
+                atom: Box::new(Exec {
+                    command: "ln".into(),
+                    arguments: vec![
+                        "-sf".to_string(),
+                        src.display().to_string(),
+                        tgt.display().to_string(),
+                    ],
+                    privileged: true,
+                    privilege_provider: privilege_provider.to_string(),
+                    ..Default::default()
+                }),
+                initializers: vec![],
+                finalizers: vec![],
+            }
+        };
+
+        if from.is_file() || !walk_dir {
+            match to.parent() {
+                Some(parent) => vec![make_mkdir(parent), make_ln(&from, &to)],
+                None => vec![],
+            }
+        } else {
+            let mut steps = vec![];
+            if let Ok(entries) = std::fs::read_dir(&from) {
+                for entry in entries.flatten() {
+                    let src_item = entry.path();
+                    if let Some(file_name) = src_item.file_name() {
+                        let tgt_item = to.join(file_name);
+                        if let Some(parent) = tgt_item.parent() {
+                            steps.push(make_mkdir(parent));
+                        }
+                        steps.push(make_ln(&src_item, &tgt_item));
+                    }
+                }
+            }
+            steps
+        }
+    }
+
     pub fn plan_walk(from: PathBuf, to: PathBuf) -> Vec<Step> {
         use crate::atoms::directory::Create as DirCreate;
         use crate::atoms::file::Link;
@@ -114,7 +181,11 @@ impl FileLink {
     }
 }
 
-impl FileAction for FileLink {}
+impl FileAction for FileLink {
+    fn file_action_config(&self) -> &FileActionConfig {
+        &self.config
+    }
+}
 
 impl Action for FileLink {
     fn summarize(&self) -> String {
@@ -125,10 +196,22 @@ impl Action for FileLink {
         )
     }
 
-    fn plan(&self, manifest: &Manifest, _: &Contexts) -> anyhow::Result<Vec<Step>> {
+    fn plan(&self, manifest: &Manifest, contexts: &Contexts) -> anyhow::Result<Vec<Step>> {
         let from: PathBuf = self.resolve(manifest, self.source().as_str())?;
 
         let to = PathBuf::from(self.target());
+
+        if self.config.privileged {
+            let privilege_provider =
+                utilities::get_privilege_provider(contexts).unwrap_or_else(|| "sudo".to_string());
+            let walk = self.walk_dir && !from.is_file();
+            return Ok(FileLink::plan_privileged(
+                from,
+                to,
+                &privilege_provider,
+                walk,
+            ));
+        }
 
         // Can't walk a file
         if from.is_file() {
@@ -152,6 +235,59 @@ mod tests {
     };
 
     use super::FileLink;
+
+    #[test]
+    fn it_can_be_deserialized_with_privileged() {
+        use crate::actions::Actions;
+        let yaml = r#"
+- action: file.link
+  source: /opt/bin/tool
+  target: /usr/local/bin/tool
+  privileged: true
+"#;
+        let mut actions: Vec<Actions> = serde_yaml_ng::from_str(yaml).unwrap();
+        match actions.pop() {
+            Some(Actions::FileLink(action)) => {
+                assert!(action.action.config.privileged);
+            }
+            _ => panic!("FileLink didn't deserialize"),
+        }
+    }
+
+    #[test]
+    fn plan_returns_exec_steps_when_privileged() {
+        use super::FileLink;
+        use crate::actions::file::FileActionConfig;
+        use crate::actions::Action;
+        use crate::config::Config;
+        use crate::contexts::build_contexts;
+
+        let tmp = tempfile::tempdir().unwrap();
+        let real_tmp = tmp.path().canonicalize().unwrap();
+        let files_dir = real_tmp.join("files");
+        std::fs::create_dir_all(&files_dir).unwrap();
+        let source_file = files_dir.join("mytool");
+        std::fs::write(&source_file, b"binary").unwrap();
+
+        let manifest = crate::manifests::Manifest {
+            root_dir: Some(real_tmp.clone()),
+            ..Default::default()
+        };
+        let contexts = build_contexts(&Config::default());
+
+        let action = FileLink {
+            source: Some("mytool".to_string()),
+            target: Some(real_tmp.join("linked").display().to_string()),
+            config: FileActionConfig { privileged: true },
+            ..Default::default()
+        };
+        let steps = action.plan(&manifest, &contexts).unwrap();
+        // 2 steps: mkdir -p + ln -sf
+        assert_eq!(2, steps.len());
+        // Both steps are Exec atoms (not native DirCreate/Link atoms)
+        assert!(steps[0].atom.to_string().contains("mkdir"));
+        assert!(steps[1].atom.to_string().contains("ln"));
+    }
 
     #[test]
     fn it_can_be_deserialized() {
