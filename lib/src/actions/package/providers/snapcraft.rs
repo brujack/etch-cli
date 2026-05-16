@@ -102,6 +102,7 @@ mod test {
                 extra_args: vec![],
                 provider: PackageProviders::Snapcraft,
                 file: false,
+                cask: false,
             },
             &contexts,
         );
@@ -145,6 +146,7 @@ mod test {
             extra_args: vec![],
             provider: PackageProviders::Snapcraft,
             file: false,
+            cask: false,
         };
         let packages = snapcraft.query(&package).unwrap();
         assert_eq!(packages.len(), 1);

@@ -26,6 +26,7 @@ Master status index for all specs and implementation plans in this directory.
 | 2026-05-15 | [file-action-privileged](plans/2026-05-15-file-action-privileged.md) | [file-action-privileged](specs/2026-05-15-file-action-privileged-design.md) | Done        |
 | 2026-05-16 | [tilde-expansion](plans/2026-05-16-tilde-expansion.md)               | [tilde-expansion](specs/2026-05-16-tilde-expansion-design.md)               | Done        |
 | 2026-05-16 | [brew-bundle](plans/2026-05-16-brew-bundle.md)                       | [brew-bundle](specs/2026-05-16-brew-bundle-design.md)                       | Done        |
+| 2026-05-16 | [package-install-cask](plans/2026-05-16-package-install-cask.md)     | [package-install-cask](specs/2026-05-16-package-install-cask-design.md)     | Pending     |
 
 ---
 
@@ -35,7 +36,6 @@ Master status index for all specs and implementation plans in this directory.
 | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | ntfy notification action             | Matches existing notification infra                                                                                                                                                                                                       |
 | macOS defaults write ergonomics      | If etch-cli's current API is rough                                                                                                                                                                                                        |
-| Homebrew cask support                | Dotfiles Brewfile has 57 cask entries; `package.install` brew provider has no cask flag — needs `cask: true` on the action or a separate `brew.cask` action                                                                               |
 | Homebrew tap management              | 7 custom taps in Brewfile (chef, cloudflare, datawire, go-task, redpanda, snyk, speedtest); formulae from taps (e.g. `datawire/blackbird/telepresence-arm64`) can't install without the tap being added first — needs a `brew.tap` action |
 | Mac App Store (mas) support          | 15 apps installed via `mas install` in dotfiles; no etch action exists — needs `mas.install` action wrapping the `mas` CLI                                                                                                                |
 | Binary install from arbitrary URL    | Many tools (Go, Docker Compose, YQ, Vault, Nomad, Packer, Vagrant, Consul, Terraform) download from non-GitHub URLs (go.dev, releases.hashicorp.com, etc.); `binary` action is GitHub-only — needs URL + sha256 checksum support          |
