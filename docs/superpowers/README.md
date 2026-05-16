@@ -25,6 +25,7 @@ Master status index for all specs and implementation plans in this directory.
 | 2026-05-15 | [file-chmod](plans/2026-05-15-file-chmod.md)                         | [file-chmod](specs/2026-05-15-file-chmod-design.md)                         | Done        |
 | 2026-05-15 | [file-action-privileged](plans/2026-05-15-file-action-privileged.md) | [file-action-privileged](specs/2026-05-15-file-action-privileged-design.md) | Done        |
 | 2026-05-16 | [tilde-expansion](plans/2026-05-16-tilde-expansion.md)               | [tilde-expansion](specs/2026-05-16-tilde-expansion-design.md)               | Done        |
+| 2026-05-16 | —                                                                    | [brew-bundle](specs/2026-05-16-brew-bundle-design.md)                       | Pending     |
 
 ---
 
@@ -37,7 +38,6 @@ Master status index for all specs and implementation plans in this directory.
 | Homebrew cask support                | Dotfiles Brewfile has 57 cask entries; `package.install` brew provider has no cask flag — needs `cask: true` on the action or a separate `brew.cask` action                                                                               |
 | Homebrew tap management              | 7 custom taps in Brewfile (chef, cloudflare, datawire, go-task, redpanda, snyk, speedtest); formulae from taps (e.g. `datawire/blackbird/telepresence-arm64`) can't install without the tap being added first — needs a `brew.tap` action |
 | Mac App Store (mas) support          | 15 apps installed via `mas install` in dotfiles; no etch action exists — needs `mas.install` action wrapping the `mas` CLI                                                                                                                |
-| Homebrew Bundle (Brewfile)           | Dotfiles uses a single Brewfile for all formulae/casks/mas/taps; a `brew.bundle` action running `brew bundle --file=<path>` would allow bulk migration of the Brewfile                                                                    |
 | Binary install from arbitrary URL    | Many tools (Go, Docker Compose, YQ, Vault, Nomad, Packer, Vagrant, Consul, Terraform) download from non-GitHub URLs (go.dev, releases.hashicorp.com, etc.); `binary` action is GitHub-only — needs URL + sha256 checksum support          |
 | Machine profiles / capability groups | Dotfiles has hostname→profile→`[HAS_K8S]`/`[HAS_DEVTOOLS]`/etc. capability matrix; etch-cli `where:` is per-action rhai with no named-group abstraction — needs profile concept for applying manifest sets to machine classes             |
 | systemd service management           | Linux daemon installs in dotfiles use `systemctl enable --now`; no `service.enable`/`service.start`/`service.disable` action exists                                                                                                       |
