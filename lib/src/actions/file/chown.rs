@@ -90,7 +90,7 @@ mod tests {
                 assert_eq!(None, action.action.group);
             }
             _ => {
-                panic!("FileCopy didn't deserialize to the correct type");
+                panic!("FileChown didn't deserialize to the correct type");
             }
         };
     }
@@ -111,7 +111,7 @@ mod tests {
                 assert_eq!("test", action.action.group.unwrap());
             }
             _ => {
-                panic!("FileCopy didn't deserialize to the correct type");
+                panic!("FileChown didn't deserialize to the correct type");
             }
         };
     }
@@ -190,8 +190,16 @@ mod tests {
             )
             .unwrap();
         assert_eq!(1, steps.len());
-        // Exec atom not the native Chown atom
-        assert!(!steps[0].atom.to_string().contains("need to be set"));
+        // Verify the step is an Exec atom (chown command), not the native Chown atom
+        let display = steps[0].atom.to_string();
+        assert!(
+            display.contains("CommandExec"),
+            "expected Exec atom, got: {display}"
+        );
+        assert!(
+            display.contains("chown"),
+            "expected chown command in Exec atom, got: {display}"
+        );
     }
 
     #[test]
@@ -212,5 +220,15 @@ mod tests {
             )
             .unwrap();
         assert_eq!(1, steps.len());
+        // Verify the step is an Exec atom (chown command), not the native Chown atom
+        let display = steps[0].atom.to_string();
+        assert!(
+            display.contains("CommandExec"),
+            "expected Exec atom, got: {display}"
+        );
+        assert!(
+            display.contains("chown"),
+            "expected chown command in Exec atom, got: {display}"
+        );
     }
 }
