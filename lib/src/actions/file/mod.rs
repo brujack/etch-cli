@@ -25,7 +25,9 @@ fn get_false() -> bool {
 }
 
 pub trait FileAction: Action {
-    // Task 2 will call this when wiring privileged execution through all file action atoms.
+    // Required by all file actions — compiler enforces it on new actions.
+    // Clippy flags trait methods that are never called through the trait interface.
+    // This method exists for convention enforcement, not immediate use.
     #[allow(dead_code)]
     fn file_action_config(&self) -> &FileActionConfig;
 
