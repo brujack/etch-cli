@@ -35,6 +35,9 @@ pub struct Package {
 
     #[serde(default)]
     file: bool,
+
+    #[serde(default)]
+    cask: bool,
 }
 
 #[derive(JsonSchema, Clone, Debug, Default, Serialize, Deserialize)]
@@ -52,6 +55,9 @@ pub struct PackageVariant {
 
     #[serde(default)]
     file: bool,
+
+    #[serde(default)]
+    cask: bool,
 }
 
 impl PackageVariant {
@@ -78,6 +84,7 @@ impl From<&Package> for PackageVariant {
                 provider: package.provider.clone(),
                 extra_args: package.extra_args.clone(),
                 file: package.file,
+                cask: package.cask,
             };
         };
 
@@ -92,6 +99,7 @@ impl From<&Package> for PackageVariant {
             provider: variant.provider.clone(),
             extra_args: variant.extra_args.clone(),
             file: package.file,
+            cask: variant.cask,
         };
 
         if variant.name.is_some() {
@@ -169,5 +177,43 @@ mod tests {
         let variant: PackageVariant = (&pkg).into();
         // variant.name overrides base name; variant.list overrides base list
         assert_eq!(variant.packages(), vec!["variant-pkg"]);
+    }
+
+    #[test]
+    fn package_variant_from_package_with_cask() {
+        let pkg = Package {
+            name: Some(String::from("alfred")),
+            cask: true,
+            ..Default::default()
+        };
+        let variant: PackageVariant = (&pkg).into();
+        assert!(variant.cask);
+        assert_eq!(variant.packages(), vec!["alfred"]);
+    }
+
+    #[test]
+    fn package_variant_from_package_cask_overridden_by_variant() {
+        let os = os_info::get();
+        let mut variants = std::collections::HashMap::new();
+        variants.insert(
+            os.os_type(),
+            PackageVariant {
+                name: Some(String::from("variant-cask")),
+                cask: true,
+                ..Default::default()
+            },
+        );
+        let pkg = Package {
+            name: Some(String::from("base-formula")),
+            cask: false,
+            variants,
+            ..Default::default()
+        };
+        let variant: PackageVariant = (&pkg).into();
+        assert!(
+            variant.cask,
+            "variant cask:true should override base cask:false"
+        );
+        assert_eq!(variant.packages(), vec!["variant-cask"]);
     }
 }

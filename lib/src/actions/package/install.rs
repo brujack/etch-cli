@@ -101,6 +101,25 @@ mod tests {
         };
     }
 
+    #[test]
+    fn it_can_be_deserialized_with_cask() {
+        use crate::actions::Actions;
+        let yaml = r#"
+- action: package.install
+  name: alfred
+  provider: homebrew
+  cask: true
+"#;
+        let mut actions: Vec<Actions> = serde_yaml_ng::from_str(yaml).unwrap();
+        match actions.pop() {
+            Some(Actions::PackageInstall(action)) => {
+                assert_eq!("alfred", action.action.name.clone().unwrap());
+                assert!(action.action.cask);
+            }
+            _ => panic!("PackageInstall didn't deserialize correctly"),
+        }
+    }
+
     #[cfg(target_os = "macos")]
     #[test]
     fn plan_includes_bootstrap_steps_when_provider_unavailable() {
