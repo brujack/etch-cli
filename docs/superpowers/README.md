@@ -27,7 +27,7 @@ Master status index for all specs and implementation plans in this directory.
 | 2026-05-16 | [tilde-expansion](plans/2026-05-16-tilde-expansion.md)               | [tilde-expansion](specs/2026-05-16-tilde-expansion-design.md)               | Done        |
 | 2026-05-16 | [brew-bundle](plans/2026-05-16-brew-bundle.md)                       | [brew-bundle](specs/2026-05-16-brew-bundle-design.md)                       | Done        |
 | 2026-05-16 | [package-install-cask](plans/2026-05-16-package-install-cask.md)     | [package-install-cask](specs/2026-05-16-package-install-cask-design.md)     | Done        |
-| 2026-05-16 | [mas-install](plans/2026-05-16-mas-install.md)                       | [mas-install](specs/2026-05-16-mas-install-design.md)                       | Pending     |
+| 2026-05-16 | [mas-install](plans/2026-05-16-mas-install.md)                       | [mas-install](specs/2026-05-16-mas-install-design.md)                       | Done        |
 
 ---
 

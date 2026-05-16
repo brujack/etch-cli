@@ -70,6 +70,7 @@ Manifest actions map to `lib/src/actions/<name>/`:
 | `file.copy`        | Copy a file; optionally render as Tera template | `from` (or `source`), `to` (or `target`), `template` (bool), `privileged` (bool)                                         |
 | `file.link`        | Symlink a file                                  | `source`, `target` (`from`/`to` deprecated), `privileged` (bool)                                                         |
 | `brew.bundle`      | Install packages from a Brewfile                | `file` (path), `no_upgrade` (bool, default false), `cleanup` (bool, default false — destructive)                         |
+| `mas.install`      | Install a Mac App Store app (macOS only)        | `name` (string, for readability), `id` (u64, App Store numeric ID)                                                       |
 | `git.clone`        | Clone a git repo                                | `repo_url`, `directory`                                                                                                  |
 | `package.install`  | Install OS packages                             | `name` (single) or `list` (multiple); `provider` (`apt`, `snap`, `brew`); `cask` (bool, Homebrew only — passes `--cask`) |
 | `macos.defaults`   | Write macOS defaults                            | domain, key, type, value fields                                                                                          |
