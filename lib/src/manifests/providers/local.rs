@@ -14,7 +14,8 @@ impl ManifestProvider for LocalManifestProvider {
     }
 
     fn resolve(&self, url: &str) -> Result<PathBuf, ManifestProviderError> {
-        PathBuf::from(url)
+        let expanded = shellexpand::tilde(url);
+        PathBuf::from(expanded.as_ref())
             .canonicalize()
             .map_err(|_| ManifestProviderError::NoResolution)
     }
@@ -62,6 +63,27 @@ mod test {
         assert_eq!(
             Err(ManifestProviderError::NoResolution),
             local_manifest_provider.resolve(&String::from("never-resolve"))
+        );
+    }
+
+    #[test]
+    fn test_resolve_tilde_expands_home() {
+        let provider = LocalManifestProvider;
+        let home = std::env::var("HOME").unwrap();
+        // "~" alone should resolve to the home directory (which exists)
+        assert_eq!(
+            std::path::PathBuf::from(&home).canonicalize().unwrap(),
+            provider.resolve("~").unwrap()
+        );
+    }
+
+    #[test]
+    fn test_resolve_tilde_nonexistent_path() {
+        let provider = LocalManifestProvider;
+        // Tilde expands but path doesn't exist → NoResolution
+        assert_eq!(
+            Err(ManifestProviderError::NoResolution),
+            provider.resolve("~/etch-test-nonexistent-path-xyz-abc")
         );
     }
 }
