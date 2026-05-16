@@ -65,6 +65,7 @@ tealr = { version = "0.10.0", features = [
 camino = { version = "1.2.2", features = ["serde1"] }
 serde_with = { version = "3.17.0", features = ["schemars_1", "json"] }
 parking_lot = "0.12.5"
+shellexpand = "3"
 
 [target.'cfg(unix)'.dependencies]
 uzers = "0.12"
