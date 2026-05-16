@@ -88,15 +88,15 @@ impl PackageProvider for Homebrew {
             return Ok(vec![]);
         }
 
+        let mut base = vec![String::from("install")];
+        if package.cask {
+            base.push(String::from("--cask"));
+        }
+
         Ok(vec![Step {
             atom: Box::new(Exec {
                 command: String::from("brew"),
-                arguments: [
-                    vec![String::from("install")],
-                    package.extra_args.clone(),
-                    need_installed,
-                ]
-                .concat(),
+                arguments: [base, package.extra_args.clone(), need_installed].concat(),
                 ..Default::default()
             }),
             initializers: vec![],
@@ -179,5 +179,49 @@ mod test {
             assert!(steps.is_empty());
         }
         // If brew isn't available, query() may error — that's acceptable
+    }
+
+    #[test]
+    fn install_includes_cask_flag_when_cask_true() {
+        let homebrew = Homebrew {};
+        if !homebrew.available() {
+            return;
+        }
+        let pkg = PackageVariant {
+            name: Some(String::from("etch-definitely-not-installed-cask-xyz")),
+            cask: true,
+            ..Default::default()
+        };
+        let steps = homebrew.install(&pkg, &Contexts::default()).unwrap();
+        if steps.is_empty() {
+            return;
+        }
+        let display = steps[0].atom.to_string();
+        assert!(
+            display.contains("--cask"),
+            "expected '--cask' in brew install args: {display}"
+        );
+    }
+
+    #[test]
+    fn install_excludes_cask_flag_when_cask_false() {
+        let homebrew = Homebrew {};
+        if !homebrew.available() {
+            return;
+        }
+        let pkg = PackageVariant {
+            name: Some(String::from("etch-definitely-not-installed-formula-xyz")),
+            cask: false,
+            ..Default::default()
+        };
+        let steps = homebrew.install(&pkg, &Contexts::default()).unwrap();
+        if steps.is_empty() {
+            return;
+        }
+        let display = steps[0].atom.to_string();
+        assert!(
+            !display.contains("--cask"),
+            "did not expect '--cask' in brew install args: {display}"
+        );
     }
 }
