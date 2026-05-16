@@ -60,20 +60,20 @@ make install-hooks # install pre-commit and pre-push hooks (run once per checkou
 
 Manifest actions map to `lib/src/actions/<name>/`:
 
-| Action             | Description                                     | Key fields                                                                                       |
-| ------------------ | ----------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `command.run`      | Run shell commands                              | `command`, `args`, `privileged` (bool)                                                           |
-| `directory.create` | Create a directory                              | `path`                                                                                           |
-| `directory.copy`   | Copy a directory                                | `from`, `to`                                                                                     |
-| `file.chmod`       | Set file/directory permissions                  | `path`, `mode` (string: `"700"`, `"0o700"`), `privileged` (bool)                                 |
-| `file.chown`       | Change file/directory ownership                 | `path`, `user`, `group`, `privileged` (bool)                                                     |
-| `file.copy`        | Copy a file; optionally render as Tera template | `from` (or `source`), `to` (or `target`), `template` (bool), `privileged` (bool)                 |
-| `file.link`        | Symlink a file                                  | `source`, `target` (`from`/`to` deprecated), `privileged` (bool)                                 |
-| `brew.bundle`      | Install packages from a Brewfile                | `file` (path), `no_upgrade` (bool, default false), `cleanup` (bool, default false — destructive) |
-| `git.clone`        | Clone a git repo                                | `repo_url`, `directory`                                                                          |
-| `package.install`  | Install OS packages                             | `name` (single) or `list` (multiple); providers: `apt`, `snap`, `brew`                           |
-| `macos.defaults`   | Write macOS defaults                            | domain, key, type, value fields                                                                  |
-| `binary`           | Install a binary from a GitHub release          | `name`, `version`, `url`                                                                         |
+| Action             | Description                                     | Key fields                                                                                                               |
+| ------------------ | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `command.run`      | Run shell commands                              | `command`, `args`, `privileged` (bool)                                                                                   |
+| `directory.create` | Create a directory                              | `path`                                                                                                                   |
+| `directory.copy`   | Copy a directory                                | `from`, `to`                                                                                                             |
+| `file.chmod`       | Set file/directory permissions                  | `path`, `mode` (string: `"700"`, `"0o700"`), `privileged` (bool)                                                         |
+| `file.chown`       | Change file/directory ownership                 | `path`, `user`, `group`, `privileged` (bool)                                                                             |
+| `file.copy`        | Copy a file; optionally render as Tera template | `from` (or `source`), `to` (or `target`), `template` (bool), `privileged` (bool)                                         |
+| `file.link`        | Symlink a file                                  | `source`, `target` (`from`/`to` deprecated), `privileged` (bool)                                                         |
+| `brew.bundle`      | Install packages from a Brewfile                | `file` (path), `no_upgrade` (bool, default false), `cleanup` (bool, default false — destructive)                         |
+| `git.clone`        | Clone a git repo                                | `repo_url`, `directory`                                                                                                  |
+| `package.install`  | Install OS packages                             | `name` (single) or `list` (multiple); `provider` (`apt`, `snap`, `brew`); `cask` (bool, Homebrew only — passes `--cask`) |
+| `macos.defaults`   | Write macOS defaults                            | domain, key, type, value fields                                                                                          |
+| `binary`           | Install a binary from a GitHub release          | `name`, `version`, `url`                                                                                                 |
 
 Template engine is [Tera](https://keats.github.io/tera/). Available context variables: `user.username`, `user.home_dir`, `user.name`, `os.hostname`, `os.name`, `os.family`, `os.distribution`, `manifest_dir`.
 
