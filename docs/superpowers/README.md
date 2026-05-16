@@ -24,7 +24,7 @@ Master status index for all specs and implementation plans in this directory.
 | 2026-05-14 | [dotfiles-symlinks](plans/2026-05-14-dotfiles-symlinks.md)           | [dotfiles-symlinks](specs/2026-05-14-dotfiles-symlinks-design.md)           | Done        |
 | 2026-05-15 | [file-chmod](plans/2026-05-15-file-chmod.md)                         | [file-chmod](specs/2026-05-15-file-chmod-design.md)                         | Done        |
 | 2026-05-15 | [file-action-privileged](plans/2026-05-15-file-action-privileged.md) | [file-action-privileged](specs/2026-05-15-file-action-privileged-design.md) | Done        |
-| 2026-05-16 | [tilde-expansion](plans/2026-05-16-tilde-expansion.md)               | [tilde-expansion](specs/2026-05-16-tilde-expansion-design.md)               | Pending     |
+| 2026-05-16 | [tilde-expansion](plans/2026-05-16-tilde-expansion.md)               | [tilde-expansion](specs/2026-05-16-tilde-expansion-design.md)               | Done        |
 
 ---
 
