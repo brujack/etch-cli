@@ -46,6 +46,7 @@ Master status index for all specs and implementation plans in this directory.
 | Wildcard / glob file.link            | `file.link` requires enumerating each source explicitly; no support for `link all files matching .claude/*` pattern; surfaced by ai-config Claude/Cursor symlinks in Phase 2                                                              |
 | brew.upgrade action                  | No action to run `brew upgrade [--greedy]` to update installed formulae and casks; currently requires `command.run` workaround                                                                                                            |
 | mas.upgrade action                   | No action to run `mas upgrade` to update App Store apps; currently requires `command.run` workaround                                                                                                                                      |
+| brew.cleanup action                  | No action to run `brew cleanup [--prune=<days>]` to remove old cached downloads and outdated formula versions; distinct from `brew.bundle cleanup:` which removes unlisted packages                                                       |
 
 ---
 
