@@ -14,6 +14,7 @@ use crate::actions::macos::MacOSDefault;
 use crate::{contexts::Contexts, manifests::Manifest, steps::Step};
 use anyhow::anyhow;
 use binary::BinaryGitHub;
+use brew::BrewBundle;
 use command::run::RunCommand;
 use directory::{DirectoryCopy, DirectoryCreate, DirectoryRemove};
 use file::chmod::FileChmod;
@@ -155,6 +156,9 @@ pub enum Actions {
     )]
     BinaryGitHub(ConditionalVariantAction<BinaryGitHub>),
 
+    #[serde(rename = "brew.bundle")]
+    BrewBundle(ConditionalVariantAction<BrewBundle>),
+
     #[serde(rename = "git.clone")]
     GitClone(ConditionalVariantAction<GitClone>),
 
@@ -184,6 +188,7 @@ impl Actions {
     pub fn inner_ref(&self) -> &dyn Action {
         match self {
             Actions::BinaryGitHub(a) => a,
+            Actions::BrewBundle(a) => a,
             Actions::CommandRun(a) => a,
             Actions::DirectoryCopy(a) => a,
             Actions::DirectoryCreate(a) => a,
@@ -212,6 +217,7 @@ impl Deref for Actions {
     fn deref(&self) -> &Self::Target {
         match self {
             Actions::BinaryGitHub(a) => a,
+            Actions::BrewBundle(a) => a,
             Actions::CommandRun(a) => a,
             Actions::DirectoryCopy(a) => a,
             Actions::DirectoryCreate(a) => a,
@@ -250,6 +256,7 @@ impl Display for Actions {
             Actions::FileUnarchive(_) => "file.unarchive",
             Actions::DirectoryRemove(_) => "directory.remove",
             Actions::BinaryGitHub(_) => "github.binary",
+            Actions::BrewBundle(_) => "brew.bundle",
             Actions::GitClone(_) => "git.clone",
             Actions::GroupAdd(_) => "group.add",
             Actions::MacOSDefault(_) => "macos.default",
@@ -381,9 +388,11 @@ actions:
     name: htop
   - action: user.add
     username: alice
+  - action: brew.bundle
+    file: /tmp/Brewfile
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(15, manifest.actions.len());
+        assert_eq!(16, manifest.actions.len());
     }
 
     #[test]
@@ -437,6 +446,8 @@ actions:
   - action: user.group
     username: alice
     group_name: staff
+  - action: brew.bundle
+    file: /tmp/Brewfile
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
 
@@ -459,6 +470,7 @@ actions:
             "package.repository",
             "user.add",
             "user.group",
+            "brew.bundle",
         ];
 
         for (action, expected) in manifest.actions.iter().zip(expected_names.iter()) {
@@ -655,9 +667,11 @@ actions:
   - action: user.group
     username: alice
     group_name: staff
+  - action: brew.bundle
+    file: /tmp/Brewfile
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(19, manifest.actions.len());
+        assert_eq!(20, manifest.actions.len());
 
         for action in &manifest.actions {
             // Exercise inner_ref() for every variant

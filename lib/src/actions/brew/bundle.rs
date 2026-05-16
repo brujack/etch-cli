@@ -5,9 +5,6 @@ use crate::steps::Step;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-// BrewBundle is registered in the Actions enum in actions/mod.rs (Task 2).
-// The allow attribute is removed once the enum variant is added.
-#[allow(dead_code)]
 #[derive(JsonSchema, Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BrewBundle {
     pub file: String,
@@ -19,7 +16,6 @@ pub struct BrewBundle {
     pub cleanup: bool,
 }
 
-#[allow(dead_code)]
 fn get_false() -> bool {
     false
 }
@@ -58,8 +54,23 @@ impl Action for BrewBundle {
 
 #[cfg(test)]
 mod tests {
-    // NOTE: it_can_be_deserialized requires Actions::BrewBundle from the enum.
-    // Added in Task 2 after the enum variant is registered.
+    #[test]
+    fn it_can_be_deserialized() {
+        use crate::actions::Actions;
+        let yaml = r#"
+- action: brew.bundle
+  file: /tmp/Brewfile
+"#;
+        let mut actions: Vec<Actions> = serde_yaml_ng::from_str(yaml).unwrap();
+        match actions.pop() {
+            Some(Actions::BrewBundle(action)) => {
+                assert_eq!("/tmp/Brewfile", action.action.file);
+                assert!(!action.action.no_upgrade);
+                assert!(!action.action.cleanup);
+            }
+            _ => panic!("BrewBundle didn't deserialize to the correct type"),
+        }
+    }
 
     #[test]
     fn plan_returns_exec_step() {
