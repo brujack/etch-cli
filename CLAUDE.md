@@ -25,7 +25,7 @@ etch-cli/
 │       └── basic_usage.rs
 ├── lib/          # etch-lib — core engine (actions, atoms, contexts, manifests, steps)
 │   └── src/
-│       ├── actions/          # 9 action types (see Action Catalog below)
+│       ├── actions/          # 10 action types (see Action Catalog below)
 │       ├── atoms/            # Low-level OS operations (file, dir, command, http, plugin)
 │       ├── config/mod.rs     # Config struct (manifest_paths, variables, privilege, etc.)
 │       ├── contexts/         # Context providers: user, os, variables, rhai engine
@@ -65,6 +65,7 @@ Manifest actions map to `lib/src/actions/<name>/`:
 | `command.run`      | Run shell commands                              | `command`, `args`, `privileged` (bool)                                 |
 | `directory.create` | Create a directory                              | `path`                                                                 |
 | `directory.copy`   | Copy a directory                                | `from`, `to`                                                           |
+| `file.chmod`       | Set file/directory permissions                  | `path`, `mode` (string: `"700"`, `"0o700"`), `privileged` (bool)       |
 | `file.copy`        | Copy a file; optionally render as Tera template | `from` (or `source`), `to` (or `target`), `template` (bool)            |
 | `file.link`        | Symlink a file                                  | `source`, `target` (`from`/`to` deprecated)                            |
 | `git.clone`        | Clone a git repo                                | `repo_url`, `directory`                                                |
