@@ -38,12 +38,19 @@ etch-cli/
 ├── examples/      # Example manifests by action type
 ├── docs/          # mdbook documentation (inherited from comtrya, not built in CI)
 │   ├── adr/           # Architectural Decision Records (repo-specific)
+│   ├── knowledge/     # Reference material (architecture, domain docs, curated research)
 │   ├── superpowers/   # Implementation plans
 │   └── cursor/        # Cursor docs
 ├── Makefile       # lint, test, build, install-hooks
 ├── deny.toml      # cargo-deny config (license + advisory policy)
 └── scripts/       # pre-commit, pre-push hooks
 ```
+
+## Knowledge Directory
+
+Reference material lives in `docs/knowledge/`. These documents capture architecture overviews, domain reference sheets, and curated research findings — things too detailed for CLAUDE.md but useful to look up. See `docs/knowledge/README.md` for what belongs there and what doesn't.
+
+When web research (web-research skill) or context-mode fetches produce findings worth preserving, save them to `docs/knowledge/<topic>.md`.
 
 ## Quick Reference
 
