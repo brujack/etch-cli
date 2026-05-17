@@ -12,11 +12,11 @@ mod plugin;
 mod user;
 
 use crate::actions::macos::MacOSDefault;
-use crate::actions::mas::MasInstall;
+use crate::actions::mas::{MasInstall, MasUpgrade};
 use crate::{contexts::Contexts, manifests::Manifest, steps::Step};
 use anyhow::anyhow;
 use binary::BinaryGitHub;
-use brew::BrewBundle;
+use brew::{BrewBundle, BrewCleanup, BrewUpgrade};
 use command::run::RunCommand;
 use directory::{DirectoryCopy, DirectoryCreate, DirectoryRemove};
 use file::chmod::FileChmod;
@@ -161,6 +161,15 @@ pub enum Actions {
     #[serde(rename = "brew.bundle")]
     BrewBundle(ConditionalVariantAction<BrewBundle>),
 
+    #[serde(rename = "brew.cleanup")]
+    BrewCleanup(ConditionalVariantAction<BrewCleanup>),
+
+    #[serde(rename = "brew.upgrade")]
+    BrewUpgrade(ConditionalVariantAction<BrewUpgrade>),
+
+    #[serde(rename = "mas.upgrade")]
+    MasUpgrade(ConditionalVariantAction<MasUpgrade>),
+
     #[serde(rename = "git.clone")]
     GitClone(ConditionalVariantAction<GitClone>),
 
@@ -194,6 +203,8 @@ impl Actions {
         match self {
             Actions::BinaryGitHub(a) => a,
             Actions::BrewBundle(a) => a,
+            Actions::BrewCleanup(a) => a,
+            Actions::BrewUpgrade(a) => a,
             Actions::CommandRun(a) => a,
             Actions::DirectoryCopy(a) => a,
             Actions::DirectoryCreate(a) => a,
@@ -207,6 +218,7 @@ impl Actions {
             Actions::GroupAdd(a) => a,
             Actions::MacOSDefault(a) => a,
             Actions::MasInstall(a) => a,
+            Actions::MasUpgrade(a) => a,
             Actions::PackageInstall(a) => a,
             Actions::PackageRepository(a) => a,
             Actions::UserAdd(a) => a,
@@ -224,6 +236,8 @@ impl Deref for Actions {
         match self {
             Actions::BinaryGitHub(a) => a,
             Actions::BrewBundle(a) => a,
+            Actions::BrewCleanup(a) => a,
+            Actions::BrewUpgrade(a) => a,
             Actions::CommandRun(a) => a,
             Actions::DirectoryCopy(a) => a,
             Actions::DirectoryCreate(a) => a,
@@ -237,6 +251,7 @@ impl Deref for Actions {
             Actions::GroupAdd(a) => a,
             Actions::MacOSDefault(a) => a,
             Actions::MasInstall(a) => a,
+            Actions::MasUpgrade(a) => a,
             Actions::PackageInstall(a) => a,
             Actions::PackageRepository(a) => a,
             Actions::UserAdd(a) => a,
@@ -264,10 +279,13 @@ impl Display for Actions {
             Actions::DirectoryRemove(_) => "directory.remove",
             Actions::BinaryGitHub(_) => "github.binary",
             Actions::BrewBundle(_) => "brew.bundle",
+            Actions::BrewCleanup(_) => "brew.cleanup",
+            Actions::BrewUpgrade(_) => "brew.upgrade",
             Actions::GitClone(_) => "git.clone",
             Actions::GroupAdd(_) => "group.add",
             Actions::MacOSDefault(_) => "macos.default",
             Actions::MasInstall(_) => "mas.install",
+            Actions::MasUpgrade(_) => "mas.upgrade",
             Actions::PackageInstall(_) => "package.install",
             Actions::PackageRepository(_) => "package.repository",
             Actions::UserAdd(_) => "user.add",
@@ -401,9 +419,12 @@ actions:
     username: alice
   - action: brew.bundle
     file: /tmp/Brewfile
+  - action: brew.upgrade
+  - action: brew.cleanup
+  - action: mas.upgrade
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(17, manifest.actions.len());
+        assert_eq!(20, manifest.actions.len());
     }
 
     #[test]
@@ -462,6 +483,9 @@ actions:
     group_name: staff
   - action: brew.bundle
     file: /tmp/Brewfile
+  - action: brew.upgrade
+  - action: brew.cleanup
+  - action: mas.upgrade
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
 
@@ -486,6 +510,9 @@ actions:
             "user.add",
             "user.group",
             "brew.bundle",
+            "brew.upgrade",
+            "brew.cleanup",
+            "mas.upgrade",
         ];
 
         for (action, expected) in manifest.actions.iter().zip(expected_names.iter()) {
@@ -687,9 +714,12 @@ actions:
     group_name: staff
   - action: brew.bundle
     file: /tmp/Brewfile
+  - action: brew.upgrade
+  - action: brew.cleanup
+  - action: mas.upgrade
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(21, manifest.actions.len());
+        assert_eq!(24, manifest.actions.len());
 
         for action in &manifest.actions {
             // Exercise inner_ref() for every variant
