@@ -30,6 +30,7 @@ Master status index for all specs and implementation plans in this directory.
 | 2026-05-16 | [mas-install](plans/2026-05-16-mas-install.md)                                           | [mas-install](specs/2026-05-16-mas-install-design.md)                                           | Done        |
 | 2026-05-16 | [brew-upgrade-cleanup-mas-upgrade](plans/2026-05-16-brew-upgrade-cleanup-mas-upgrade.md) | [brew-upgrade-cleanup-mas-upgrade](specs/2026-05-16-brew-upgrade-cleanup-mas-upgrade-design.md) | Done        |
 | 2026-05-16 | [machine-profiles](plans/2026-05-16-machine-profiles.md)                                 | [machine-profiles](specs/2026-05-16-machine-profiles-design.md)                                 | Done        |
+| 2026-05-16 | —                                                                                        | [command-run-skip-if-exists](specs/2026-05-16-command-run-skip-if-exists-design.md)             | Pending     |
 
 ---
 
@@ -42,7 +43,6 @@ Master status index for all specs and implementation plans in this directory.
 | Binary install from arbitrary URL | Many tools (Go, Docker Compose, YQ, Vault, Nomad, Packer, Vagrant, Consul, Terraform) download from non-GitHub URLs (go.dev, releases.hashicorp.com, etc.); `binary` action is GitHub-only — needs URL + sha256 checksum support |
 | systemd service management        | Linux daemon installs in dotfiles use `systemctl enable --now`; no `service.enable`/`service.start`/`service.disable` action exists                                                                                              |
 | Git config management             | Dotfiles manages per-machine gitconfig variants (mac vs linux); etch-cli has `git.clone` but no `git.config` action for setting `user.name`, `user.email`, credential helpers, etc.                                              |
-| command.run skip-if condition     | No way to skip a `command.run` action when a path/file already exists without embedding a shell guard inline (`[ -d path ] \|\| ...`); surfaced by oh-my-zsh install in Phase 2 symlinks migration                               |
 | Wildcard / glob file.link         | `file.link` requires enumerating each source explicitly; no support for `link all files matching .claude/*` pattern; surfaced by ai-config Claude/Cursor symlinks in Phase 2                                                     |
 
 ---
