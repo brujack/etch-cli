@@ -1,11 +1,12 @@
 use crate::contexts::Contexts;
 use crate::steps::finalizers::RemoveEnvVars;
-use crate::steps::initializers::SetEnvVars;
+use crate::steps::initializers::{FileExists, SetEnvVars};
 use crate::steps::Step;
 use crate::{actions::Action, manifests::Manifest, steps, utilities};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::path::PathBuf;
 
 #[derive(JsonSchema, Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RunCommand {
@@ -22,6 +23,9 @@ pub struct RunCommand {
 
     #[serde(default)]
     pub env: HashMap<String, String>,
+
+    #[serde(default)]
+    pub skip_if_exists: Option<String>,
 }
 
 fn get_false() -> bool {
@@ -45,6 +49,16 @@ impl Action for RunCommand {
         let privilege_provider =
             utilities::get_privilege_provider(contexts).unwrap_or_else(|| "sudo".to_string());
 
+        let mut initializers = vec![steps::initializers::FlowControl::Ensure(Box::new(
+            SetEnvVars(self.env.clone()),
+        ))];
+
+        if let Some(path) = &self.skip_if_exists {
+            initializers.push(steps::initializers::FlowControl::SkipIf(Box::new(
+                FileExists(PathBuf::from(path)),
+            )));
+        }
+
         Ok(vec![Step {
             atom: Box::new(Exec {
                 command: self.command.clone(),
@@ -54,9 +68,7 @@ impl Action for RunCommand {
                 privilege_provider: privilege_provider.clone(),
                 ..Default::default()
             }),
-            initializers: vec![steps::initializers::FlowControl::Ensure(Box::new(
-                SetEnvVars(self.env.clone()),
-            ))],
+            initializers,
             finalizers: vec![steps::finalizers::FlowControl::Ensure(Box::new(
                 RemoveEnvVars(self.env.clone()),
             ))],
@@ -169,5 +181,45 @@ mod tests {
             .unwrap();
         assert_eq!(1, steps.len());
         assert_eq!(1, steps[0].initializers.len());
+    }
+
+    #[test]
+    fn it_can_be_deserialized_with_skip_if_exists() {
+        let yaml = r#"
+- action: command.run
+  command: bash
+  args:
+    - "-c"
+    - echo hello
+  skip_if_exists: /tmp/test-path
+"#;
+        let mut actions: Vec<Actions> = serde_yaml_ng::from_str(yaml).unwrap();
+        match actions.pop() {
+            Some(Actions::CommandRun(action)) => {
+                assert_eq!(
+                    Some(String::from("/tmp/test-path")),
+                    action.action.skip_if_exists
+                );
+            }
+            _ => panic!("CommandRun didn't deserialize to the correct type"),
+        }
+    }
+
+    #[test]
+    fn plan_includes_skip_if_initializer_when_set() {
+        use crate::actions::Action;
+        use crate::contexts::Contexts;
+        use crate::manifests::Manifest;
+        let action = super::RunCommand {
+            command: String::from("echo"),
+            skip_if_exists: Some(String::from("/tmp/test-path")),
+            ..Default::default()
+        };
+        let steps = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+        assert_eq!(1, steps.len());
+        // SetEnvVars (Ensure) + FileExists (SkipIf) = 2 initializers
+        assert_eq!(2, steps[0].initializers.len());
     }
 }
