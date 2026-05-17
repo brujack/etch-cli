@@ -126,6 +126,77 @@ Piece-by-piece alternative (when you need per-app `where:` conditions):
 - `package.repository` for Homebrew taps is always idempotent (re-tapping is fast; etch always runs `brew tap` rather than checking first).
 - `package.install cask: true` is Homebrew-only; other providers silently ignore the field. If a base package has `cask: true` but an OS variant exists without explicitly setting `cask:`, the variant defaults to `cask: false`.
 
+## Machine Profiles
+
+etch-cli does not have built-in profile concepts — use the `variables:` section of `etch.yaml` to define a machine's profile and capabilities. Manifests use `where:` conditions to apply actions selectively.
+
+**Convention:** define `profile` (a human-readable name) and one `has_<capability>: true` boolean per capability your machine supports.
+
+```yaml
+# Mac Studio — ~/.config/etch/etch.yaml
+manifest_paths:
+    - ~/git-repos/personal/dotfiles/manifests
+
+variables:
+    profile: "mac_workstation"
+    has_gui: true
+    has_devtools: true
+    has_k8s: true
+    has_docker: true
+    has_rust: true
+    has_printing: true
+```
+
+```yaml
+# Linux workstation — ~/.config/etch/etch.yaml
+manifest_paths:
+    - ~/git-repos/personal/dotfiles/manifests
+
+variables:
+    profile: "linux_workstation"
+    has_gui: true
+    has_devtools: true
+    has_k8s: true
+    has_docker: true
+    has_rust: true
+    has_snap: true
+```
+
+**Manifest usage:**
+
+```yaml
+# Entire manifest skips on machines without k8s capability
+where: "variables.has_k8s"
+
+actions:
+    - action: package.install
+      list: [kubectl, helm, k9s]
+      provider: homebrew
+```
+
+```yaml
+# Per-action capability guard
+actions:
+    - action: package.install
+      name: gh
+      provider: homebrew
+      where: "variables.has_devtools"
+```
+
+**Capability naming convention:**
+
+| Variable       | Meaning                                         |
+| -------------- | ----------------------------------------------- |
+| `has_gui`      | Machine runs a graphical desktop                |
+| `has_devtools` | Install developer tools (gh, jq, etc.)          |
+| `has_k8s`      | Install Kubernetes tooling (kubectl, helm, k9s) |
+| `has_docker`   | Install Docker and container tools              |
+| `has_rust`     | Install Rust toolchain                          |
+| `has_printing` | Install printer drivers                         |
+| `has_snap`     | Use snap package manager (Linux only)           |
+
+New capabilities can be added freely — the convention is the only constraint. See `examples/machine-profiles/` for complete example files.
+
 ## Config File
 
 etch reads `etch.yaml` from the current directory or `~/.config/etch/etch.yaml`. Key fields:
