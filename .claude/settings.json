@@ -11,5 +11,11 @@
         ]
       }
     ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(brew list *)",
+      "Bash(brew leaves *)"
+    ]
   }
 }
