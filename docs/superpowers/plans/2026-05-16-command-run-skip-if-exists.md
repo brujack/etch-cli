@@ -1,5 +1,7 @@
 # command.run skip_if_exists Implementation Plan
 
+> **Status: DONE**
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add `skip_if_exists: Option<String>` to `command.run` so a step is skipped when the specified path already exists, eliminating inline `[ -d path ] ||` shell guards.
