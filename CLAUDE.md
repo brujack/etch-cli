@@ -292,3 +292,15 @@ gh pr create --repo brujack/etch-cli
 - **Phase 2** (pending): migrate one shell script from dotfiles into a manifest; identify rough edges
 - **Phase 3** (done): pare down to Ubuntu 24.04/26.04 and macOS only; removed 11 provider files
 - **Later:** ntfy notification action; macOS defaults ergonomics improvements
+
+## Definition of Done
+
+A PR or direct master commit is complete when **all** of the following are true:
+
+- [ ] `make test` passes (`cargo fmt --check` + `cargo clippy -D warnings` + `cargo test`)
+- [ ] Coverage ≥70% on Linux CI — verify from CI output, not local macOS measurement
+- [ ] `gh pr checks --repo brujack/etch-cli <number> --watch` passes (or commit is docs-only)
+- [ ] `pr-review` skill PASS verdict obtained before push
+- [ ] Plan index updated (`docs/cursor/README.md`) if this PR implements a tracked spec
+- [ ] Action catalog updated in `README.md` if a new action was added
+- [ ] Learning analysis complete (session-end or post-merge)
