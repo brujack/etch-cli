@@ -46,8 +46,20 @@ impl Action for BrewUpgrade {
 
 #[cfg(test)]
 mod tests {
-    // NOTE: it_can_be_deserialized requires Actions::BrewUpgrade from the enum.
-    // Added in Task 2 after the enum variant is registered.
+    #[test]
+    fn it_can_be_deserialized() {
+        use crate::actions::Actions;
+        let yaml = r#"
+- action: brew.upgrade
+"#;
+        let mut actions: Vec<Actions> = serde_yaml_ng::from_str(yaml).unwrap();
+        match actions.pop() {
+            Some(Actions::BrewUpgrade(action)) => {
+                assert!(!action.action.greedy);
+            }
+            _ => panic!("BrewUpgrade didn't deserialize to the correct type"),
+        }
+    }
 
     #[test]
     fn plan_returns_exec_step() {

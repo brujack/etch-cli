@@ -40,7 +40,20 @@ impl Action for MasUpgrade {
 
 #[cfg(test)]
 mod tests {
-    // NOTE: it_can_be_deserialized added in Task 2.
+    #[test]
+    fn it_can_be_deserialized() {
+        use crate::actions::Actions;
+        let yaml = r#"
+- action: mas.upgrade
+"#;
+        let mut actions: Vec<Actions> = serde_yaml_ng::from_str(yaml).unwrap();
+        match actions.pop() {
+            Some(Actions::MasUpgrade(action)) => {
+                assert!(action.action.id.is_none());
+            }
+            _ => panic!("MasUpgrade didn't deserialize to the correct type"),
+        }
+    }
 
     #[test]
     fn plan_returns_exec_step() {

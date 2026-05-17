@@ -419,9 +419,12 @@ actions:
     username: alice
   - action: brew.bundle
     file: /tmp/Brewfile
+  - action: brew.upgrade
+  - action: brew.cleanup
+  - action: mas.upgrade
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(17, manifest.actions.len());
+        assert_eq!(20, manifest.actions.len());
     }
 
     #[test]
@@ -480,6 +483,9 @@ actions:
     group_name: staff
   - action: brew.bundle
     file: /tmp/Brewfile
+  - action: brew.upgrade
+  - action: brew.cleanup
+  - action: mas.upgrade
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
 
@@ -504,6 +510,9 @@ actions:
             "user.add",
             "user.group",
             "brew.bundle",
+            "brew.upgrade",
+            "brew.cleanup",
+            "mas.upgrade",
         ];
 
         for (action, expected) in manifest.actions.iter().zip(expected_names.iter()) {
@@ -705,9 +714,12 @@ actions:
     group_name: staff
   - action: brew.bundle
     file: /tmp/Brewfile
+  - action: brew.upgrade
+  - action: brew.cleanup
+  - action: mas.upgrade
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(21, manifest.actions.len());
+        assert_eq!(24, manifest.actions.len());
 
         for action in &manifest.actions {
             // Exercise inner_ref() for every variant
