@@ -246,6 +246,8 @@ cargo tarpaulin --exclude-files 'jsonschemagen/*' --fail-under 70  # coverage ch
 
 **Coverage floor: 70%** (Linux CI gate; Linux measures ~72%, local macOS measures ~82% due to platform-specific tests).
 
+**Exception to the global tdd.md ≥90% standard:** The global standard (`~/.claude/standards/tdd.md`) requires ≥90% line coverage. This repo operates at 70% CI gate due to structurally uncoverable code (network ops, package manager calls, privilege escalation, CLI binary dispatch). This is a documented exception — not a gap. Do not attempt to raise the gate above 74% (Linux ceiling) without verifying actual CI output first.
+
 ## CI
 
 Single workflow `.github/workflows/ci.yml`, triggers on `pull_request` to `main`/`master` only.
