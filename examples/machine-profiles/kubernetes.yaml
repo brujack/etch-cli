@@ -1,0 +1,20 @@
+# Example manifest that only applies on machines with the k8s capability.
+# Place in your manifests directory (e.g. manifests/kubernetes/main.yaml).
+#
+# The top-level where: condition skips the entire manifest on non-k8s machines.
+# Individual actions can add further where: guards for additional selectivity.
+
+where: "variables.has_k8s"
+
+actions:
+  - action: package.install
+    list:
+      - kubectl
+      - helm
+      - k9s
+    provider: homebrew
+
+  - action: package.install
+    name: argocd
+    provider: homebrew
+    where: "variables.has_devtools"

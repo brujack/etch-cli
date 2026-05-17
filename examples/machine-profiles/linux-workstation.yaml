@@ -1,0 +1,14 @@
+# Example etch.yaml for a Linux workstation.
+# Copy to ~/.config/etch/etch.yaml and adjust to match your machine's capabilities.
+
+manifest_paths:
+  - ~/git-repos/personal/dotfiles/manifests
+
+variables:
+  profile: "linux_workstation"
+  has_gui: true
+  has_devtools: true
+  has_k8s: true
+  has_docker: true
+  has_rust: true
+  has_snap: true
