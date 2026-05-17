@@ -29,22 +29,21 @@ Master status index for all specs and implementation plans in this directory.
 | 2026-05-16 | [package-install-cask](plans/2026-05-16-package-install-cask.md)                         | [package-install-cask](specs/2026-05-16-package-install-cask-design.md)                         | Done        |
 | 2026-05-16 | [mas-install](plans/2026-05-16-mas-install.md)                                           | [mas-install](specs/2026-05-16-mas-install-design.md)                                           | Done        |
 | 2026-05-16 | [brew-upgrade-cleanup-mas-upgrade](plans/2026-05-16-brew-upgrade-cleanup-mas-upgrade.md) | [brew-upgrade-cleanup-mas-upgrade](specs/2026-05-16-brew-upgrade-cleanup-mas-upgrade-design.md) | Done        |
-| 2026-05-16 | [machine-profiles](plans/2026-05-16-machine-profiles.md)                                 | [machine-profiles](specs/2026-05-16-machine-profiles-design.md)                                 | Pending     |
+| 2026-05-16 | [machine-profiles](plans/2026-05-16-machine-profiles.md)                                 | [machine-profiles](specs/2026-05-16-machine-profiles-design.md)                                 | Done        |
 
 ---
 
 ## Backlog
 
-| Feature                              | Notes                                                                                                                                                                                                                            |
-| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ntfy notification action             | Matches existing notification infra                                                                                                                                                                                              |
-| macOS defaults write ergonomics      | If etch-cli's current API is rough                                                                                                                                                                                               |
-| Binary install from arbitrary URL    | Many tools (Go, Docker Compose, YQ, Vault, Nomad, Packer, Vagrant, Consul, Terraform) download from non-GitHub URLs (go.dev, releases.hashicorp.com, etc.); `binary` action is GitHub-only — needs URL + sha256 checksum support |
-| Machine profiles / capability groups | Dotfiles has hostname→profile→`[HAS_K8S]`/`[HAS_DEVTOOLS]`/etc. capability matrix; etch-cli `where:` is per-action rhai with no named-group abstraction — needs profile concept for applying manifest sets to machine classes    |
-| systemd service management           | Linux daemon installs in dotfiles use `systemctl enable --now`; no `service.enable`/`service.start`/`service.disable` action exists                                                                                              |
-| Git config management                | Dotfiles manages per-machine gitconfig variants (mac vs linux); etch-cli has `git.clone` but no `git.config` action for setting `user.name`, `user.email`, credential helpers, etc.                                              |
-| command.run skip-if condition        | No way to skip a `command.run` action when a path/file already exists without embedding a shell guard inline (`[ -d path ] \|\| ...`); surfaced by oh-my-zsh install in Phase 2 symlinks migration                               |
-| Wildcard / glob file.link            | `file.link` requires enumerating each source explicitly; no support for `link all files matching .claude/*` pattern; surfaced by ai-config Claude/Cursor symlinks in Phase 2                                                     |
+| Feature                           | Notes                                                                                                                                                                                                                            |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ntfy notification action          | Matches existing notification infra                                                                                                                                                                                              |
+| macOS defaults write ergonomics   | If etch-cli's current API is rough                                                                                                                                                                                               |
+| Binary install from arbitrary URL | Many tools (Go, Docker Compose, YQ, Vault, Nomad, Packer, Vagrant, Consul, Terraform) download from non-GitHub URLs (go.dev, releases.hashicorp.com, etc.); `binary` action is GitHub-only — needs URL + sha256 checksum support |
+| systemd service management        | Linux daemon installs in dotfiles use `systemctl enable --now`; no `service.enable`/`service.start`/`service.disable` action exists                                                                                              |
+| Git config management             | Dotfiles manages per-machine gitconfig variants (mac vs linux); etch-cli has `git.clone` but no `git.config` action for setting `user.name`, `user.email`, credential helpers, etc.                                              |
+| command.run skip-if condition     | No way to skip a `command.run` action when a path/file already exists without embedding a shell guard inline (`[ -d path ] \|\| ...`); surfaced by oh-my-zsh install in Phase 2 symlinks migration                               |
+| Wildcard / glob file.link         | `file.link` requires enumerating each source explicitly; no support for `link all files matching .claude/*` pattern; surfaced by ai-config Claude/Cursor symlinks in Phase 2                                                     |
 
 ---
 
