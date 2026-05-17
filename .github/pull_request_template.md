@@ -1,18 +1,47 @@
-## I'm submitting a
+<!--
+Fill in each section. Delete sections that genuinely do not apply (e.g., Risk for docs-only changes).
+The Definition of Done checklist must reflect this repo's DoD section in CLAUDE.md.
+-->
 
-- [ ] bug fix
-- [ ] feature
-- [ ] documentation addition
+## Summary
 
-## What is the current behaviour?
+<!-- 1-3 bullets: what changed and why. Lead with the why. -->
 
-## If the current behavior is a bug, please provide the steps to reproduce and if possible a minimal demo of the problem
+-
+-
 
-## What is the expected behavior?
+## Changes
 
-## What is the motivation / use case for changing the behavior?
+<!-- Key files or areas modified. Group related changes. -->
 
-## Please tell us about your environment:
+-
 
-Version (`etch-cli --version`):
-Operating system:
+## Test Plan
+
+<!-- How to verify this works. Concrete commands or scenarios. -->
+
+- [ ]
+- [ ]
+
+## Risk
+
+<!-- What could break. What's the mitigation. What did you NOT test. Skip for docs-only. -->
+
+-
+
+## Definition of Done
+
+<!-- Pull from this repo's CLAUDE.md Definition of Done section. -->
+
+- [ ] Tests pass
+- [ ] Lint clean
+- [ ] Coverage gate met (where applicable)
+- [ ] `pr-review` skill PASS verdict obtained
+- [ ] Plan index updated (if implementing a tracked spec)
+- [ ] Learning analysis complete
+
+## Related
+
+<!-- Links to spec, plan, ADR, issue, or related PRs. -->
+
+-
