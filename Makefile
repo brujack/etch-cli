@@ -3,7 +3,7 @@
 all: test build
 
 test: lint
-	cargo test
+	cargo nextest run
 
 lint:
 	cargo fmt --all -- --check
