@@ -73,6 +73,7 @@ uzers = "0.12"
 [dev-dependencies]
 tempfile = "3.26"
 pretty_assertions = "1.4"
+proptest = "1"
 serial_test = "3"
 tracing-test = "0.2"
 tracing-subscriber = "0.3"
