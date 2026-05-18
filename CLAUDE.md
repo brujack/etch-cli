@@ -270,7 +270,7 @@ Pre-push hook: `make test` (full suite before push reaches GitHub)
 
 ## Security Baseline (captured Phase 1)
 
-- **cargo audit:** 3 unfixable advisories remain — hickory-proto ×2 (DNS DoS, no server surface), rsa (Marvin timing, not a signing oracle). All documented in `deny.toml`.
+- **cargo audit:** 3 unfixable advisories remain — hickory-proto ×2 (DNS DoS, no server surface), rsa (Marvin timing, not a signing oracle). Ignored via `--ignore` flags in `.github/workflows/cargo-audit-scheduled.yml`. **`cargo audit` does NOT read `deny.toml`** — that file is for `cargo deny` only. New advisories must be triaged in both places independently.
 - **Dependency drift:** ran `cargo update` post-fork, resolving 13 of 16 original advisories.
 
 ## Branch Workflow
