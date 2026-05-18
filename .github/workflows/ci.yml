@@ -20,6 +20,8 @@ jobs:
         with:
           components: clippy
       - uses: Swatinem/rust-cache@v2
+      - name: Install cargo-nextest
+        run: cargo install cargo-nextest --locked
       - name: Run tests
         run: make test
       - name: Install cargo-tarpaulin
@@ -42,10 +44,11 @@ jobs:
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - name: Install cargo-audit
-        run: cargo install cargo-audit --locked
-      - name: Run cargo audit
-        run: cargo audit
+      - name: Install cargo-deny
+        run: cargo install cargo-deny --locked
+      - name: Run cargo deny advisories
+        # Uses deny.toml ignore list — cargo audit does not read deny.toml
+        run: cargo deny check advisories
 
   secret-scan:
     name: Secret Scan

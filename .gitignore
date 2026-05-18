@@ -1,4 +1,4 @@
-/target
+target/
 /.worktrees
 /_cicd-intermediates
 /.build
@@ -22,3 +22,6 @@
 
 # Rust
 **/*.rs.bk
+
+# git worktrees
+.worktrees/
