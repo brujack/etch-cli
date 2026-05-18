@@ -20,6 +20,8 @@ jobs:
         with:
           components: clippy
       - uses: Swatinem/rust-cache@v2
+      - name: Install cargo-nextest
+        run: cargo install cargo-nextest --locked
       - name: Run tests
         run: make test
       - name: Install cargo-tarpaulin
