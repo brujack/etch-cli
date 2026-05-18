@@ -216,6 +216,10 @@ disable_update_check: false # suppress crates.io update check at startup
 privilege: sudo # sudo | doas | run0
 ```
 
+## Committing Work
+
+Invoke `caveman:caveman-commit` skill to generate the commit message before running `git commit`. Full format and rules in `~/.claude/CLAUDE.md`.
+
 ## Key Architectural Notes
 
 - **DAG execution:** manifests can declare `depends:` on other manifests; petgraph resolves the topological sort before execution.
