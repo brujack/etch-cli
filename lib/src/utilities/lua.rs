@@ -396,4 +396,36 @@ mod tests {
         let name = LuaRuntime::schema_name();
         assert_eq!(name, "LuaRuntime");
     }
+
+    use proptest::prelude::*;
+
+    proptest! {
+        #[test]
+        fn prop_json_primitives_roundtrip(s in "[a-zA-Z0-9 ]{0,50}") {
+            // String: json_to_lua then lua_value_to_json should round-trip
+            let lua = Lua::new();
+            let json_str = serde_json::Value::String(s.clone());
+            let lua_val = json_to_lua(&json_str, &lua).unwrap();
+            let back = lua_value_to_json(lua_val);
+            prop_assert_eq!(back, json_str);
+        }
+
+        #[test]
+        fn prop_json_bool_roundtrip(b: bool) {
+            let lua = Lua::new();
+            let json_bool = serde_json::Value::Bool(b);
+            let lua_val = json_to_lua(&json_bool, &lua).unwrap();
+            let back = lua_value_to_json(lua_val);
+            prop_assert_eq!(back, json_bool);
+        }
+
+        #[test]
+        fn prop_json_null_roundtrip(_n: ()) {
+            let lua = Lua::new();
+            let json_null = serde_json::Value::Null;
+            let lua_val = json_to_lua(&json_null, &lua).unwrap();
+            let back = lua_value_to_json(lua_val);
+            prop_assert_eq!(back, json_null);
+        }
+    }
 }
