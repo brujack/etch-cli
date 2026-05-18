@@ -22,3 +22,6 @@ target/
 
 # Rust
 **/*.rs.bk
+
+# git worktrees
+.worktrees/
