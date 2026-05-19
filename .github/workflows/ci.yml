@@ -13,6 +13,8 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v5
       - name: Install Rust stable
@@ -31,7 +33,33 @@ jobs:
         # attempt; gate set 2pp below to give buffer. Local macOS measures ~82% because
         # macOS provider tests (#[cfg(target_os = "macos")]) add coverage locally but
         # don't run in CI.
-        run: cargo tarpaulin --exclude-files 'jsonschemagen/*' --fail-under 70
+        run: cargo tarpaulin --exclude-files 'jsonschemagen/*' --fail-under 70 --out Json
+      - name: Publish coverage badge
+        working-directory: ${{ github.workspace }}
+        run: |
+          PCT=$(python3 -c "import json,math; d=json.load(open('tarpaulin-report.json')); print(math.floor(d['coverage']))")
+          if   [ "$PCT" -ge 90 ]; then COLOR="brightgreen"
+          elif [ "$PCT" -ge 80 ]; then COLOR="green"
+          elif [ "$PCT" -ge 70 ]; then COLOR="yellow"
+          elif [ "$PCT" -ge 60 ]; then COLOR="orange"
+          else                         COLOR="red"
+          fi
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git fetch origin coverage-data 2>/dev/null && \
+            git worktree add /tmp/cov-data coverage-data || \
+            git worktree add -b coverage-data --orphan /tmp/cov-data
+          printf '{"schemaVersion":1,"label":"coverage","message":"%s%%","color":"%s"}\n' \
+            "$PCT" "$COLOR" > /tmp/cov-data/coverage.json
+          cd /tmp/cov-data
+          git add .
+          git diff --staged --quiet && exit 0
+          for i in 1 2 3; do
+            git pull origin coverage-data --rebase 2>/dev/null || true
+            git diff --staged --quiet || git commit -m "coverage: coverage.json → ${PCT}%"
+            git push origin coverage-data && break
+            sleep $((RANDOM % 5 + 1))
+          done
       - name: Coverage with network tests (informational)
         run: cargo tarpaulin --exclude-files 'jsonschemagen/*' -- --include-ignored
         continue-on-error: true
