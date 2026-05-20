@@ -25,7 +25,24 @@ jobs:
       - name: Install cargo-nextest
         run: cargo install cargo-nextest --locked
       - name: Run tests
-        run: make test
+        run: make lint && cargo nextest run --profile ci
+      - name: Generate test metrics
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          python3 scripts/test_metrics.py \
+            --repo etch-cli \
+            --run-id "${RUN_ID}" \
+            --junit junit.xml
+      - name: Upload test metrics
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: test-metrics
+          path: test-metrics.json
+          retention-days: 90
       - name: Install cargo-tarpaulin
         run: cargo install cargo-tarpaulin --locked
       - name: Check coverage
