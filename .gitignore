@@ -25,3 +25,7 @@ target/
 
 # git worktrees
 .worktrees/
+
+# Claude Code local config and worktrees
+.claude/settings.local.json
+.claude/worktrees/
