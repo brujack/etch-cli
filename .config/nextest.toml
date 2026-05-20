@@ -1,0 +1,5 @@
+[profile.ci]
+retries = { backoff = "fixed", count = 2 }
+
+[profile.ci.junit]
+path = "junit.xml"
