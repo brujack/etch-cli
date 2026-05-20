@@ -19,6 +19,8 @@ jobs:
   release:
     name: Release etch-cli
     runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ inputs.version }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -54,8 +56,6 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Create and push tag
-        env:
-          VERSION: ${{ inputs.version }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -65,7 +65,7 @@ jobs:
       - name: Create GitHub release
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: "v${{ inputs.version }}"
-          name: "v${{ inputs.version }}"
+          tag_name: "v${{ env.VERSION }}"
+          name: "v${{ env.VERSION }}"
           body: "${{ steps.notes.outputs.notes }}"
           files: target/release/etch
