@@ -26,6 +26,8 @@ jobs:
         run: cargo install cargo-nextest --locked
       - name: Run tests
         run: make lint && cargo nextest run --profile ci
+      - name: Run Python tests
+        run: python3 -m unittest discover -s tests -p 'test_*.py' -v
       - name: Generate test metrics
         if: always()
         env:
