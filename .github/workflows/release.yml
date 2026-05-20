@@ -69,3 +69,13 @@ jobs:
           name: "v${{ env.VERSION }}"
           body: "${{ steps.notes.outputs.notes }}"
           files: target/release/etch
+
+  sign:
+    needs: [release]
+    uses: ./.github/workflows/release-sign.yml
+    with:
+      release_tag: "v${{ inputs.version }}"
+      binary_name: etch
+    permissions:
+      id-token: write
+      contents: write
