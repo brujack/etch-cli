@@ -83,3 +83,25 @@ make lint     # cargo clippy -D warnings
 make build    # cargo build --release
 make install-hooks  # install pre-commit and pre-push hooks (run once per checkout)
 ```
+
+## Verifying releases
+
+Release binaries are signed with [cosign](https://docs.sigstore.dev/cosign/overview/) using keyless Sigstore signing. Each release includes:
+
+- `etch` — compiled binary
+- `etch.sig` — detached signature
+- `etch.pem` — signing certificate
+- `etch.sbom.spdx.json` — SPDX bill of materials
+
+To verify a release binary:
+
+```bash
+cosign verify-blob etch \
+  --signature etch.sig \
+  --certificate etch.pem \
+  --certificate-identity \
+    "https://github.com/brujack/etch-cli/.github/workflows/release-sign.yml@refs/tags/TAG" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+```
+
+Replace `TAG` with the release tag (e.g. `v1.2.0`).
