@@ -37,7 +37,7 @@ jobs:
           python3 scripts/test_metrics.py \
             --repo etch-cli \
             --run-id "${RUN_ID}" \
-            --junit junit.xml
+            --junit target/nextest/ci/junit.xml
       - name: Upload test metrics
         if: always()
         uses: actions/upload-artifact@v5
