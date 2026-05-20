@@ -1,0 +1,63 @@
+name: Release Sign
+
+on:
+  workflow_call:
+    inputs:
+      release_tag:
+        required: true
+        type: string
+      binary_name:
+        required: true
+        type: string
+
+jobs:
+  sign:
+    name: SBOM + Sign
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download binary from release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          BINARY_NAME: ${{ inputs.binary_name }}
+        run: |
+          gh release download "${RELEASE_TAG}" \
+            --pattern "${BINARY_NAME}"
+
+      - name: Install syft
+        uses: anchore/sbom-action/download-syft@v0
+
+      - name: Generate SBOM
+        env:
+          BINARY_NAME: ${{ inputs.binary_name }}
+        run: |
+          syft "${BINARY_NAME}" \
+            -o spdx-json \
+            --file "${BINARY_NAME}.sbom.spdx.json"
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign binary (keyless)
+        env:
+          BINARY_NAME: ${{ inputs.binary_name }}
+        run: |
+          cosign sign-blob --yes "${BINARY_NAME}" \
+            --output-signature "${BINARY_NAME}.sig" \
+            --output-certificate "${BINARY_NAME}.pem"
+
+      - name: Upload signatures and SBOM to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          BINARY_NAME: ${{ inputs.binary_name }}
+        run: |
+          gh release upload "${RELEASE_TAG}" \
+            "${BINARY_NAME}.sig" \
+            "${BINARY_NAME}.pem" \
+            "${BINARY_NAME}.sbom.spdx.json"
