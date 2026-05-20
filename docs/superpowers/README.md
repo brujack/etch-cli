@@ -32,7 +32,7 @@ Master status index for all specs and implementation plans in this directory.
 | 2026-05-16 | [machine-profiles](plans/2026-05-16-machine-profiles.md)                                 | [machine-profiles](specs/2026-05-16-machine-profiles-design.md)                                                          | Done        |
 | 2026-05-16 | [command-run-skip-if-exists](plans/2026-05-16-command-run-skip-if-exists.md)             | [command-run-skip-if-exists](specs/2026-05-16-command-run-skip-if-exists-design.md)                                      | Done        |
 | 2026-05-19 | [codeql](plans/2026-05-19-codeql.md)                                                     | [codeql](specs/2026-05-19-codeql-design.md)                                                                              | Done        |
-| 2026-05-19 | [test-metrics](plans/2026-05-19-test-metrics.md)                                         | [spec](https://github.com/brujack/ai-config/blob/master/docs/superpowers/specs/2026-05-19-flaky-test-tracking-design.md) | In Progress |
+| 2026-05-19 | [test-metrics](plans/2026-05-19-test-metrics.md)                                         | [spec](https://github.com/brujack/ai-config/blob/master/docs/superpowers/specs/2026-05-19-flaky-test-tracking-design.md) | Done        |
 
 ---
 
