@@ -33,6 +33,8 @@ Master status index for all specs and implementation plans in this directory.
 | 2026-05-16 | [command-run-skip-if-exists](plans/2026-05-16-command-run-skip-if-exists.md)             | [command-run-skip-if-exists](specs/2026-05-16-command-run-skip-if-exists-design.md)                                      | Done        |
 | 2026-05-19 | [codeql](plans/2026-05-19-codeql.md)                                                     | [codeql](specs/2026-05-19-codeql-design.md)                                                                              | Done        |
 | 2026-05-19 | [test-metrics](plans/2026-05-19-test-metrics.md)                                         | [spec](https://github.com/brujack/ai-config/blob/master/docs/superpowers/specs/2026-05-19-flaky-test-tracking-design.md) | Done        |
+| 2026-05-20 | [release-pipeline](plans/2026-05-20-release-pipeline.md)                                 | [spec](https://github.com/brujack/ai-config/blob/master/docs/superpowers/specs/2026-05-20-sbom-cosign-design.md)         | In Progress |
+| 2026-05-20 | [sbom-cosign](plans/2026-05-20-sbom-cosign.md)                                           | [spec](https://github.com/brujack/ai-config/blob/master/docs/superpowers/specs/2026-05-20-sbom-cosign-design.md)         | In Progress |
 
 ---
 
