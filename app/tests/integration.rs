@@ -124,3 +124,44 @@ fn file_copy_is_idempotent() {
     assert!(dest.exists());
     assert_eq!(fs::read_to_string(&dest).unwrap(), "content");
 }
+
+// ─── command.run ──────────────────────────────────────────────────────────────
+
+#[test]
+fn command_run_creates_file() {
+    let dir = tempdir().unwrap();
+
+    let output = dir.path().join("created.txt");
+    fs::write(
+        dir.path().join("test.yaml"),
+        format!(
+            "actions:\n  - action: command.run\n    command: touch\n    args:\n      - {}\n",
+            output.display()
+        ),
+    )
+    .unwrap();
+
+    apply(dir.path()).success();
+
+    assert!(output.exists(), "touch should have created the file");
+}
+
+#[test]
+fn command_run_is_idempotent() {
+    let dir = tempdir().unwrap();
+
+    let output = dir.path().join("created.txt");
+    fs::write(
+        dir.path().join("test.yaml"),
+        format!(
+            "actions:\n  - action: command.run\n    command: touch\n    args:\n      - {}\n",
+            output.display()
+        ),
+    )
+    .unwrap();
+
+    apply(dir.path()).success();
+    apply(dir.path()).success();
+
+    assert!(output.exists());
+}
