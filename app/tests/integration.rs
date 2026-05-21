@@ -165,3 +165,50 @@ fn command_run_is_idempotent() {
 
     assert!(output.exists());
 }
+
+// ─── directory.create ─────────────────────────────────────────────────────────
+
+#[test]
+fn directory_create_makes_dir() {
+    let dir = tempdir().unwrap();
+
+    let new_dir = dir.path().join("myconfig");
+    fs::write(
+        dir.path().join("test.yaml"),
+        format!(
+            "actions:\n  - action: directory.create\n    path: {}\n",
+            new_dir.display()
+        ),
+    )
+    .unwrap();
+
+    apply(dir.path()).success();
+
+    assert!(
+        new_dir.is_dir(),
+        "myconfig directory should have been created"
+    );
+}
+
+#[test]
+fn directory_create_is_idempotent() {
+    let dir = tempdir().unwrap();
+
+    let new_dir = dir.path().join("myconfig");
+    fs::write(
+        dir.path().join("test.yaml"),
+        format!(
+            "actions:\n  - action: directory.create\n    path: {}\n",
+            new_dir.display()
+        ),
+    )
+    .unwrap();
+
+    apply(dir.path()).success();
+    apply(dir.path()).success();
+
+    assert!(
+        new_dir.is_dir(),
+        "directory should still exist after second apply"
+    );
+}
