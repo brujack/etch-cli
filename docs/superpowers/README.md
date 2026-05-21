@@ -4,11 +4,11 @@ Master status index for all specs and implementation plans in this directory.
 
 ## Status Key
 
-| Status  | Meaning                          |
-| ------- | -------------------------------- |
-| Done    | Implemented and merged to master |
-| Done    | Currently being implemented      |
-| Pending | Not yet started                  |
+| Status      | Meaning                          |
+| ----------- | -------------------------------- |
+| Done        | Implemented and merged to master |
+| In Progress | Currently being implemented      |
+| Pending     | Not yet started                  |
 
 ---
 
