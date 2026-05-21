@@ -72,3 +72,55 @@ fn file_link_is_idempotent() {
     );
     assert_eq!(fs::read_to_string(&target).unwrap(), "hello");
 }
+
+// ─── file.copy ────────────────────────────────────────────────────────────────
+
+#[test]
+fn file_copy_copies_content() {
+    let dir = tempdir().unwrap();
+
+    // Source file in files/ subdir (FileAction::resolve() pattern)
+    let files_dir = dir.path().join("files");
+    fs::create_dir_all(&files_dir).unwrap();
+    fs::write(files_dir.join("source.txt"), "copy me").unwrap();
+
+    let dest = dir.path().join("dest.txt");
+    fs::write(
+        dir.path().join("test.yaml"),
+        format!(
+            "actions:\n  - action: file.copy\n    from: source.txt\n    to: {}\n",
+            dest.display()
+        ),
+    )
+    .unwrap();
+
+    apply(dir.path()).success();
+
+    assert!(dest.exists(), "dest.txt should exist after copy");
+    assert_eq!(fs::read_to_string(&dest).unwrap(), "copy me");
+}
+
+#[test]
+fn file_copy_is_idempotent() {
+    let dir = tempdir().unwrap();
+
+    let files_dir = dir.path().join("files");
+    fs::create_dir_all(&files_dir).unwrap();
+    fs::write(files_dir.join("source.txt"), "content").unwrap();
+
+    let dest = dir.path().join("dest.txt");
+    fs::write(
+        dir.path().join("test.yaml"),
+        format!(
+            "actions:\n  - action: file.copy\n    from: source.txt\n    to: {}\n",
+            dest.display()
+        ),
+    )
+    .unwrap();
+
+    apply(dir.path()).success();
+    apply(dir.path()).success();
+
+    assert!(dest.exists());
+    assert_eq!(fs::read_to_string(&dest).unwrap(), "content");
+}
