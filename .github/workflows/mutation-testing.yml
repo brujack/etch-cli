@@ -1,0 +1,52 @@
+name: mutation-testing
+
+# Runs cargo-mutants against etch-lib to verify tests catch behavior changes.
+# Coverage % measures whether code is exercised; mutation testing measures
+# whether tests catch behavior changes.
+#
+# Triggered manually (workflow_dispatch) or monthly on schedule. Not on every PR
+# because mutant runs can take 20-60 minutes for etch-lib.
+
+on:
+  workflow_dispatch:
+    inputs:
+      timeout:
+        description: "Per-mutant timeout in seconds (default: 120)"
+        required: false
+        default: "120"
+  schedule:
+    # Monthly run catches test-quality regressions
+    - cron: "0 4 1 * *"
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  TIMEOUT: ${{ github.event.inputs.timeout || '120' }}
+
+jobs:
+  mutants:
+    name: Mutation testing (etch-lib)
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: lib
+
+      - name: Install cargo-mutants
+        run: cargo install cargo-mutants --locked
+
+      - name: Run mutants
+        working-directory: lib
+        run: cargo mutants --timeout "${TIMEOUT}" --no-shuffle
+
+      - name: Upload mutants output
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: mutants-output
+          path: lib/mutants.out/
+          retention-days: 30
