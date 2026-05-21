@@ -58,6 +58,17 @@ fn apply(manifest_dir: &std::path::Path, home: &std::path::Path) -> assert_cmd::
 
 ---
 
+## Implementation Note: files/ Subdirectory Requirement
+
+`FileAction::resolve()` in etch-lib joins `manifest_root + "files/" + source`. This means
+source files for `file.link` and `file.copy` must be placed in a `files/` subdirectory
+relative to the manifest directory, not directly alongside the manifest YAML.
+
+Targets and output paths use absolute paths (via `dir.path().join(...)`) to avoid working
+directory ambiguity at execution time.
+
+---
+
 ## Action Coverage
 
 ### file.link (YAML fields: `source`, `target`)
