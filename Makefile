@@ -1,4 +1,4 @@
-.PHONY: all test lint build build-linux install-hooks
+.PHONY: all test lint build build-linux install-hooks mutants
 
 all: test build
 
@@ -24,3 +24,6 @@ install-hooks:
 	chmod +x .git/hooks/pre-push
 	cp scripts/commit-msg .git/hooks/commit-msg
 	chmod +x .git/hooks/commit-msg
+
+mutants:
+	cd lib && cargo mutants --timeout 120 --no-shuffle
