@@ -37,6 +37,7 @@ Master status index for all specs and implementation plans in this directory.
 | 2026-05-20 | [sbom-cosign](plans/2026-05-20-sbom-cosign.md)                                           | [spec](https://github.com/brujack/ai-config/blob/master/docs/superpowers/specs/2026-05-20-sbom-cosign-design.md)         | Done    |
 | 2026-05-20 | [integration-tests](plans/2026-05-20-integration-tests.md)                               | [spec](specs/2026-05-20-integration-tests-design.md)                                                                     | Done    |
 | 2026-05-21 | [mutation-testing](plans/2026-05-21-mutation-testing.md)                                 | [spec](specs/2026-05-21-mutation-testing-design.md)                                                                      | Done    |
+| 2026-05-23 | [error-path-integration-tests](plans/2026-05-23-error-path-integration-tests.md)         | [spec](specs/2026-05-23-error-path-integration-tests-design.md)                                                          | Done    |
 
 ---
 
