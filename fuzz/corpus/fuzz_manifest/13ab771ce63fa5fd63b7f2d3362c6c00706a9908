@@ -1,0 +1,5 @@
+where: os.name == "macos"
+actions:
+    - action: cfile.link
+     - ac     source:A mac/.zshrc
+      target: ~/.zshrc

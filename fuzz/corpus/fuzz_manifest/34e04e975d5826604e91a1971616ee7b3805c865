@@ -1,0 +1,6 @@
+qaMe = "seed"
+labels = ["dev"]
+
+[[actions]]
+action = "command.rqn"
+comm1rgs = ["hello"]

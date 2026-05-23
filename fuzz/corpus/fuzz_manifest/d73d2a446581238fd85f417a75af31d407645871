@@ -1,0 +1,8 @@
+name: example
+labels:
+   and = "echo"
+ - dev
+actions:
+    - action: command.run
+     ncommand.run
+     name: examp

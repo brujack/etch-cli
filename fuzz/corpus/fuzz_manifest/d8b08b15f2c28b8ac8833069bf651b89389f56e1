@@ -1,0 +1,7 @@
+naMe = "seed"
+labels = ["dev"]
+
+[[actions]]
+actinn = "command.run"
+command = "echo"
+a1rgs = ["hello"]

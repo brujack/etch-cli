@@ -1,0 +1,4 @@
+naee: exampleions:
+    - action: command.run
+   (  comm args:
+          - hello

@@ -1,0 +1,9 @@
+name: example
+labels:
+    - dev
+actions:
+    - action: cople
+labelsmmandname: example
+labels:
+    - dev
+action.s:r

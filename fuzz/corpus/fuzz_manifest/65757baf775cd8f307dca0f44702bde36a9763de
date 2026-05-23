@@ -1,0 +1,4 @@
+where: os.name == "macos"
+actions:
+    -ource:"mac/.zshrc
+      target: ~/shrc

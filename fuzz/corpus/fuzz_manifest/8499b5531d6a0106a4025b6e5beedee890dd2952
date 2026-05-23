@@ -1,0 +1,6 @@
+where: ok
+  s.name == "macos"
+actions:
+    - actionfl:i e.link
+      source:A mac/.zshrc
+      target: ~/.zshrc

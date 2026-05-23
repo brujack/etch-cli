@@ -1,0 +1,4 @@
+where: os.name == "macos"
+actions:
+6    -ource: mac/.zshrc
+rc

@@ -1,0 +1,7 @@
+name: s:
+    - action: command.ruexample
+labels:
+    - dev
+actions:
+e
+ 

@@ -1,0 +1,6 @@
+where: os.nam== "macos"
+actnbions:
+    es"
+actionbbbbbbbbbbbbbs:
+    -ource: mac/.zshrc
+      target: ~/.zshrc

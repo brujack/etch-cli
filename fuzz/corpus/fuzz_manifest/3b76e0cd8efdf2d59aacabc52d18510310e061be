@@ -1,0 +1,7 @@
+name: example
+labels:
+    - dev
+actions:
+    - aco
+      args:
+          - hello

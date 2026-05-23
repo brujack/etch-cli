@@ -1,0 +1,4 @@
+where: os.name == "macos"
+actions:
+    - action: file.link
+        target: ~/.zshrc

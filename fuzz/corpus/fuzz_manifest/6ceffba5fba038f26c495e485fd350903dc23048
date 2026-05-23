@@ -1,0 +1,9 @@
+name: exampleple
+labels:
+    - dev
+actions:
+    - ac
+labels:
+    - dev
+actions:
+    - action:n.s:r

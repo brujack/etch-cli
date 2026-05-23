@@ -1,0 +1,9 @@
+name: example
+labels:
+    - dev
+actions:
+   rgs:
+   n: command.run
+   (  command: ech]
+      args:
+          - hello

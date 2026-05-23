@@ -1,0 +1,4 @@
+where: os.name == 
+      s0ource:YYYYYYYA mac/.zshrc
+      t0ource:YYYYYYYA mac/.zshrc
+arget: ~/.zshrc

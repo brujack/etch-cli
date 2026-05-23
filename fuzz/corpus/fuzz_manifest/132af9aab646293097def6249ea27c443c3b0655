@@ -1,0 +1,4 @@
+actions:
+    - SSSSSSSSSSaction: file.link
+      source: dotfiles/.zshrc
+      target: ~/.zshrc

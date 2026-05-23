@@ -1,0 +1,7 @@
+name: example
+lcc-ions:
+  (rgs: 
+  n: command.run
+   (  command: ech]
+      args:
+          - hello

@@ -1,0 +1,8 @@
+name: exampple
+labels:
+  !and = "echo"
+ - dev
+actions:
+    - action: command.run
+    ommand.runons:
+    - examp

@@ -1,0 +1,4 @@
+acilens:
+    - action: file.link
+      source: dotfiles/.zshrc
+      target: ~/.zshrc

@@ -1,0 +1,11 @@
+name: example
+labels:
+    - dev
+actions:
+ ' rgs:
+   n: command.run
+  c (  ommand: ech]
+      args:
+       v"]
+
+[ello

@@ -1,0 +1,6 @@
+actions:
+    ' action: file.link
+      source: doet: ~labels = ["dev"]
+
+[[actions]]
+a/.zshrc

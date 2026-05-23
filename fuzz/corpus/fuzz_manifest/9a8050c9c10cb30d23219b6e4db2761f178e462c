@@ -1,0 +1,4 @@
+where: os.name == "macos"
+acts:
+    -ource: mac/.zsh= "macos"
+&rget: ~/.zshrc

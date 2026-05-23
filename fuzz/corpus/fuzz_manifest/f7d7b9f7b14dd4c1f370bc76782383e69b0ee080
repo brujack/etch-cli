@@ -1,0 +1,4 @@
+{{ans: []
+where: os.name == "macos"
+actions:
+    - act

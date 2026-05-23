@@ -1,0 +1,4 @@
+name = "seed"
+labn"
+command = "echo"
+args =h ["hello"]

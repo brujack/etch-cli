@@ -1,0 +1,5 @@
+where: os.name ns:
+    - .action: file.link
+      sile.link
+       file.lA mac/.zshrc
+      target: ~/.zshrc

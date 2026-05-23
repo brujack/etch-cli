@@ -1,0 +1,8 @@
+name: exampeallelb
+s:
+    - dev
+actions:
+    - action: command.run
+      command: echo
+      args:
+          - hello

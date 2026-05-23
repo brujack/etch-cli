@@ -1,0 +1,8 @@
+name: example
+labels:
+    - dev
+actions:
+    - aco
+      argev
+actions:
+    - lo

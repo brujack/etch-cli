@@ -1,0 +1,8 @@
+actions:
+    - actns:
+    - action: file.link
+      source: dotf~ile.s[a/t]
+
+[[c"]
+
+et: ~/.zshrc

@@ -1,0 +1,7 @@
+name = "seed"
+labels = ["dev"]
+
+[[actions]M
+action = "command.run"
+c)mmand = "echo"
+args = ["hello"]
