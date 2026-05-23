@@ -38,7 +38,7 @@ Master status index for all specs and implementation plans in this directory.
 | 2026-05-20 | [integration-tests](plans/2026-05-20-integration-tests.md)                               | [spec](specs/2026-05-20-integration-tests-design.md)                                                                     | Done    |
 | 2026-05-21 | [mutation-testing](plans/2026-05-21-mutation-testing.md)                                 | [spec](specs/2026-05-21-mutation-testing-design.md)                                                                      | Done    |
 | 2026-05-23 | [error-path-integration-tests](plans/2026-05-23-error-path-integration-tests.md)         | [spec](specs/2026-05-23-error-path-integration-tests-design.md)                                                          | Done    |
-| 2026-05-23 | —                                                                                        | [cargo-fuzz](specs/2026-05-23-cargo-fuzz-design.md)                                                                      | Pending |
+| 2026-05-23 | [cargo-fuzz](plans/2026-05-23-cargo-fuzz.md)                                             | [cargo-fuzz](specs/2026-05-23-cargo-fuzz-design.md)                                                                      | Pending |
 
 ---
 
