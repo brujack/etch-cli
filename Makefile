@@ -29,7 +29,7 @@ mutants:
 	cd lib && cargo mutants --timeout 120 --no-shuffle
 
 FUZZ_TIMEOUT ?= 60
-# rustup proxy at ~/.cargo/bin/cargo is broken on this machine; resolve nightly directly
+# Resolve nightly cargo via rustup to support both rustup-managed and Homebrew-installed rustup
 CARGO_NIGHTLY := $(shell PATH="$$PATH:/opt/homebrew/bin" rustup which --toolchain nightly cargo 2>/dev/null)
 NIGHTLY_BIN := $(shell dirname $(CARGO_NIGHTLY) 2>/dev/null)
 
