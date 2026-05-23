@@ -1,5 +1,7 @@
 # cargo-fuzz Implementation Plan
 
+> **Status: DONE**
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add two cargo-fuzz targets to etch-cli — one for manifest deserialization and one for file path resolution — both runnable via `make fuzz` / `make fuzz-manifest` / `make fuzz-path`.
