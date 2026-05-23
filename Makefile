@@ -29,12 +29,15 @@ mutants:
 	cd lib && cargo mutants --timeout 120 --no-shuffle
 
 FUZZ_TIMEOUT ?= 60
+# rustup proxy at ~/.cargo/bin/cargo is broken on this machine; resolve nightly directly
+CARGO_NIGHTLY := $(shell PATH="$$PATH:/opt/homebrew/bin" rustup which --toolchain nightly cargo 2>/dev/null)
+NIGHTLY_BIN := $(shell dirname $(CARGO_NIGHTLY) 2>/dev/null)
 
 fuzz-manifest:
-	cd fuzz && cargo +nightly fuzz run fuzz_manifest corpus/fuzz_manifest -- -max_total_time=$(FUZZ_TIMEOUT)
+	cd fuzz && PATH="$(NIGHTLY_BIN):$(HOME)/.cargo/bin:$(PATH)" $(CARGO_NIGHTLY) fuzz run fuzz_manifest corpus/fuzz_manifest -- -max_total_time=$(FUZZ_TIMEOUT)
 
 fuzz-path:
-	cd fuzz && cargo +nightly fuzz run fuzz_path_resolve corpus/fuzz_path_resolve -- -max_total_time=$(FUZZ_TIMEOUT)
+	cd fuzz && PATH="$(NIGHTLY_BIN):$(HOME)/.cargo/bin:$(PATH)" $(CARGO_NIGHTLY) fuzz run fuzz_path_resolve corpus/fuzz_path_resolve -- -max_total_time=$(FUZZ_TIMEOUT)
 
 fuzz: fuzz-manifest fuzz-path
 
