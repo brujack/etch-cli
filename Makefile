@@ -1,4 +1,4 @@
-.PHONY: all test lint build build-linux install-hooks mutants
+.PHONY: all test lint build build-linux install-hooks mutants changelog
 
 all: test build
 
@@ -27,3 +27,6 @@ install-hooks:
 
 mutants:
 	cd lib && cargo mutants --timeout 120 --no-shuffle
+
+changelog:
+	git-cliff -o CHANGELOG.md

@@ -39,21 +39,29 @@ jobs:
       - name: Build release binary
         run: cargo build --release
 
-      - name: Generate release notes
-        id: notes
+      - name: Generate CHANGELOG
+        uses: orhun/git-cliff-action@v3
+        with:
+          config: cliff.toml
+          args: --verbose
+        env:
+          OUTPUT: CHANGELOG.md
+          GITHUB_REPO: ${{ github.repository }}
+
+      - name: Generate release notes (latest only)
         run: |
-          PREV_TAG=$(git describe --tags --abbrev=0 --match="v*" 2>/dev/null || true)
-          if [ -n "${PREV_TAG}" ]; then
-            NOTES=$(git log "${PREV_TAG}..HEAD" --pretty=format:"- %s" || true)
-          else
-            NOTES=$(git log HEAD --pretty=format:"- %s" || true)
-          fi
-          DELIMITER="EOF_$(openssl rand -hex 8)"
-          {
-            printf 'notes<<%s\n' "${DELIMITER}"
-            printf '%s\n' "${NOTES}"
-            printf '%s\n' "${DELIMITER}"
-          } >> "$GITHUB_OUTPUT"
+          git-cliff --latest --strip all -o /tmp/release-notes.md 2>/dev/null \
+            || cp CHANGELOG.md /tmp/release-notes.md
+
+      - name: Commit CHANGELOG
+        continue-on-error: true
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md
+          git diff --staged --quiet && exit 0
+          git commit -m "chore(changelog): update for v${VERSION}"
+          git push
 
       - name: Create and push tag
         run: |
@@ -67,7 +75,7 @@ jobs:
         with:
           tag_name: "v${{ env.VERSION }}"
           name: "v${{ env.VERSION }}"
-          body: "${{ steps.notes.outputs.notes }}"
+          body_path: /tmp/release-notes.md
           files: target/release/etch
 
   sign:
