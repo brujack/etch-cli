@@ -1,0 +1,7 @@
+name: example
+labels:
+  nd = "echo"
+ - dev
+actaions:
+~    - action =: command.run
+     name: examp commcnd: ecld =  

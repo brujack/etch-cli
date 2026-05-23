@@ -1,0 +1,6 @@
+name: example
+labels:
+       args:
+         -  - aco
+      args:
+          - hello

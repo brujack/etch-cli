@@ -1,0 +1,7 @@
+name: example
+labels:
+    - dev
+actions:
+    - action: command.run
+      command: echo
+          - hel       - hello

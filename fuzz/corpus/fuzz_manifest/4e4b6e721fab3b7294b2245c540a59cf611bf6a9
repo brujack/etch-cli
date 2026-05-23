@@ -1,0 +1,7 @@
+actions:
+    - action: file.link
+      source: dotfile.s[a/t]
+
+[[co'azctions]ev"]
+
+et: ~/.zshrc

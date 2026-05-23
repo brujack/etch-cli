@@ -1,0 +1,4 @@
+actions:
+    - acdion: file.link
+      source: d!otfiles/.zshrc
+      target: ~/.zsh.								o:d..nrc

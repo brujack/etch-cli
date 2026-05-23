@@ -29,3 +29,8 @@ target/
 # Claude Code local config and worktrees
 .claude/settings.local.json
 .claude/worktrees/
+
+# cargo-fuzz artifacts (crashes, slow inputs) — not committed
+fuzz/artifacts/
+# cargo-fuzz build output
+fuzz/target/

@@ -1,0 +1,8 @@
+name: example
+labels:
+    - dev
+ac-ions:
+  (rgs: 
+  n: command.run
+  I(  comman   args:
+          - hello

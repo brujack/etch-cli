@@ -1,0 +1,7 @@
+where: os.name == "macos"
+actions:
+    - action: file.link
+  == "macos"
+actions:
+    - action: file.link
+   

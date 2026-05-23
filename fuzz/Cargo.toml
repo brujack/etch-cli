@@ -1,0 +1,30 @@
+[package]
+name = "etch-lib-fuzz"
+version = "0.0.1"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[workspace]
+
+[dependencies]
+libfuzzer-sys = "0.4"
+serde_yaml_ng = "0.10"
+toml = "1.0"
+
+[dependencies.etch-lib]
+path = "../lib"
+
+[[bin]]
+name = "fuzz_manifest"
+path = "fuzz_targets/fuzz_manifest.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_path_resolve"
+path = "fuzz_targets/fuzz_path_resolve.rs"
+test = false
+doc = false

@@ -1,0 +1,7 @@
+namemmand.run = "seed"
+labels = ["dev"]
+
+[[actions]]
+action = "c/mmand.run"
+command = "echo"
+args = ["hello"]

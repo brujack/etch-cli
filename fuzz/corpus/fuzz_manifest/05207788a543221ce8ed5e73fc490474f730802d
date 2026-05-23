@@ -1,0 +1,8 @@
+name: example
+labels:
+    - dev
+actions:
+    - action: comman
+      so     target::
+    - dev
+action.s:r

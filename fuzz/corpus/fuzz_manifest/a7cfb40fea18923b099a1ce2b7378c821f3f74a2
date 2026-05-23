@@ -1,0 +1,6 @@
+where: os.name == "ac4imacos"
+actions:
+6   e: os.name == "ac4imacos"
+actions:
+6    -ource: mac/.zshrcons:
+6    

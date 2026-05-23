@@ -1,0 +1,5 @@
+where: os.name == "mLacos"
+actioos:
+    - ace"
+actions:
+  - action: file.lcc

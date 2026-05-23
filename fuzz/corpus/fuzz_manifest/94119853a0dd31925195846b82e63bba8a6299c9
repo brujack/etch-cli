@@ -1,0 +1,4 @@
+where:A mac/.zshrc
+      ta os.name == 
+      source:YYYYYYYA mac/.zshrc
+      target: ~/.zshrc

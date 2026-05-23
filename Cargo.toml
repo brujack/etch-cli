@@ -1,3 +1,4 @@
 [workspace]
 members = ["app", "jsonschemagen", "lib"]
 resolver = "2"
+exclude = ["fuzz"]

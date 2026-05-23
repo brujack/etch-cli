@@ -1,0 +1,4 @@
+where: os.nam== "macos"
+actions:
+    e == "namBmacos"
+actions

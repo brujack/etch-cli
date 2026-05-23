@@ -1,0 +1,8 @@
+naM] seed"
+l= "seed
+"labels = ["dev@]
+
+[[actions]]
+action = "command.run"
+command = "echo"
+args 5 ["hd` = "]

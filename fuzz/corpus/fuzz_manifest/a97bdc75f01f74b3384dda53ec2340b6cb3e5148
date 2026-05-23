@@ -1,0 +1,7 @@
+name = "aldse"
+ebels = ["dev"]
+
+[[act.ions]]
+action = "c]/m~ma~d.run"
+command = "echo"
+args = ["hello"]

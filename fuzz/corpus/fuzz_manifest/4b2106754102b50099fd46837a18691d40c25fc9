@@ -1,0 +1,3 @@
+where: os.name == 
+    e  osrcu-:Y/.zshrc
+      target: ~/.zshrc

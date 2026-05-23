@@ -1,0 +1,6 @@
+name = "seed"
+labels = ["dev"]
+
+[[actions]]
+action = "command.run"
+command = ["hello"]

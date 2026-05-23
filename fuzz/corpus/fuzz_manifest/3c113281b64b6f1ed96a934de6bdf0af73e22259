@@ -1,0 +1,3 @@
+where: os.name == "macos$
+actions:
+    -ourc/.zshrc

@@ -1,0 +1,6 @@
+where: os.n  targeame == "macos"
+actions:
+   ` - action: fons:
+ +  - acti
+ +  - action: file.link
+   

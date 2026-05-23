@@ -1,0 +1,6 @@
+where: os.name == "mLacos"
+actions:
+    - action: file"
+actions:
+    - action: file.link
+     - ac     source:A macc
