@@ -9,8 +9,12 @@ use std::{collections::HashMap, ffi::OsStr, fs::canonicalize, ops::Deref, path::
 use tera::Tera;
 use tracing::{error, span};
 
-pub fn load(manifest_path: PathBuf, contexts: &Contexts) -> HashMap<String, Manifest> {
+pub fn load(
+    manifest_path: PathBuf,
+    contexts: &Contexts,
+) -> anyhow::Result<HashMap<String, Manifest>> {
     let mut manifests: HashMap<String, Manifest> = HashMap::new();
+    let mut parse_error: Option<anyhow::Error> = None;
 
     let mut walker = WalkBuilder::new(&manifest_path);
 
@@ -105,6 +109,9 @@ pub fn load(manifest_path: PathBuf, contexts: &Contexts) -> HashMap<String, Mani
                             get_manifest_name(&manifest_path, &entry).unwrap_or_default();
 
                         error!("Manifest '{manifest_name}' in file with path '{}' cannot be parsed. Reason: {err}", &entry.display());
+                        parse_error = Some(anyhow::anyhow!(
+                            "Manifest '{manifest_name}' cannot be parsed: {err}"
+                        ));
                     }
                 }
 
@@ -112,7 +119,11 @@ pub fn load(manifest_path: PathBuf, contexts: &Contexts) -> HashMap<String, Mani
             }
         });
 
-    manifests
+    if let Some(err) = parse_error {
+        return Err(err);
+    }
+
+    Ok(manifests)
 }
 
 #[cfg(test)]
@@ -132,28 +143,30 @@ mod tests {
         std::fs::write(&yaml_path, "actions: []\n").unwrap();
 
         let contexts = build_contexts(&Config::default());
-        let manifests = load(real_dir, &contexts);
+        let manifests = load(real_dir, &contexts).unwrap();
         assert!(!manifests.is_empty());
     }
 
     #[test]
-    fn load_skips_invalid_yaml() {
+    fn load_returns_error_for_invalid_yaml() {
         let dir = tempdir().unwrap();
         let real_dir = dir.path().canonicalize().unwrap();
         let bad_yaml = real_dir.join("bad.yaml");
         std::fs::write(&bad_yaml, "this: is: not: valid: yaml: [").unwrap();
 
         let contexts = build_contexts(&Config::default());
-        let manifests = load(real_dir, &contexts);
-        // Invalid yaml should be skipped (logged as error), not panic
-        assert!(manifests.is_empty());
+        let result = load(real_dir, &contexts);
+        assert!(
+            result.is_err(),
+            "invalid YAML must return Err, not silently succeed"
+        );
     }
 
     #[test]
     fn load_empty_directory_returns_empty() {
         let dir = tempdir().unwrap();
         let contexts = build_contexts(&Config::default());
-        let manifests = load(dir.path().to_path_buf(), &contexts);
+        let manifests = load(dir.path().to_path_buf(), &contexts).unwrap();
         assert!(manifests.is_empty());
     }
 
@@ -165,7 +178,7 @@ mod tests {
         std::fs::write(&txt_path, "not a manifest").unwrap();
 
         let contexts = build_contexts(&Config::default());
-        let manifests = load(real_dir, &contexts);
+        let manifests = load(real_dir, &contexts).unwrap();
         assert!(manifests.is_empty());
     }
 
@@ -177,7 +190,7 @@ mod tests {
         std::fs::write(&yml_path, "actions: []\n").unwrap();
 
         let contexts = build_contexts(&Config::default());
-        let manifests = load(real_dir, &contexts);
+        let manifests = load(real_dir, &contexts).unwrap();
         assert!(!manifests.is_empty());
     }
 
@@ -195,7 +208,8 @@ mod tests {
         .unwrap();
 
         let contexts = build_contexts(&Config::default());
-        let manifests = load(real_dir, &contexts);
+        // Tera render errors are still silently skipped — load returns Ok(empty)
+        let manifests = load(real_dir, &contexts).unwrap();
 
         assert!(manifests.is_empty());
         // The error message must contain the actual cause, not be silently dropped

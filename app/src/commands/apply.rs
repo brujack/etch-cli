@@ -63,7 +63,7 @@ impl Apply {
 
         println!("Load manifests from path: {:#?}", manifest_path);
 
-        let manifests = load(manifest_path, contexts);
+        let manifests = load(manifest_path, contexts)?;
 
         let mut table = Table::new();
         table
@@ -87,7 +87,7 @@ impl EtchCommand for Apply {
     fn execute(&self, runtime: &Runtime) -> anyhow::Result<()> {
         let contexts = &runtime.contexts;
         let manifest_path = self.manifest_path(runtime)?;
-        let manifests = load(manifest_path, contexts);
+        let manifests = load(manifest_path, contexts)?;
 
         // Build DAG
         let mut dag: Graph<Manifest, u32, petgraph::Directed> = Graph::new();
@@ -173,7 +173,9 @@ impl EtchCommand for Apply {
         let engine = Engine::new();
         let mut scope = to_rhai(contexts);
 
-        run_manifests.iter().for_each(|manifest| {
+        let mut overall_successful = true;
+
+        for manifest in &run_manifests {
             let start = if manifest.eq(&String::from("")) {
                 root_index
             } else if let Some(dag_index) = manifests
@@ -320,6 +322,7 @@ impl EtchCommand for Apply {
 
                 if !successful {
                     error!("Failed");
+                    overall_successful = false;
                     span_manifest.exit();
                     break;
                 }
@@ -327,7 +330,11 @@ impl EtchCommand for Apply {
                 info!("Completed");
                 span_manifest.exit();
             }
-        });
+        }
+
+        if !overall_successful {
+            return Err(anyhow::anyhow!("One or more manifests failed"));
+        }
 
         Ok(())
     }
