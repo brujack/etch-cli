@@ -84,6 +84,10 @@ make build    # cargo build --release
 make install-hooks  # install pre-commit and pre-push hooks (run once per checkout)
 ```
 
+Prerequisites:
+
+- `brew install git-cliff` — CHANGELOG generation (`make changelog`)
+
 ## Verifying releases
 
 Release binaries are signed with [cosign](https://docs.sigstore.dev/cosign/overview/) using keyless Sigstore signing. Each release includes:
