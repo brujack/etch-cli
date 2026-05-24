@@ -36,6 +36,18 @@ jobs:
       - name: Run tests
         run: make test
 
+      - name: Install cargo-semver-checks
+        run: cargo install cargo-semver-checks --locked
+
+      - name: Check semver compatibility
+        run: |
+          PREV_TAG=$(git tag --sort=-version:refname | grep "^v" | head -1)
+          if [ -n "${PREV_TAG}" ]; then
+            cargo semver-checks check-release -p etch-lib --baseline-rev "${PREV_TAG}"
+          else
+            echo "No previous tag found — skipping semver check"
+          fi
+
       - name: Build release binary
         run: cargo build --release
 
