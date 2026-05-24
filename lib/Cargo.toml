@@ -71,12 +71,17 @@ shellexpand = "3"
 uzers = "0.12"
 
 [dev-dependencies]
+criterion = "0.5"
 tempfile = "3.26"
 pretty_assertions = "1.4"
 proptest = "1"
 serial_test = "3"
 tracing-test = "0.2"
 tracing-subscriber = "0.3"
+
+[[bench]]
+name = "etch_lib"
+harness = false
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(tarpaulin_include)'] }
