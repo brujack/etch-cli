@@ -258,17 +258,27 @@ cargo tarpaulin --exclude-files 'jsonschemagen/*' --fail-under 70  # coverage ch
 
 Single workflow `.github/workflows/ci.yml`, triggers on `pull_request` to `main`/`master` only.
 
-| Job           | What it does                                                                             |
-| ------------- | ---------------------------------------------------------------------------------------- |
-| `test`        | `make test` (fmt check + clippy + cargo test) + tarpaulin ≥70% (excluding jsonschemagen) |
-| `secret-scan` | gitleaks v8.30.1 binary (advisory, non-blocking)                                         |
-| `snyk-scan`   | Snyk code test (advisory, non-blocking)                                                  |
-| `auto-merge`  | Squash-merges the PR when all jobs pass                                                  |
+| Job            | What it does                                                                                                   |
+| -------------- | -------------------------------------------------------------------------------------------------------------- |
+| `test`         | `make test` (fmt check + clippy + cargo test) + tarpaulin ≥70% (excluding jsonschemagen)                       |
+| `cargo-audit`  | `cargo audit` — advisory scan (non-blocking)                                                                   |
+| `secret-scan`  | gitleaks v8.30.1 binary (advisory, non-blocking)                                                               |
+| `snyk-scan`    | Snyk code test (advisory, non-blocking)                                                                        |
+| `docs-lint`    | Lints mdbook docs                                                                                              |
+| `docs-build`   | Builds mdbook docs                                                                                             |
+| `semver-check` | `cargo semver-checks` vs `origin/main` baseline (advisory, `continue-on-error: true`, not in auto-merge needs) |
+| `auto-merge`   | Squash-merges the PR when all required jobs pass                                                               |
 
 > **Note:** `build` job is temporarily disabled — restore when build times improve.
 
 Pre-commit hook: `make lint` + `ggshield secret scan pre-commit`
 Pre-push hook: `make test` (full suite before push reaches GitHub)
+
+## cargo semver-checks
+
+`make semver` runs `cargo semver-checks check-release -p etch-lib --baseline-rev origin/main`. Always use `--baseline-rev` — `etch-lib` is not published to crates.io, so the tool cannot auto-detect a registry baseline and will fail without it.
+
+The release workflow (`release.yml`) checks against the previous git tag. The tag `v${VERSION}` is created **after** the semver check step (near the end of the workflow), so `git tag --sort=-version:refname | grep "^v" | head -1` correctly returns the previous release tag at check time — not the one being released. Do not change `head -1` to `sed -n '2p'`; that would skip a valid previous tag on future runs.
 
 ## Security Baseline (captured Phase 1)
 
