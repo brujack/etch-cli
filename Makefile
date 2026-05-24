@@ -1,4 +1,4 @@
-.PHONY: all test lint build build-linux install-hooks mutants bench changelog fuzz fuzz-manifest fuzz-path
+.PHONY: all test lint build build-linux install-hooks mutants bench changelog fuzz fuzz-manifest fuzz-path semver
 
 all: test build
 
@@ -43,6 +43,9 @@ fuzz: fuzz-manifest fuzz-path
 
 bench:
 	cargo bench -p etch-lib
+
+semver:
+	cargo semver-checks check-release -p etch-lib --baseline-rev origin/main
 
 changelog:
 	git-cliff -o CHANGELOG.md
