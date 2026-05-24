@@ -151,6 +151,27 @@ jobs:
       - name: Build docs
         run: mdbook build docs/
 
+  semver-check:
+    name: Semver Check
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Fetch main for baseline
+        run: git fetch origin main --depth=1
+
+      - name: Install cargo-semver-checks
+        run: cargo install cargo-semver-checks --locked
+
+      - name: Check semver compatibility
+        run: cargo semver-checks check-release -p etch-lib --baseline-rev origin/main
+
   auto-merge:
     name: Auto Merge
     runs-on: ubuntu-latest
