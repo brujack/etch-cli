@@ -1,4 +1,4 @@
-.PHONY: all test lint build build-linux install-hooks mutants changelog fuzz fuzz-manifest fuzz-path
+.PHONY: all test lint build build-linux install-hooks mutants bench changelog fuzz fuzz-manifest fuzz-path
 
 all: test build
 
@@ -40,6 +40,9 @@ fuzz-path:
 	cd fuzz && PATH="$(NIGHTLY_BIN):$(HOME)/.cargo/bin:$(PATH)" $(CARGO_NIGHTLY) fuzz run fuzz_path_resolve corpus/fuzz_path_resolve -- -max_total_time=$(FUZZ_TIMEOUT)
 
 fuzz: fuzz-manifest fuzz-path
+
+bench:
+	cargo bench -p etch-lib
 
 changelog:
 	git-cliff -o CHANGELOG.md
