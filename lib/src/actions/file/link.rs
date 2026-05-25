@@ -231,10 +231,35 @@ impl Action for FileLink {
                 ));
             }
 
-            // Step expansion implemented in Task 5.
-            return Err(anyhow::anyhow!(
-                "file.link: glob expansion not yet complete"
-            ));
+            let target_base = PathBuf::from(self.target());
+            let privilege_provider = if self.config.privileged {
+                Some(
+                    utilities::get_privilege_provider(contexts)
+                        .unwrap_or_else(|| "sudo".to_string()),
+                )
+            } else {
+                None
+            };
+
+            let mut steps = Vec::new();
+            for matched_path in matched {
+                let relative = matched_path
+                    .strip_prefix(&glob_root)
+                    .map_err(|e| anyhow::anyhow!("file.link: strip_prefix failed: {}", e))?;
+                let link_target = target_base.join(relative);
+
+                if let Some(ref provider) = privilege_provider {
+                    steps.extend(FileLink::plan_privileged(
+                        matched_path,
+                        link_target,
+                        provider,
+                        false,
+                    ));
+                } else {
+                    steps.extend(FileLink::plan_no_walk(matched_path, link_target));
+                }
+            }
+            return Ok(steps);
         }
 
         let from: PathBuf = self.resolve(manifest, self.source().as_str())?;
@@ -532,6 +557,32 @@ mod tests {
             ..Default::default()
         };
         assert!(action.plan(&manifest, &contexts).is_err());
+    }
+
+    #[test]
+    fn glob_matches_top_level_files() {
+        let tmp = tempfile::tempdir().unwrap();
+        let real_tmp = tmp.path().canonicalize().unwrap();
+        let files_dir = real_tmp.join("files").join("claude");
+        std::fs::create_dir_all(&files_dir).unwrap();
+        std::fs::write(files_dir.join("a.txt"), b"a").unwrap();
+        std::fs::write(files_dir.join("b.txt"), b"b").unwrap();
+        std::fs::write(files_dir.join("c.txt"), b"c").unwrap();
+
+        let manifest = Manifest {
+            root_dir: Some(real_tmp.clone()),
+            ..Default::default()
+        };
+        let contexts = build_contexts(&Config::default());
+        let dest = real_tmp.join("dest");
+        let action = FileLink {
+            glob: Some("claude/*".to_string()),
+            target: Some(dest.display().to_string()),
+            ..Default::default()
+        };
+        let steps = action.plan(&manifest, &contexts).unwrap();
+        // 2 steps per file: DirCreate + Link
+        assert_eq!(steps.len(), 6);
     }
 
     #[test]
