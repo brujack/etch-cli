@@ -1,3 +1,4 @@
+pub mod binary;
 pub mod command;
 pub mod directory;
 pub mod file;
