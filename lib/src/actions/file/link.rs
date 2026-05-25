@@ -20,6 +20,8 @@ pub struct FileLink {
     pub target: Option<String>,
     pub to: Option<String>,
 
+    pub glob: Option<String>,
+
     #[serde(default = "walk_dir_default")]
     pub walk_dir: bool,
 
