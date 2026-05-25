@@ -5,6 +5,7 @@ use crate::steps::initializers::FlowControl::Ensure;
 use crate::steps::Step;
 use crate::utilities;
 use crate::{actions::Action, contexts::Contexts};
+use glob::glob as glob_expand;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -199,13 +200,41 @@ impl Action for FileLink {
     }
 
     fn plan(&self, manifest: &Manifest, contexts: &Contexts) -> anyhow::Result<Vec<Step>> {
-        if self.glob.is_some() {
+        if let Some(ref pattern) = self.glob {
             if self.source.is_some() || self.from.is_some() {
                 return Err(anyhow::anyhow!(
                     "file.link: 'glob' and 'source'/'from' are mutually exclusive"
                 ));
             }
-            return Err(anyhow::anyhow!("file.link: glob not yet implemented"));
+
+            let glob_root = manifest
+                .root_dir
+                .clone()
+                .ok_or_else(|| anyhow::anyhow!("file.link: manifest has no root_dir"))?
+                .join("files");
+
+            let full_pattern = glob_root.join(pattern);
+            let full_pattern_str = full_pattern
+                .to_str()
+                .ok_or_else(|| anyhow::anyhow!("file.link: pattern contains invalid UTF-8"))?;
+
+            let matched: Vec<PathBuf> = glob_expand(full_pattern_str)?
+                .filter_map(|r| r.ok())
+                .filter(|p| p.is_file())
+                .collect();
+
+            if matched.is_empty() {
+                return Err(anyhow::anyhow!(
+                    "file.link: glob pattern '{}' matched no files in '{}'",
+                    pattern,
+                    glob_root.display()
+                ));
+            }
+
+            // Step expansion implemented in Task 5.
+            return Err(anyhow::anyhow!(
+                "file.link: glob expansion not yet complete"
+            ));
         }
 
         let from: PathBuf = self.resolve(manifest, self.source().as_str())?;
@@ -459,6 +488,33 @@ mod tests {
 
         let steps = file_link_action.plan(&manifest, &contexts).unwrap();
         assert_eq!(steps.len(), number_of_files + 1);
+    }
+
+    #[test]
+    fn glob_no_match_returns_err() {
+        let tmp = tempfile::tempdir().unwrap();
+        let real_tmp = tmp.path().canonicalize().unwrap();
+        let files_dir = real_tmp.join("files");
+        std::fs::create_dir_all(&files_dir).unwrap();
+        // No files — pattern matches nothing
+
+        let manifest = Manifest {
+            root_dir: Some(real_tmp.clone()),
+            ..Default::default()
+        };
+        let contexts = build_contexts(&Config::default());
+        let action = FileLink {
+            glob: Some("*.txt".to_string()),
+            target: Some(real_tmp.join("dest").display().to_string()),
+            ..Default::default()
+        };
+        let result = action.plan(&manifest, &contexts);
+        assert!(result.is_err());
+        let err = result.err().unwrap();
+        assert!(
+            err.to_string().contains("matched no files"),
+            "error message should mention 'matched no files'"
+        );
     }
 
     #[test]
