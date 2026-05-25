@@ -1,0 +1,7 @@
+---
+source: app/tests/snapshots.rs
+expression: "String::from_utf8_lossy(&output.stdout)"
+---
+[dry run] no changes will be made
+
+[dry run] Creating directory somedir: 1 step(s) would run
