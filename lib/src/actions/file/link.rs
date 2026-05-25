@@ -199,6 +199,15 @@ impl Action for FileLink {
     }
 
     fn plan(&self, manifest: &Manifest, contexts: &Contexts) -> anyhow::Result<Vec<Step>> {
+        if self.glob.is_some() {
+            if self.source.is_some() || self.from.is_some() {
+                return Err(anyhow::anyhow!(
+                    "file.link: 'glob' and 'source'/'from' are mutually exclusive"
+                ));
+            }
+            return Err(anyhow::anyhow!("file.link: glob not yet implemented"));
+        }
+
         let from: PathBuf = self.resolve(manifest, self.source().as_str())?;
 
         let to = PathBuf::from(self.target());
@@ -450,6 +459,23 @@ mod tests {
 
         let steps = file_link_action.plan(&manifest, &contexts).unwrap();
         assert_eq!(steps.len(), number_of_files + 1);
+    }
+
+    #[test]
+    fn glob_and_source_both_set_returns_err() {
+        let tmp = tempfile::tempdir().unwrap();
+        let manifest = Manifest {
+            root_dir: Some(tmp.path().to_path_buf()),
+            ..Default::default()
+        };
+        let contexts = build_contexts(&Config::default());
+        let action = FileLink {
+            glob: Some("*.txt".to_string()),
+            source: Some("myfile.txt".to_string()),
+            target: Some("/tmp/dest".to_string()),
+            ..Default::default()
+        };
+        assert!(action.plan(&manifest, &contexts).is_err());
     }
 
     #[test]
