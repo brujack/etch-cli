@@ -1,0 +1,5 @@
+---
+source: app/tests/snapshots.rs
+expression: "String::from_utf8_lossy(&output.stdout)"
+---
+[VERSION]

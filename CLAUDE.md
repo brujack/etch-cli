@@ -236,6 +236,8 @@ The test suite covers unit tests in `lib/src/` and integration tests in `app/tes
 
 `app/tests/integration.rs` — 8 end-to-end tests spawning the real `etch` binary. Covers the core `etch apply` path for `file.link`, `file.copy`, `command.run`, and `directory.create` (happy path + idempotency each). These do not contribute to tarpaulin coverage (subprocess invocation) but verify behavioral correctness.
 
+`app/tests/snapshots.rs` — 5 snapshot tests using `insta` that lock the exact stdout format of `etch -h`, `etch apply --help`, `etch version`, `etch apply --dry-run`, and `etch apply -v --dry-run`. Version strings and tmpdir paths are scrubbed with filters. Any accidental format change fails CI. To update snapshots intentionally: run `INSTA_UPDATE=new cargo test --test snapshots`, then `cargo insta accept`, commit updated `.snap` files.
+
 Coverage ceiling is approximately 83% due to hard-to-cover code:
 
 - Network operations (GitHub API, git clone, DNS lookups)
