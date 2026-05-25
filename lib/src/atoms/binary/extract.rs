@@ -4,6 +4,7 @@ use std::fs::File;
 use std::path::PathBuf;
 use tar::Archive;
 use xz2::read::XzDecoder;
+use zip::ZipArchive;
 
 pub enum ArchiveFormat {
     Raw,
@@ -99,7 +100,23 @@ impl Atom for BinaryExtract {
                     target
                 ))
             }
-            _ => todo!("Zip — implemented in Task 6"),
+            ArchiveFormat::Zip => {
+                let file = File::open(&self.src)?;
+                let mut archive = ZipArchive::new(file)?;
+                let target = self.file.as_deref().unwrap();
+                let mut entry = archive.by_name(target).map_err(|_| {
+                    anyhow::anyhow!("binary.url: '{}' not found in archive", target)
+                })?;
+                if let Some(parent) = self.dest.parent() {
+                    std::fs::create_dir_all(parent)?;
+                }
+                let mut dest_file = File::create(&self.dest)?;
+                std::io::copy(&mut entry, &mut dest_file)?;
+                drop(entry);
+                drop(archive);
+                std::fs::remove_file(&self.src)?;
+                Ok(())
+            }
         }
     }
 }
@@ -264,6 +281,68 @@ mod tests {
         atom.execute().unwrap();
         assert!(dest.exists());
         assert_eq!(std::fs::read(&dest).unwrap(), content);
+    }
+
+    fn make_zip(dir: &std::path::Path, entry_name: &str, content: &[u8]) -> PathBuf {
+        use std::fs::File;
+        use std::io::Write;
+        let path = dir.join("test.zip");
+        let file = File::create(&path).unwrap();
+        let mut zip = zip::ZipWriter::new(file);
+        zip.start_file(entry_name, zip::write::SimpleFileOptions::default())
+            .unwrap();
+        zip.write_all(content).unwrap();
+        zip.finish().unwrap();
+        path
+    }
+
+    #[test]
+    fn extract_zip_extracts_named_file() {
+        let tmp = tempfile::tempdir().unwrap();
+        let content = b"consul binary content";
+        let src = make_zip(tmp.path(), "consul", content);
+        let dest = tmp.path().join("consul");
+        let mut atom = BinaryExtract {
+            src,
+            dest: dest.clone(),
+            file: Some(String::from("consul")),
+            format: ArchiveFormat::Zip,
+        };
+        atom.execute().unwrap();
+        assert!(dest.exists());
+        assert_eq!(std::fs::read(&dest).unwrap(), content);
+    }
+
+    #[test]
+    fn extract_missing_file_tar_gz_returns_err() {
+        let tmp = tempfile::tempdir().unwrap();
+        let src = make_tar_gz(tmp.path(), "other/file", b"content");
+        let mut atom = BinaryExtract {
+            src,
+            dest: tmp.path().join("notfound"),
+            file: Some(String::from("notfound")),
+            format: ArchiveFormat::TarGz,
+        };
+        let err = atom.execute().err().unwrap();
+        let msg = err.to_string();
+        assert!(msg.contains("notfound"), "msg was: {msg}");
+        assert!(msg.contains("not found in archive"), "msg was: {msg}");
+    }
+
+    #[test]
+    fn extract_missing_file_zip_returns_err() {
+        let tmp = tempfile::tempdir().unwrap();
+        let src = make_zip(tmp.path(), "other", b"content");
+        let mut atom = BinaryExtract {
+            src,
+            dest: tmp.path().join("notfound"),
+            file: Some(String::from("notfound")),
+            format: ArchiveFormat::Zip,
+        };
+        let err = atom.execute().err().unwrap();
+        let msg = err.to_string();
+        assert!(msg.contains("notfound"), "msg was: {msg}");
+        assert!(msg.contains("not found in archive"), "msg was: {msg}");
     }
 
     #[test]
