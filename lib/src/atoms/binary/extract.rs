@@ -3,6 +3,7 @@ use flate2::read::GzDecoder;
 use std::fs::File;
 use std::path::PathBuf;
 use tar::Archive;
+use xz2::read::XzDecoder;
 
 pub enum ArchiveFormat {
     Raw,
@@ -76,7 +77,29 @@ impl Atom for BinaryExtract {
                     target
                 ))
             }
-            _ => todo!("TarXz and Zip — implemented in Tasks 5–6"),
+            ArchiveFormat::TarXz => {
+                let file = File::open(&self.src)?;
+                let xz = XzDecoder::new(file);
+                let mut archive = Archive::new(xz);
+                let target = self.file.as_deref().unwrap();
+                for entry in archive.entries()? {
+                    let mut entry = entry?;
+                    let path = entry.path()?.to_string_lossy().into_owned();
+                    if path == target {
+                        if let Some(parent) = self.dest.parent() {
+                            std::fs::create_dir_all(parent)?;
+                        }
+                        entry.unpack(&self.dest)?;
+                        std::fs::remove_file(&self.src)?;
+                        return Ok(());
+                    }
+                }
+                Err(anyhow::anyhow!(
+                    "binary.url: '{}' not found in archive",
+                    target
+                ))
+            }
+            _ => todo!("Zip — implemented in Task 6"),
         }
     }
 }
@@ -203,6 +226,40 @@ mod tests {
             dest: dest.clone(),
             file: Some(String::from("go/bin/go")),
             format: ArchiveFormat::TarGz,
+        };
+        atom.execute().unwrap();
+        assert!(dest.exists());
+        assert_eq!(std::fs::read(&dest).unwrap(), content);
+    }
+
+    fn make_tar_xz(dir: &std::path::Path, entry_name: &str, content: &[u8]) -> PathBuf {
+        use std::fs::File;
+        use xz2::write::XzEncoder;
+        let path = dir.join("test.tar.xz");
+        let file = File::create(&path).unwrap();
+        let enc = XzEncoder::new(file, 6);
+        let mut tar = tar::Builder::new(enc);
+        let mut header = tar::Header::new_gnu();
+        header.set_size(content.len() as u64);
+        header.set_mode(0o644);
+        header.set_cksum();
+        tar.append_data(&mut header, entry_name, content).unwrap();
+        let enc = tar.into_inner().unwrap();
+        enc.finish().unwrap();
+        path
+    }
+
+    #[test]
+    fn extract_tar_xz_extracts_named_file() {
+        let tmp = tempfile::tempdir().unwrap();
+        let content = b"vault binary content";
+        let src = make_tar_xz(tmp.path(), "vault", content);
+        let dest = tmp.path().join("vault");
+        let mut atom = BinaryExtract {
+            src,
+            dest: dest.clone(),
+            file: Some(String::from("vault")),
+            format: ArchiveFormat::TarXz,
         };
         atom.execute().unwrap();
         assert!(dest.exists());
