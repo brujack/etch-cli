@@ -560,6 +560,32 @@ mod tests {
     }
 
     #[test]
+    fn glob_double_star_preserves_structure() {
+        let tmp = tempfile::tempdir().unwrap();
+        let real_tmp = tmp.path().canonicalize().unwrap();
+        let top_dir = real_tmp.join("files").join("claude");
+        let sub_dir = top_dir.join("sub");
+        std::fs::create_dir_all(&sub_dir).unwrap();
+        std::fs::write(top_dir.join("top.txt"), b"top").unwrap();
+        std::fs::write(sub_dir.join("nested.txt"), b"nested").unwrap();
+
+        let manifest = Manifest {
+            root_dir: Some(real_tmp.clone()),
+            ..Default::default()
+        };
+        let contexts = build_contexts(&Config::default());
+        let dest = real_tmp.join("dest");
+        let action = FileLink {
+            glob: Some("claude/**/*".to_string()),
+            target: Some(dest.display().to_string()),
+            ..Default::default()
+        };
+        let steps = action.plan(&manifest, &contexts).unwrap();
+        // 2 files × 2 steps each = 4
+        assert_eq!(steps.len(), 4);
+    }
+
+    #[test]
     fn glob_matches_top_level_files() {
         let tmp = tempfile::tempdir().unwrap();
         let real_tmp = tmp.path().canonicalize().unwrap();
