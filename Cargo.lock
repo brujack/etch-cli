@@ -1377,6 +1377,8 @@ dependencies = [
  "walkdir",
  "which 8.0.2",
  "whoami",
+ "xz2",
+ "zip",
 ]
 
 [[package]]
