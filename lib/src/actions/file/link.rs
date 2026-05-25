@@ -192,6 +192,16 @@ impl FileAction for FileLink {
 
 impl Action for FileLink {
     fn summarize(&self) -> String {
+        if let Some(ref pattern) = self.glob {
+            return format!(
+                "Linking files matching {} to {}",
+                pattern,
+                self.target
+                    .clone()
+                    .or_else(|| self.to.clone())
+                    .unwrap_or_default()
+            );
+        }
         format!(
             "Linking file {} to {}",
             self.from.clone().unwrap_or(String::from("unknown")),
@@ -557,6 +567,24 @@ mod tests {
             ..Default::default()
         };
         assert!(action.plan(&manifest, &contexts).is_err());
+    }
+
+    #[test]
+    fn glob_summarize() {
+        let action = FileLink {
+            glob: Some("claude/*".to_string()),
+            target: Some("~/.claude".to_string()),
+            ..Default::default()
+        };
+        let summary = action.summarize();
+        assert!(
+            summary.contains("claude/*"),
+            "summary should include pattern"
+        );
+        assert!(
+            summary.contains("~/.claude"),
+            "summary should include target"
+        );
     }
 
     #[test]
