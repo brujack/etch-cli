@@ -41,6 +41,8 @@ which = "8.0"
 whoami = "2.1"
 tar = "0.4.44"
 flate2 = "1.1.9"
+xz2 = "0.1"
+zip = "2"
 file-owner = "0.1.2"
 gix = { version = "0.80.0", features = [
     "status",
