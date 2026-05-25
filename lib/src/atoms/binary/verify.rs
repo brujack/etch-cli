@@ -77,6 +77,11 @@ mod tests {
             msg.contains("0000000000000000000000000000000000000000000000000000000000000000"),
             "msg was: {msg}"
         );
+        // actual hash of b"hello" must also appear so both hashes are in the message
+        assert!(
+            msg.contains("2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"),
+            "msg was: {msg}"
+        );
     }
 
     #[test]
