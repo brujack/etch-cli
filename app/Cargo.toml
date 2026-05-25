@@ -42,6 +42,7 @@ gix = { version = "0.80.0", features = ["blocking-network-client", "blocking-htt
 
 [dev-dependencies]
 assert_cmd = "2.1"
+insta = { version = "1", features = ["filters"] }
 predicates = "3.1"
 tempfile = "3.26"
 

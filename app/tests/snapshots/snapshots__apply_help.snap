@@ -1,0 +1,13 @@
+---
+source: app/tests/snapshots.rs
+expression: "String::from_utf8_lossy(&output.stdout)"
+---
+Apply manifests
+
+Usage: etch apply [OPTIONS]
+
+Options:
+  -m, --manifests <MANIFESTS>  Run a subset of your manifests, comma separated list. This should be a list of manifest names. No paths
+      --dry-run                Performs a dry-run without changing the system
+  -l, --label <LABEL>          Define label selector
+  -h, --help                   Print help
