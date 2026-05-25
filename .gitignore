@@ -22,7 +22,6 @@ target/
 
 # Rust
 **/*.rs.bk
-Cargo.lock
 
 # git worktrees
 .worktrees/
