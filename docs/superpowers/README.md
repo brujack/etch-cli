@@ -43,19 +43,19 @@ Master status index for all specs and implementation plans in this directory.
 | 2026-05-24 | [cargo-semver-checks](plans/2026-05-24-cargo-semver-checks.md)                           | [spec](specs/2026-05-24-cargo-semver-checks-design.md)                                                                    | Done    |
 | 2026-05-24 | [insta-snapshot-testing](plans/2026-05-24-insta-snapshot-testing.md)                     | [spec](specs/2026-05-24-insta-snapshot-testing-design.md)                                                                 | Done    |
 | 2026-05-25 | [glob-file-link](plans/2026-05-25-glob-file-link.md)                                     | [spec](specs/2026-05-25-glob-file-link-design.md)                                                                         | Done    |
+| 2026-05-25 | [binary-url](plans/2026-05-25-binary-url.md)                                             | [spec](specs/2026-05-25-binary-url-design.md)                                                                             | Done    |
 
 ---
 
 ## Backlog
 
-| Feature                           | Notes                                                                                                                                                                                                                            |
-| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ntfy notification action          | Matches existing notification infra                                                                                                                                                                                              |
-| macOS defaults write ergonomics   | If etch-cli's current API is rough                                                                                                                                                                                               |
-| Binary install from arbitrary URL | Many tools (Go, Docker Compose, YQ, Vault, Nomad, Packer, Vagrant, Consul, Terraform) download from non-GitHub URLs (go.dev, releases.hashicorp.com, etc.); `binary` action is GitHub-only — needs URL + sha256 checksum support |
-| systemd service management        | Linux daemon installs in dotfiles use `systemctl enable --now`; no `service.enable`/`service.start`/`service.disable` action exists                                                                                              |
-| Git config management             | Dotfiles manages per-machine gitconfig variants (mac vs linux); etch-cli has `git.clone` but no `git.config` action for setting `user.name`, `user.email`, credential helpers, etc.                                              |
-| Mutation score threshold          | Move `cargo mutants` from monthly advisory to a CI gate with a minimum score                                                                                                                                                     |
+| Feature                         | Notes                                                                                                                                                                               |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ntfy notification action        | Matches existing notification infra                                                                                                                                                 |
+| macOS defaults write ergonomics | If etch-cli's current API is rough                                                                                                                                                  |
+| systemd service management      | Linux daemon installs in dotfiles use `systemctl enable --now`; no `service.enable`/`service.start`/`service.disable` action exists                                                 |
+| Git config management           | Dotfiles manages per-machine gitconfig variants (mac vs linux); etch-cli has `git.clone` but no `git.config` action for setting `user.name`, `user.email`, credential helpers, etc. |
+| Mutation score threshold        | Move `cargo mutants` from monthly advisory to a CI gate with a minimum score                                                                                                        |
 
 ---
 
