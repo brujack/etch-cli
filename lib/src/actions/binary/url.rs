@@ -243,4 +243,53 @@ mod tests {
         let msg = result.err().unwrap().to_string();
         assert!(msg.contains("'file' is required"), "msg was: {msg}");
     }
+
+    #[test]
+    fn deserialization_minimal() {
+        use crate::actions::Actions;
+        let yaml = r#"
+- action: binary.url
+  name: mytool
+  url: "https://example.com/mytool"
+  directory: /usr/local/bin
+"#;
+        let mut actions: Vec<Actions> = serde_yaml_ng::from_str(yaml).unwrap();
+        match actions.pop() {
+            Some(Actions::BinaryUrl(a)) => {
+                assert_eq!("mytool", a.action.name);
+                assert_eq!("https://example.com/mytool", a.action.url);
+                assert_eq!("/usr/local/bin", a.action.directory);
+                assert!(a.action.version.is_none());
+                assert!(a.action.file.is_none());
+                assert!(a.action.sha256.is_none());
+            }
+            _ => panic!("BinaryUrl didn't deserialize"),
+        }
+    }
+
+    #[test]
+    fn deserialization_full_with_alias() {
+        use crate::actions::Actions;
+        let yaml = r#"
+- action: bin.url
+  name: go
+  url: "https://go.dev/dl/go{{ version }}.linux-amd64.tar.gz"
+  directory: /usr/local/bin
+  version: "1.22.0"
+  file: go/bin/go
+  sha256: "abc123"
+  privileged: false
+"#;
+        let mut actions: Vec<Actions> = serde_yaml_ng::from_str(yaml).unwrap();
+        match actions.pop() {
+            Some(Actions::BinaryUrl(a)) => {
+                assert_eq!("go", a.action.name);
+                assert_eq!(Some(String::from("1.22.0")), a.action.version);
+                assert_eq!(Some(String::from("go/bin/go")), a.action.file);
+                assert_eq!(Some(String::from("abc123")), a.action.sha256);
+                assert_eq!(Some(false), a.action.privileged);
+            }
+            _ => panic!("bin.url alias didn't deserialize"),
+        }
+    }
 }
