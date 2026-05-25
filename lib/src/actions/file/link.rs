@@ -5,6 +5,7 @@ use crate::steps::initializers::FlowControl::Ensure;
 use crate::steps::Step;
 use crate::utilities;
 use crate::{actions::Action, contexts::Contexts};
+use glob::glob as glob_expand;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -19,6 +20,8 @@ pub struct FileLink {
 
     pub target: Option<String>,
     pub to: Option<String>,
+
+    pub glob: Option<String>,
 
     #[serde(default = "walk_dir_default")]
     pub walk_dir: bool,
@@ -189,6 +192,16 @@ impl FileAction for FileLink {
 
 impl Action for FileLink {
     fn summarize(&self) -> String {
+        if let Some(ref pattern) = self.glob {
+            return format!(
+                "Linking files matching {} to {}",
+                pattern,
+                self.target
+                    .clone()
+                    .or_else(|| self.to.clone())
+                    .unwrap_or_default()
+            );
+        }
         format!(
             "Linking file {} to {}",
             self.from.clone().unwrap_or(String::from("unknown")),
@@ -197,6 +210,68 @@ impl Action for FileLink {
     }
 
     fn plan(&self, manifest: &Manifest, contexts: &Contexts) -> anyhow::Result<Vec<Step>> {
+        if let Some(ref pattern) = self.glob {
+            if self.source.is_some() || self.from.is_some() {
+                return Err(anyhow::anyhow!(
+                    "file.link: 'glob' and 'source'/'from' are mutually exclusive"
+                ));
+            }
+
+            let glob_root = manifest
+                .root_dir
+                .clone()
+                .ok_or_else(|| anyhow::anyhow!("file.link: manifest has no root_dir"))?
+                .join("files");
+
+            let full_pattern = glob_root.join(pattern);
+            let full_pattern_str = full_pattern
+                .to_str()
+                .ok_or_else(|| anyhow::anyhow!("file.link: pattern contains invalid UTF-8"))?;
+
+            let matched: Vec<PathBuf> = glob_expand(full_pattern_str)?
+                .filter_map(|r| r.ok())
+                .filter(|p| p.is_file())
+                .collect();
+
+            if matched.is_empty() {
+                return Err(anyhow::anyhow!(
+                    "file.link: glob pattern '{}' matched no files in '{}'",
+                    pattern,
+                    glob_root.display()
+                ));
+            }
+
+            let target_base = PathBuf::from(self.target());
+            let privilege_provider = if self.config.privileged {
+                Some(
+                    utilities::get_privilege_provider(contexts)
+                        .unwrap_or_else(|| "sudo".to_string()),
+                )
+            } else {
+                None
+            };
+
+            let mut steps = Vec::new();
+            for matched_path in matched {
+                let relative = matched_path
+                    .strip_prefix(&glob_root)
+                    .map_err(|e| anyhow::anyhow!("file.link: strip_prefix failed: {}", e))?;
+                let link_target = target_base.join(relative);
+
+                if let Some(ref provider) = privilege_provider {
+                    steps.extend(FileLink::plan_privileged(
+                        matched_path,
+                        link_target,
+                        provider,
+                        false,
+                    ));
+                } else {
+                    steps.extend(FileLink::plan_no_walk(matched_path, link_target));
+                }
+            }
+            return Ok(steps);
+        }
+
         let from: PathBuf = self.resolve(manifest, self.source().as_str())?;
 
         let to = PathBuf::from(self.target());
@@ -448,5 +523,136 @@ mod tests {
 
         let steps = file_link_action.plan(&manifest, &contexts).unwrap();
         assert_eq!(steps.len(), number_of_files + 1);
+    }
+
+    #[test]
+    fn glob_no_match_returns_err() {
+        let tmp = tempfile::tempdir().unwrap();
+        let real_tmp = tmp.path().canonicalize().unwrap();
+        let files_dir = real_tmp.join("files");
+        std::fs::create_dir_all(&files_dir).unwrap();
+        // No files — pattern matches nothing
+
+        let manifest = Manifest {
+            root_dir: Some(real_tmp.clone()),
+            ..Default::default()
+        };
+        let contexts = build_contexts(&Config::default());
+        let action = FileLink {
+            glob: Some("*.txt".to_string()),
+            target: Some(real_tmp.join("dest").display().to_string()),
+            ..Default::default()
+        };
+        let result = action.plan(&manifest, &contexts);
+        assert!(result.is_err());
+        let err = result.err().unwrap();
+        assert!(
+            err.to_string().contains("matched no files"),
+            "error message should mention 'matched no files'"
+        );
+    }
+
+    #[test]
+    fn glob_and_source_both_set_returns_err() {
+        let tmp = tempfile::tempdir().unwrap();
+        let manifest = Manifest {
+            root_dir: Some(tmp.path().to_path_buf()),
+            ..Default::default()
+        };
+        let contexts = build_contexts(&Config::default());
+        let action = FileLink {
+            glob: Some("*.txt".to_string()),
+            source: Some("myfile.txt".to_string()),
+            target: Some("/tmp/dest".to_string()),
+            ..Default::default()
+        };
+        assert!(action.plan(&manifest, &contexts).is_err());
+    }
+
+    #[test]
+    fn glob_summarize() {
+        let action = FileLink {
+            glob: Some("claude/*".to_string()),
+            target: Some("~/.claude".to_string()),
+            ..Default::default()
+        };
+        let summary = action.summarize();
+        assert!(
+            summary.contains("claude/*"),
+            "summary should include pattern"
+        );
+        assert!(
+            summary.contains("~/.claude"),
+            "summary should include target"
+        );
+    }
+
+    #[test]
+    fn glob_double_star_preserves_structure() {
+        let tmp = tempfile::tempdir().unwrap();
+        let real_tmp = tmp.path().canonicalize().unwrap();
+        let top_dir = real_tmp.join("files").join("claude");
+        let sub_dir = top_dir.join("sub");
+        std::fs::create_dir_all(&sub_dir).unwrap();
+        std::fs::write(top_dir.join("top.txt"), b"top").unwrap();
+        std::fs::write(sub_dir.join("nested.txt"), b"nested").unwrap();
+
+        let manifest = Manifest {
+            root_dir: Some(real_tmp.clone()),
+            ..Default::default()
+        };
+        let contexts = build_contexts(&Config::default());
+        let dest = real_tmp.join("dest");
+        let action = FileLink {
+            glob: Some("claude/**/*".to_string()),
+            target: Some(dest.display().to_string()),
+            ..Default::default()
+        };
+        let steps = action.plan(&manifest, &contexts).unwrap();
+        // 2 files × 2 steps each = 4
+        assert_eq!(steps.len(), 4);
+    }
+
+    #[test]
+    fn glob_matches_top_level_files() {
+        let tmp = tempfile::tempdir().unwrap();
+        let real_tmp = tmp.path().canonicalize().unwrap();
+        let files_dir = real_tmp.join("files").join("claude");
+        std::fs::create_dir_all(&files_dir).unwrap();
+        std::fs::write(files_dir.join("a.txt"), b"a").unwrap();
+        std::fs::write(files_dir.join("b.txt"), b"b").unwrap();
+        std::fs::write(files_dir.join("c.txt"), b"c").unwrap();
+
+        let manifest = Manifest {
+            root_dir: Some(real_tmp.clone()),
+            ..Default::default()
+        };
+        let contexts = build_contexts(&Config::default());
+        let dest = real_tmp.join("dest");
+        let action = FileLink {
+            glob: Some("claude/*".to_string()),
+            target: Some(dest.display().to_string()),
+            ..Default::default()
+        };
+        let steps = action.plan(&manifest, &contexts).unwrap();
+        // 2 steps per file: DirCreate + Link
+        assert_eq!(steps.len(), 6);
+    }
+
+    #[test]
+    fn glob_deserialization() {
+        let yaml = r#"
+- action: file.link
+  glob: "claude/*"
+  target: /tmp/dest
+"#;
+        let mut actions: Vec<Actions> = serde_yaml_ng::from_str(yaml).unwrap();
+        match actions.pop() {
+            Some(Actions::FileLink(action)) => {
+                assert_eq!(action.action.glob, Some("claude/*".to_string()));
+                assert_eq!(action.action.target, Some("/tmp/dest".to_string()));
+            }
+            _ => panic!("FileLink with glob didn't deserialize"),
+        }
     }
 }
