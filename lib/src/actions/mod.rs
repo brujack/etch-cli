@@ -17,7 +17,7 @@ use crate::actions::macos::MacOSDefault;
 use crate::actions::mas::{MasInstall, MasUpgrade};
 use crate::{contexts::Contexts, manifests::Manifest, steps::Step};
 use anyhow::anyhow;
-use binary::BinaryGitHub;
+use binary::{BinaryGitHub, BinaryUrl};
 use brew::{BrewBundle, BrewCleanup, BrewUpgrade};
 use command::run::RunCommand;
 use directory::{DirectoryCopy, DirectoryCreate, DirectoryRemove};
@@ -159,6 +159,9 @@ pub enum Actions {
     )]
     BinaryGitHub(ConditionalVariantAction<BinaryGitHub>),
 
+    #[serde(rename = "binary.url", alias = "bin.url")]
+    BinaryUrl(ConditionalVariantAction<BinaryUrl>),
+
     #[serde(rename = "brew.bundle")]
     BrewBundle(ConditionalVariantAction<BrewBundle>),
 
@@ -203,6 +206,7 @@ impl Actions {
     pub fn inner_ref(&self) -> &dyn Action {
         match self {
             Actions::BinaryGitHub(a) => a,
+            Actions::BinaryUrl(a) => a,
             Actions::BrewBundle(a) => a,
             Actions::BrewCleanup(a) => a,
             Actions::BrewUpgrade(a) => a,
@@ -236,6 +240,7 @@ impl Deref for Actions {
     fn deref(&self) -> &Self::Target {
         match self {
             Actions::BinaryGitHub(a) => a,
+            Actions::BinaryUrl(a) => a,
             Actions::BrewBundle(a) => a,
             Actions::BrewCleanup(a) => a,
             Actions::BrewUpgrade(a) => a,
@@ -279,6 +284,7 @@ impl Display for Actions {
             Actions::FileUnarchive(_) => "file.unarchive",
             Actions::DirectoryRemove(_) => "directory.remove",
             Actions::BinaryGitHub(_) => "github.binary",
+            Actions::BinaryUrl(_) => "url.binary",
             Actions::BrewBundle(_) => "brew.bundle",
             Actions::BrewCleanup(_) => "brew.cleanup",
             Actions::BrewUpgrade(_) => "brew.upgrade",
