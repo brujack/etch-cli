@@ -1,9 +1,13 @@
 use crate::actions::Action;
+use crate::atoms::binary::{ArchiveFormat, BinaryExtract, BinaryVerify};
+use crate::atoms::file::Chmod;
+use crate::atoms::http::Download;
 use crate::contexts::{to_tera, Contexts};
 use crate::manifests::Manifest;
 use crate::steps::Step;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 use tera::Tera;
 
 #[derive(Clone, Debug, Default, JsonSchema, PartialEq, Eq, Serialize, Deserialize)]
@@ -18,8 +22,6 @@ pub struct BinaryUrl {
 }
 
 impl BinaryUrl {
-    // Used by plan() in Task 8; allow until then.
-    #[allow(dead_code)]
     fn render_url(&self, contexts: &Contexts) -> anyhow::Result<String> {
         let mut tera = Tera::default();
         let mut ctx = to_tera(contexts);
@@ -36,8 +38,65 @@ impl Action for BinaryUrl {
         format!("Downloading binary from {} to {}", self.url, self.directory)
     }
 
-    fn plan(&self, _manifest: &Manifest, _contexts: &Contexts) -> anyhow::Result<Vec<Step>> {
-        todo!()
+    fn plan(&self, _manifest: &Manifest, contexts: &Contexts) -> anyhow::Result<Vec<Step>> {
+        let dest = PathBuf::from(format!("{}/{}", self.directory, self.name));
+        if dest.exists() {
+            return Ok(vec![]);
+        }
+
+        let url = self.render_url(contexts)?;
+        let format = ArchiveFormat::detect(&url);
+
+        if !matches!(format, ArchiveFormat::Raw) && self.file.is_none() {
+            return Err(anyhow::anyhow!(
+                "binary.url: 'file' is required for archive URLs (got: {})",
+                url
+            ));
+        }
+
+        let temp_path = PathBuf::from(format!("{}/{}.etch-tmp", self.directory, self.name));
+
+        let mut steps: Vec<Step> = vec![Step {
+            atom: Box::new(Download {
+                url: url.clone(),
+                to: temp_path.clone(),
+            }),
+            initializers: vec![],
+            finalizers: vec![],
+        }];
+
+        if let Some(ref expected) = self.sha256 {
+            steps.push(Step {
+                atom: Box::new(BinaryVerify {
+                    path: temp_path.clone(),
+                    expected: expected.clone(),
+                }),
+                initializers: vec![],
+                finalizers: vec![],
+            });
+        }
+
+        steps.push(Step {
+            atom: Box::new(BinaryExtract {
+                src: temp_path,
+                dest: dest.clone(),
+                file: self.file.clone(),
+                format,
+            }),
+            initializers: vec![],
+            finalizers: vec![],
+        });
+
+        steps.push(Step {
+            atom: Box::new(Chmod {
+                path: dest,
+                mode: 0o755,
+            }),
+            initializers: vec![],
+            finalizers: vec![],
+        });
+
+        Ok(steps)
     }
 }
 
@@ -45,6 +104,7 @@ impl Action for BinaryUrl {
 mod tests {
     use super::*;
     use crate::contexts::Contexts;
+    use crate::manifests::Manifest;
 
     #[test]
     fn render_url_no_template() {
@@ -86,5 +146,101 @@ mod tests {
         let s = action.summarize();
         assert!(s.contains("example.com"), "summarize was: {s}");
         assert!(s.contains("/usr/local/bin"), "summarize was: {s}");
+    }
+
+    #[test]
+    fn plan_skips_if_binary_exists() {
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::write(tmp.path().join("mytool"), b"existing").unwrap();
+        let action = BinaryUrl {
+            name: String::from("mytool"),
+            url: String::from("https://example.com/mytool"),
+            directory: tmp.path().display().to_string(),
+            ..Default::default()
+        };
+        let steps = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+        assert_eq!(0, steps.len());
+    }
+
+    #[test]
+    fn plan_raw_binary_produces_three_steps() {
+        let tmp = tempfile::tempdir().unwrap();
+        let action = BinaryUrl {
+            name: String::from("mytool"),
+            url: String::from("https://example.com/mytool"),
+            directory: tmp.path().display().to_string(),
+            ..Default::default()
+        };
+        let steps = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+        assert_eq!(3, steps.len()); // Download + BinaryExtract(Raw) + Chmod
+    }
+
+    #[test]
+    fn plan_raw_binary_with_sha256_produces_four_steps() {
+        let tmp = tempfile::tempdir().unwrap();
+        let action = BinaryUrl {
+            name: String::from("mytool"),
+            url: String::from("https://example.com/mytool"),
+            directory: tmp.path().display().to_string(),
+            sha256: Some(String::from("abc123")),
+            ..Default::default()
+        };
+        let steps = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+        assert_eq!(4, steps.len()); // Download + BinaryVerify + BinaryExtract(Raw) + Chmod
+    }
+
+    #[test]
+    fn plan_archive_produces_three_steps() {
+        let tmp = tempfile::tempdir().unwrap();
+        let action = BinaryUrl {
+            name: String::from("go"),
+            url: String::from("https://go.dev/dl/go1.22.0.linux-amd64.tar.gz"),
+            directory: tmp.path().display().to_string(),
+            file: Some(String::from("go/bin/go")),
+            ..Default::default()
+        };
+        let steps = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+        assert_eq!(3, steps.len()); // Download + BinaryExtract + Chmod
+    }
+
+    #[test]
+    fn plan_archive_with_sha256_produces_four_steps() {
+        let tmp = tempfile::tempdir().unwrap();
+        let action = BinaryUrl {
+            name: String::from("go"),
+            url: String::from("https://go.dev/dl/go1.22.0.linux-amd64.tar.gz"),
+            directory: tmp.path().display().to_string(),
+            file: Some(String::from("go/bin/go")),
+            sha256: Some(String::from("abc123")),
+            ..Default::default()
+        };
+        let steps = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+        assert_eq!(4, steps.len()); // Download + BinaryVerify + BinaryExtract + Chmod
+    }
+
+    #[test]
+    fn plan_archive_without_file_returns_err() {
+        let tmp = tempfile::tempdir().unwrap();
+        let action = BinaryUrl {
+            name: String::from("go"),
+            url: String::from("https://go.dev/dl/go1.22.0.linux-amd64.tar.gz"),
+            directory: tmp.path().display().to_string(),
+            file: None,
+            ..Default::default()
+        };
+        let result = action.plan(&Manifest::default(), &Contexts::default());
+        assert!(result.is_err());
+        let msg = result.err().unwrap().to_string();
+        assert!(msg.contains("'file' is required"), "msg was: {msg}");
     }
 }
