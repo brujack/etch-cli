@@ -451,4 +451,21 @@ mod tests {
         let steps = file_link_action.plan(&manifest, &contexts).unwrap();
         assert_eq!(steps.len(), number_of_files + 1);
     }
+
+    #[test]
+    fn glob_deserialization() {
+        let yaml = r#"
+- action: file.link
+  glob: "claude/*"
+  target: /tmp/dest
+"#;
+        let mut actions: Vec<Actions> = serde_yaml_ng::from_str(yaml).unwrap();
+        match actions.pop() {
+            Some(Actions::FileLink(action)) => {
+                assert_eq!(action.action.glob, Some("claude/*".to_string()));
+                assert_eq!(action.action.target, Some("/tmp/dest".to_string()));
+            }
+            _ => panic!("FileLink with glob didn't deserialize"),
+        }
+    }
 }
