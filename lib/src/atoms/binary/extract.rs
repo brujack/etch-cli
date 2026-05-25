@@ -1,5 +1,8 @@
 use crate::atoms::{Atom, Outcome};
+use flate2::read::GzDecoder;
+use std::fs::File;
 use std::path::PathBuf;
+use tar::Archive;
 
 pub enum ArchiveFormat {
     Raw,
@@ -51,7 +54,29 @@ impl Atom for BinaryExtract {
                 std::fs::rename(&self.src, &self.dest)?;
                 Ok(())
             }
-            _ => todo!("archive formats — implemented in Tasks 4–6"),
+            ArchiveFormat::TarGz => {
+                let file = File::open(&self.src)?;
+                let gz = GzDecoder::new(file);
+                let mut archive = Archive::new(gz);
+                let target = self.file.as_deref().unwrap();
+                for entry in archive.entries()? {
+                    let mut entry = entry?;
+                    let path = entry.path()?.to_string_lossy().into_owned();
+                    if path == target {
+                        if let Some(parent) = self.dest.parent() {
+                            std::fs::create_dir_all(parent)?;
+                        }
+                        entry.unpack(&self.dest)?;
+                        std::fs::remove_file(&self.src)?;
+                        return Ok(());
+                    }
+                }
+                Err(anyhow::anyhow!(
+                    "binary.url: '{}' not found in archive",
+                    target
+                ))
+            }
+            _ => todo!("TarXz and Zip — implemented in Tasks 5–6"),
         }
     }
 }
@@ -147,6 +172,41 @@ mod tests {
             format: ArchiveFormat::Raw,
         };
         assert!(format!("{atom}").contains("tool"));
+    }
+
+    fn make_tar_gz(dir: &std::path::Path, entry_name: &str, content: &[u8]) -> PathBuf {
+        use flate2::write::GzEncoder;
+        use flate2::Compression;
+        use std::fs::File;
+        let path = dir.join("test.tar.gz");
+        let file = File::create(&path).unwrap();
+        let enc = GzEncoder::new(file, Compression::default());
+        let mut tar = tar::Builder::new(enc);
+        let mut header = tar::Header::new_gnu();
+        header.set_size(content.len() as u64);
+        header.set_mode(0o644);
+        header.set_cksum();
+        tar.append_data(&mut header, entry_name, content).unwrap();
+        let enc = tar.into_inner().unwrap();
+        enc.finish().unwrap();
+        path
+    }
+
+    #[test]
+    fn extract_tar_gz_extracts_named_file() {
+        let tmp = tempfile::tempdir().unwrap();
+        let content = b"go binary content";
+        let src = make_tar_gz(tmp.path(), "go/bin/go", content);
+        let dest = tmp.path().join("go");
+        let mut atom = BinaryExtract {
+            src,
+            dest: dest.clone(),
+            file: Some(String::from("go/bin/go")),
+            format: ArchiveFormat::TarGz,
+        };
+        atom.execute().unwrap();
+        assert!(dest.exists());
+        assert_eq!(std::fs::read(&dest).unwrap(), content);
     }
 
     #[test]
