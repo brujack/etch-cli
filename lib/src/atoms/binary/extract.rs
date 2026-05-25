@@ -53,6 +53,9 @@ impl Atom for BinaryExtract {
     fn execute(&mut self) -> anyhow::Result<()> {
         match self.format {
             ArchiveFormat::Raw => {
+                if let Some(parent) = self.dest.parent() {
+                    std::fs::create_dir_all(parent)?;
+                }
                 std::fs::rename(&self.src, &self.dest)?;
                 Ok(())
             }
@@ -60,7 +63,9 @@ impl Atom for BinaryExtract {
                 let file = File::open(&self.src)?;
                 let gz = GzDecoder::new(file);
                 let mut archive = Archive::new(gz);
-                let target = self.file.as_deref().unwrap();
+                let target = self.file.as_deref().ok_or_else(|| {
+                    anyhow::anyhow!("binary.url: 'file' is required for archive extraction")
+                })?;
                 for entry in archive.entries()? {
                     let mut entry = entry?;
                     let path = entry.path()?.to_string_lossy().into_owned();
@@ -82,7 +87,9 @@ impl Atom for BinaryExtract {
                 let file = File::open(&self.src)?;
                 let xz = XzDecoder::new(file);
                 let mut archive = Archive::new(xz);
-                let target = self.file.as_deref().unwrap();
+                let target = self.file.as_deref().ok_or_else(|| {
+                    anyhow::anyhow!("binary.url: 'file' is required for archive extraction")
+                })?;
                 for entry in archive.entries()? {
                     let mut entry = entry?;
                     let path = entry.path()?.to_string_lossy().into_owned();
@@ -103,7 +110,9 @@ impl Atom for BinaryExtract {
             ArchiveFormat::Zip => {
                 let file = File::open(&self.src)?;
                 let mut archive = ZipArchive::new(file)?;
-                let target = self.file.as_deref().unwrap();
+                let target = self.file.as_deref().ok_or_else(|| {
+                    anyhow::anyhow!("binary.url: 'file' is required for archive extraction")
+                })?;
                 let mut entry = archive.by_name(target).map_err(|_| {
                     anyhow::anyhow!("binary.url: '{}' not found in archive", target)
                 })?;
