@@ -81,8 +81,11 @@ See the [comtrya documentation](https://comtrya.dev) for the full action catalog
 make test     # lint + test
 make lint     # cargo clippy -D warnings
 make build    # cargo build --release
+make semver   # check for API-breaking changes vs origin/main (advisory)
 make install-hooks  # install pre-commit and pre-push hooks (run once per checkout)
 ```
+
+`make test` also runs 5 `insta` snapshot tests (`app/tests/snapshots.rs`) that lock the exact stdout format of `etch -h`, `etch apply --help`, `etch version`, and `etch apply --dry-run`. Any accidental format change fails the test. To update snapshots intentionally: `INSTA_UPDATE=new cargo test --test snapshots`, then `cargo insta accept`, then commit the updated `.snap` files.
 
 Prerequisites:
 
