@@ -298,4 +298,36 @@ mod tests {
         assert!(display.contains("test@example.com"), "display: {display}");
         assert!(display.contains("privileged=false"), "display: {display}");
     }
+
+    #[test]
+    fn plan_local_set_includes_dash_c_and_local_flag() {
+        let action = GitConfig {
+            scope: GitConfigScope::Local,
+            directory: Some("/tmp/repo".into()),
+            key: Some("user.email".into()),
+            value: Some("local@example.com".into()),
+            ..Default::default()
+        };
+        let steps = plan(action).unwrap();
+        assert_eq!(steps.len(), 1);
+        let display = steps[0].atom.to_string();
+        assert!(display.contains("-C"), "display: {display}");
+        assert!(display.contains("/tmp/repo"), "display: {display}");
+        assert!(display.contains("--local"), "display: {display}");
+    }
+
+    #[test]
+    fn plan_system_set_is_privileged() {
+        let action = GitConfig {
+            scope: GitConfigScope::System,
+            key: Some("credential.helper".into()),
+            value: Some("osxkeychain".into()),
+            ..Default::default()
+        };
+        let steps = plan(action).unwrap();
+        assert_eq!(steps.len(), 1);
+        let display = steps[0].atom.to_string();
+        assert!(display.contains("privileged=true"), "display: {display}");
+        assert!(display.contains("--system"), "display: {display}");
+    }
 }
