@@ -27,7 +27,7 @@ use file::copy::FileCopy;
 use file::download::FileDownload;
 use file::remove::FileRemove;
 use file::unarchive::FileUnarchive;
-use git::GitClone;
+use git::{GitClone, GitConfig};
 use group::add::GroupAdd;
 use package::{PackageInstall, PackageRepository};
 use plugin::Plugin;
@@ -177,6 +177,9 @@ pub enum Actions {
     #[serde(rename = "git.clone")]
     GitClone(ConditionalVariantAction<GitClone>),
 
+    #[serde(rename = "git.config", alias = "git.cfg")]
+    GitConfig(ConditionalVariantAction<GitConfig>),
+
     #[serde(rename = "group.add")]
     GroupAdd(ConditionalVariantAction<GroupAdd>),
 
@@ -220,6 +223,7 @@ impl Actions {
             Actions::FileLink(a) => a,
             Actions::FileUnarchive(a) => a,
             Actions::GitClone(a) => a,
+            Actions::GitConfig(a) => a,
             Actions::GroupAdd(a) => a,
             Actions::MacOSDefault(a) => a,
             Actions::MasInstall(a) => a,
@@ -254,6 +258,7 @@ impl Deref for Actions {
             Actions::FileLink(a) => a,
             Actions::FileUnarchive(a) => a,
             Actions::GitClone(a) => a,
+            Actions::GitConfig(a) => a,
             Actions::GroupAdd(a) => a,
             Actions::MacOSDefault(a) => a,
             Actions::MasInstall(a) => a,
@@ -289,6 +294,7 @@ impl Display for Actions {
             Actions::BrewCleanup(_) => "brew.cleanup",
             Actions::BrewUpgrade(_) => "brew.upgrade",
             Actions::GitClone(_) => "git.clone",
+            Actions::GitConfig(_) => "git.config",
             Actions::GroupAdd(_) => "group.add",
             Actions::MacOSDefault(_) => "macos.default",
             Actions::MasInstall(_) => "mas.install",
@@ -429,9 +435,13 @@ actions:
   - action: brew.upgrade
   - action: brew.cleanup
   - action: mas.upgrade
+  - action: git.config
+    scope: global
+    key: user.email
+    value: test@example.com
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(20, manifest.actions.len());
+        assert_eq!(21, manifest.actions.len());
     }
 
     #[test]
@@ -724,9 +734,13 @@ actions:
   - action: brew.upgrade
   - action: brew.cleanup
   - action: mas.upgrade
+  - action: git.config
+    scope: global
+    key: user.email
+    value: test@example.com
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(24, manifest.actions.len());
+        assert_eq!(25, manifest.actions.len());
 
         for action in &manifest.actions {
             // Exercise inner_ref() for every variant
@@ -821,5 +835,32 @@ actions:
         let steps = manifest.actions[0].plan(&manifest, &contexts).unwrap();
         // No variant matched, base action runs (1 step)
         assert_eq!(steps.len(), 1);
+    }
+
+    #[test]
+    fn git_config_alias_deserializes() {
+        let yaml = r#"
+actions:
+  - action: git.cfg
+    scope: global
+    key: user.name
+    value: Bruce
+"#;
+        let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
+        assert_eq!(1, manifest.actions.len());
+        assert!(matches!(manifest.actions[0], Actions::GitConfig(_)));
+    }
+
+    #[test]
+    fn git_config_display_name() {
+        let yaml = r#"
+actions:
+  - action: git.config
+    scope: global
+    key: user.email
+    value: foo@bar.com
+"#;
+        let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
+        assert_eq!(format!("{}", manifest.actions[0]), "git.config");
     }
 }

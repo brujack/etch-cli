@@ -9,7 +9,6 @@ use indexmap::IndexMap;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-#[allow(dead_code)]
 #[derive(JsonSchema, Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum GitConfigScope {
@@ -19,7 +18,6 @@ pub enum GitConfigScope {
     System,
 }
 
-#[allow(dead_code)]
 #[derive(JsonSchema, Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GitConfig {
     pub scope: GitConfigScope,
@@ -172,82 +170,81 @@ mod tests {
         action.plan(&Manifest::default(), &Contexts::default())
     }
 
-    // TODO: uncomment after registration in Task 9
-    // #[test]
-    // fn deserialize_single_key_value() {
-    //     let yaml = r#"
-    // - action: git.config
-    //   scope: global
-    //   key: user.email
-    //   value: test@example.com
-    // "#;
-    //     let mut actions: Vec<crate::actions::Actions> = serde_yaml_ng::from_str(yaml).unwrap();
-    //     match actions.pop() {
-    //         Some(crate::actions::Actions::GitConfig(a)) => {
-    //             assert_eq!(a.action.key, Some("user.email".into()));
-    //             assert_eq!(a.action.value, Some("test@example.com".into()));
-    //             assert!(matches!(a.action.scope, GitConfigScope::Global));
-    //         }
-    //         _ => panic!("wrong variant"),
-    //     }
-    // }
+    #[test]
+    fn deserialize_single_key_value() {
+        let yaml = r#"
+- action: git.config
+  scope: global
+  key: user.email
+  value: test@example.com
+"#;
+        let mut actions: Vec<crate::actions::Actions> = serde_yaml_ng::from_str(yaml).unwrap();
+        match actions.pop() {
+            Some(crate::actions::Actions::GitConfig(a)) => {
+                assert_eq!(a.action.key, Some("user.email".into()));
+                assert_eq!(a.action.value, Some("test@example.com".into()));
+                assert!(matches!(a.action.scope, GitConfigScope::Global));
+            }
+            _ => panic!("wrong variant"),
+        }
+    }
 
-    // #[test]
-    // fn deserialize_unset() {
-    //     let yaml = r#"
-    // - action: git.config
-    //   scope: global
-    //   key: credential.helper
-    //   unset: true
-    // "#;
-    //     let mut actions: Vec<crate::actions::Actions> = serde_yaml_ng::from_str(yaml).unwrap();
-    //     match actions.pop() {
-    //         Some(crate::actions::Actions::GitConfig(a)) => {
-    //             assert_eq!(a.action.key, Some("credential.helper".into()));
-    //             assert_eq!(a.action.unset, Some(true));
-    //         }
-    //         _ => panic!("wrong variant"),
-    //     }
-    // }
+    #[test]
+    fn deserialize_unset() {
+        let yaml = r#"
+- action: git.config
+  scope: global
+  key: credential.helper
+  unset: true
+"#;
+        let mut actions: Vec<crate::actions::Actions> = serde_yaml_ng::from_str(yaml).unwrap();
+        match actions.pop() {
+            Some(crate::actions::Actions::GitConfig(a)) => {
+                assert_eq!(a.action.key, Some("credential.helper".into()));
+                assert_eq!(a.action.unset, Some(true));
+            }
+            _ => panic!("wrong variant"),
+        }
+    }
 
-    // #[test]
-    // fn deserialize_settings_map() {
-    //     let yaml = r#"
-    // - action: git.config
-    //   scope: global
-    //   settings:
-    //     user.name: Bruce
-    //     user.email: bruce@example.com
-    // "#;
-    //     let mut actions: Vec<crate::actions::Actions> = serde_yaml_ng::from_str(yaml).unwrap();
-    //     match actions.pop() {
-    //         Some(crate::actions::Actions::GitConfig(a)) => {
-    //             let s = a.action.settings.unwrap();
-    //             assert_eq!(s.len(), 2);
-    //             assert_eq!(s["user.name"], "Bruce");
-    //         }
-    //         _ => panic!("wrong variant"),
-    //     }
-    // }
+    #[test]
+    fn deserialize_settings_map() {
+        let yaml = r#"
+- action: git.config
+  scope: global
+  settings:
+    user.name: Bruce
+    user.email: bruce@example.com
+"#;
+        let mut actions: Vec<crate::actions::Actions> = serde_yaml_ng::from_str(yaml).unwrap();
+        match actions.pop() {
+            Some(crate::actions::Actions::GitConfig(a)) => {
+                let s = a.action.settings.unwrap();
+                assert_eq!(s.len(), 2);
+                assert_eq!(s["user.name"], "Bruce");
+            }
+            _ => panic!("wrong variant"),
+        }
+    }
 
-    // #[test]
-    // fn deserialize_local_scope() {
-    //     let yaml = r#"
-    // - action: git.config
-    //   scope: local
-    //   directory: /tmp/repo
-    //   key: user.email
-    //   value: local@example.com
-    // "#;
-    //     let mut actions: Vec<crate::actions::Actions> = serde_yaml_ng::from_str(yaml).unwrap();
-    //     match actions.pop() {
-    //         Some(crate::actions::Actions::GitConfig(a)) => {
-    //             assert!(matches!(a.action.scope, GitConfigScope::Local));
-    //             assert_eq!(a.action.directory, Some("/tmp/repo".into()));
-    //         }
-    //         _ => panic!("wrong variant"),
-    //     }
-    // }
+    #[test]
+    fn deserialize_local_scope() {
+        let yaml = r#"
+- action: git.config
+  scope: local
+  directory: /tmp/repo
+  key: user.email
+  value: local@example.com
+"#;
+        let mut actions: Vec<crate::actions::Actions> = serde_yaml_ng::from_str(yaml).unwrap();
+        match actions.pop() {
+            Some(crate::actions::Actions::GitConfig(a)) => {
+                assert!(matches!(a.action.scope, GitConfigScope::Local));
+                assert_eq!(a.action.directory, Some("/tmp/repo".into()));
+            }
+            _ => panic!("wrong variant"),
+        }
+    }
 
     #[test]
     fn error_key_and_settings_both_present() {
