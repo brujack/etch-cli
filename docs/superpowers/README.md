@@ -44,7 +44,7 @@ Master status index for all specs and implementation plans in this directory.
 | 2026-05-24 | [insta-snapshot-testing](plans/2026-05-24-insta-snapshot-testing.md)                     | [spec](specs/2026-05-24-insta-snapshot-testing-design.md)                                                                 | Done    |
 | 2026-05-25 | [glob-file-link](plans/2026-05-25-glob-file-link.md)                                     | [spec](specs/2026-05-25-glob-file-link-design.md)                                                                         | Done    |
 | 2026-05-25 | [binary-url](plans/2026-05-25-binary-url.md)                                             | [spec](specs/2026-05-25-binary-url-design.md)                                                                             | Done    |
-| 2026-05-25 | —                                                                                        | [git-config](specs/2026-05-25-git-config-design.md)                                                                       | Pending |
+| 2026-05-25 | [git-config](plans/2026-05-25-git-config.md)                                             | [git-config](specs/2026-05-25-git-config-design.md)                                                                       | Pending |
 
 ---
 
