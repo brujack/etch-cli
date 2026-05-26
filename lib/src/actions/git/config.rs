@@ -1,5 +1,6 @@
 use crate::actions::Action;
 use crate::atoms::command::Exec;
+use crate::atoms::git::GitConfigUnset;
 use crate::contexts::Contexts;
 use crate::manifests::Manifest;
 use crate::steps::Step;
@@ -117,7 +118,22 @@ impl Action for GitConfig {
             }]);
         }
 
-        todo!("unset and settings — implemented in Tasks 7–8")
+        // Single key unset
+        if self.unset == Some(true) {
+            let key = self.key.as_ref().unwrap().clone();
+            return Ok(vec![Step {
+                atom: Box::new(GitConfigUnset {
+                    config_args,
+                    key,
+                    privileged,
+                    privilege_provider,
+                }),
+                initializers: vec![],
+                finalizers: vec![],
+            }]);
+        }
+
+        todo!("settings map — implemented in Task 8")
     }
 }
 
@@ -329,5 +345,36 @@ mod tests {
         let display = steps[0].atom.to_string();
         assert!(display.contains("privileged=true"), "display: {display}");
         assert!(display.contains("--system"), "display: {display}");
+    }
+
+    #[test]
+    fn plan_unset_emits_git_config_unset_step() {
+        let action = GitConfig {
+            scope: GitConfigScope::Global,
+            key: Some("credential.helper".into()),
+            unset: Some(true),
+            ..Default::default()
+        };
+        let steps = plan(action).unwrap();
+        assert_eq!(steps.len(), 1);
+        let display = steps[0].atom.to_string();
+        assert!(display.contains("GitConfigUnset"), "display: {display}");
+        assert!(display.contains("credential.helper"), "display: {display}");
+    }
+
+    #[test]
+    fn plan_local_unset_includes_dir_in_config_args() {
+        let action = GitConfig {
+            scope: GitConfigScope::Local,
+            directory: Some("/tmp/repo".into()),
+            key: Some("user.email".into()),
+            unset: Some(true),
+            ..Default::default()
+        };
+        let steps = plan(action).unwrap();
+        assert_eq!(steps.len(), 1);
+        let display = steps[0].atom.to_string();
+        assert!(display.contains("GitConfigUnset"), "display: {display}");
+        assert!(display.contains("user.email"), "display: {display}");
     }
 }
