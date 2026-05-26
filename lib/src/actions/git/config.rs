@@ -133,7 +133,32 @@ impl Action for GitConfig {
             }]);
         }
 
-        todo!("settings map — implemented in Task 8")
+        // Bulk settings map
+        if let Some(ref settings) = self.settings {
+            let steps = settings
+                .iter()
+                .map(|(key, value)| {
+                    let mut args = config_args.clone();
+                    args.push(key.clone());
+                    args.push(value.clone());
+                    Step {
+                        atom: Box::new(Exec {
+                            command: "git".into(),
+                            arguments: args,
+                            privileged,
+                            privilege_provider: privilege_provider.clone(),
+                            ..Default::default()
+                        }),
+                        initializers: vec![],
+                        finalizers: vec![],
+                    }
+                })
+                .collect();
+            return Ok(steps);
+        }
+
+        // Unreachable: validation ensures one of key/settings is present.
+        unreachable!("git.config: unhandled field combination (validation missed a case)")
     }
 }
 
@@ -376,5 +401,68 @@ mod tests {
         let display = steps[0].atom.to_string();
         assert!(display.contains("GitConfigUnset"), "display: {display}");
         assert!(display.contains("user.email"), "display: {display}");
+    }
+
+    #[test]
+    fn plan_settings_map_emits_one_step_per_key() {
+        let mut settings = IndexMap::new();
+        settings.insert("user.name".into(), "Bruce".into());
+        settings.insert("user.email".into(), "bruce@example.com".into());
+        settings.insert("core.autocrlf".into(), "false".into());
+        let action = GitConfig {
+            scope: GitConfigScope::Global,
+            settings: Some(settings),
+            ..Default::default()
+        };
+        let steps = plan(action).unwrap();
+        assert_eq!(steps.len(), 3);
+        // Verify insertion order preserved — user.name first
+        assert!(steps[0].atom.to_string().contains("user.name"));
+        assert!(steps[1].atom.to_string().contains("user.email"));
+        assert!(steps[2].atom.to_string().contains("core.autocrlf"));
+    }
+
+    #[test]
+    fn summarize_single_set() {
+        let action = GitConfig {
+            scope: GitConfigScope::Global,
+            key: Some("user.email".into()),
+            value: Some("foo@bar.com".into()),
+            ..Default::default()
+        };
+        let s = action.summarize();
+        assert!(s.contains("global"), "summary: {s}");
+        assert!(s.contains("user.email"), "summary: {s}");
+        assert!(s.contains("foo@bar.com"), "summary: {s}");
+    }
+
+    #[test]
+    fn summarize_unset() {
+        let action = GitConfig {
+            scope: GitConfigScope::System,
+            key: Some("credential.helper".into()),
+            unset: Some(true),
+            ..Default::default()
+        };
+        let s = action.summarize();
+        assert!(s.contains("Unset"), "summary: {s}");
+        assert!(s.contains("system"), "summary: {s}");
+        assert!(s.contains("credential.helper"), "summary: {s}");
+    }
+
+    #[test]
+    fn summarize_settings_map() {
+        let mut settings = IndexMap::new();
+        settings.insert("user.name".into(), "Bruce".into());
+        settings.insert("user.email".into(), "bruce@example.com".into());
+        let action = GitConfig {
+            scope: GitConfigScope::Local,
+            directory: Some("/tmp/repo".into()),
+            settings: Some(settings),
+            ..Default::default()
+        };
+        let s = action.summarize();
+        assert!(s.contains("2"), "summary: {s}");
+        assert!(s.contains("local"), "summary: {s}");
     }
 }
