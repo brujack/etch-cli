@@ -1,0 +1,34 @@
+actions:
+  # Install a binary from a direct URL (no archive).
+  # directory: where to place the binary.
+  - action: binary.url
+    name: etch
+    url: https://github.com/brujack/etch-cli/releases/download/v0.9.3/etch-aarch64-apple-darwin
+    directory: "{{ user.home_dir }}/.local/bin"
+
+  # version: inject {{ version }} into the URL template.
+  # Useful when the version appears in both the filename and the path.
+  - action: binary.url
+    name: kubectl
+    version: "1.30.0"
+    url: "https://dl.k8s.io/release/v{{ version }}/bin/darwin/arm64/kubectl"
+    directory: /usr/local/bin
+
+  # file: path inside an archive to extract.
+  # Required when the URL points to a .tar.gz, .zip, etc.
+  - action: binary.url
+    name: helm
+    version: "3.15.0"
+    url: "https://get.helm.sh/helm-v{{ version }}-darwin-arm64.tar.gz"
+    file: darwin-arm64/helm
+    directory: /usr/local/bin
+
+  # sha256: verify the download before installing.
+  # Recommended for any binary that will be executed with elevated privileges.
+  - action: binary.url
+    name: terraform
+    version: "1.9.0"
+    url: "https://releases.hashicorp.com/terraform/{{ version }}/terraform_{{ version }}_darwin_arm64.zip"
+    file: terraform
+    sha256: "abc123def456..."
+    directory: /usr/local/bin

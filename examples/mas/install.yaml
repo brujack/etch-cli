@@ -1,0 +1,22 @@
+actions:
+  # Install a Mac App Store app by numeric App Store ID.
+  # name is for human readability only — etch uses id for the actual install.
+  # Requires the `mas` CLI: brew install mas
+  # Always pair with where: 'os.name == "macos"' since mas is macOS-only.
+  - action: mas.install
+    name: "1Blocker- Ad Blocker & Privacy"
+    id: 1365531024
+    where: 'os.name == "macos"'
+
+  - action: mas.install
+    name: "Amphetamine"
+    id: 937984704
+    where: 'os.name == "macos"'
+
+  - action: mas.install
+    name: "Better Rename 9"
+    id: 414209656
+    where: 'os.name == "macos"'
+
+  # To find an app's numeric ID: mas search "App Name"
+  # or look at the app's App Store URL: .../id<number>

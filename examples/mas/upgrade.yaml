@@ -1,0 +1,11 @@
+actions:
+  # Upgrade all installed Mac App Store apps.
+  # Omit id to upgrade everything.
+  - action: mas.upgrade
+    where: 'os.name == "macos"'
+
+  # Upgrade a specific app by ID only.
+  # Useful when you want to pin most apps but keep one current.
+  - action: mas.upgrade
+    id: 937984704
+    where: 'os.name == "macos"'

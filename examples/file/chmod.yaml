@@ -1,0 +1,17 @@
+actions:
+  # Set permissions with a plain octal string.
+  - action: file.chmod
+    path: "{{ user.home_dir }}/.ssh/id_ed25519"
+    mode: "600"
+
+  # mode accepts both "700" and "0o700" (Rust octal prefix) — both work.
+  - action: file.chmod
+    path: "{{ user.home_dir }}/.ssh"
+    mode: "0o700"
+
+  # privileged: true — run chmod via sudo.
+  # Required when the target is owned by root or another user.
+  - action: file.chmod
+    path: /etc/myapp/config.conf
+    mode: "644"
+    privileged: true

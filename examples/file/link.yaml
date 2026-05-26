@@ -1,0 +1,22 @@
+actions:
+  # Create a symlink: source (in the manifest's files/ dir) → target (absolute path).
+  # Preferred field names: source + target.
+  - action: file.link
+    source: dotfiles/zshrc
+    target: "{{ user.home_dir }}/.zshrc"
+
+  # from/to are deprecated aliases for source/target — still work but prefer source/target.
+  - action: file.link
+    from: dotfiles/gitconfig
+    to: "{{ user.home_dir }}/.gitconfig"
+
+  # privileged: true — run the symlink operation via sudo.
+  # Required when the target path is owned by root.
+  - action: file.link
+    source: sudoers.d/myapp
+    target: /etc/sudoers.d/myapp
+    privileged: true
+
+  # IMPORTANT: source must be a file inside the manifest's files/ directory.
+  # target must NOT already exist as a real file — file.link refuses to overwrite
+  # a real file (only replaces existing symlinks).

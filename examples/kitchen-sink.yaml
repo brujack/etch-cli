@@ -1,0 +1,228 @@
+# kitchen-sink.yaml — one manifest showing every action type with realistic usage.
+#
+# This is not meant to be run as-is; it demonstrates syntax and field combinations
+# that humans can copy from when writing their own manifests.
+#
+# Available context variables in any action:
+#   {{ user.username }}      — login name
+#   {{ user.home_dir }}      — home directory (e.g. /Users/alice)
+#   {{ user.config_dir }}    — ~/.config
+#   {{ os.name }}            — "macos" or "linux"
+#   {{ os.family }}          — "unix" or "windows"
+#   {{ os.distribution }}    — "Ubuntu", "Fedora", etc. (Linux only)
+#   {{ os.hostname }}        — machine hostname
+#   {{ variables.KEY }}      — values from etch.yaml variables: section
+#   {{ manifest_dir }}       — directory containing this manifest file
+
+# where: condition — skip this entire manifest on machines where the expression is false.
+# Uses Rhai scripting. Omit to run on all machines.
+where: 'os.name == "macos" || os.family == "linux"'
+
+actions:
+  # ── Directories ────────────────────────────────────────────────────────────
+
+  - action: directory.create
+    path: "{{ user.home_dir }}/bin"
+
+  - action: directory.create
+    path: "{{ user.home_dir }}/.config/myapp"
+
+  # ── File operations ─────────────────────────────────────────────────────────
+
+  # Copy a plain file.
+  - action: file.copy
+    from: configs/myapp.toml
+    to: "{{ user.home_dir }}/.config/myapp/config.toml"
+
+  # Copy and render as Tera template (substitutes {{ variables }} in the file).
+  - action: file.copy
+    from: configs/gitconfig.j2
+    to: "{{ user.home_dir }}/.gitconfig"
+    template: true
+
+  # Symlink a dotfile.
+  - action: file.link
+    source: dotfiles/zshrc
+    target: "{{ user.home_dir }}/.zshrc"
+
+  # Symlink all dotfiles matching a glob pattern.
+  - action: file.link
+    glob: "dotfiles/**"
+    target: "{{ user.home_dir }}"
+
+  # Set file permissions.
+  - action: file.chmod
+    path: "{{ user.home_dir }}/.ssh/id_ed25519"
+    mode: "600"
+
+  # Change ownership (privileged required for non-owned paths).
+  - action: file.chown
+    path: /etc/myapp
+    user: "{{ user.username }}"
+    group: "{{ user.username }}"
+    privileged: true
+
+  # ── Git ────────────────────────────────────────────────────────────────────
+
+  # Clone a repo (provision-once — skips if directory exists).
+  - action: git.clone
+    repo_url: https://github.com/brujack/dotfiles
+    directory: "{{ user.home_dir }}/git-repos/personal/dotfiles"
+
+  # Clone or pull — idempotent, keeps the repo current on every run.
+  - action: git.pull
+    repo_url: https://github.com/brujack/dotfiles
+    directory: "{{ user.home_dir }}/git-repos/personal/dotfiles"
+
+  # Configure git — bulk settings (most efficient).
+  - action: git.config
+    settings:
+      user.name: "Alice Example"
+      user.email: "alice@example.com"
+      pull.rebase: "false"
+      init.defaultBranch: main
+      core.editor: vim
+      alias.st: status
+      alias.co: checkout
+
+  # Set a repo-local git identity (scope: local requires directory).
+  - action: git.config
+    scope: local
+    directory: "{{ user.home_dir }}/git-repos/work/my-project"
+    key: user.email
+    value: "alice@work.com"
+
+  # ── Homebrew (macOS) ───────────────────────────────────────────────────────
+
+  # Install everything from a Brewfile (taps + formulae + casks + MAS).
+  - action: brew.bundle
+    file: "{{ user.home_dir }}/git-repos/personal/dotfiles/Brewfile"
+    where: 'os.name == "macos"'
+
+  # Upgrade installed packages (non-greedy — skips auto-update casks).
+  - action: brew.upgrade
+    where: 'os.name == "macos"'
+
+  # Remove old cached versions older than 30 days.
+  - action: brew.cleanup
+    prune: 30
+    where: 'os.name == "macos"'
+
+  # ── Mac App Store (macOS) ──────────────────────────────────────────────────
+
+  - action: mas.install
+    name: "Amphetamine"
+    id: 937984704
+    where: 'os.name == "macos"'
+
+  - action: mas.upgrade
+    where: 'os.name == "macos"'
+
+  # ── Packages ───────────────────────────────────────────────────────────────
+
+  # Homebrew formula.
+  - action: package.install
+    list:
+      - ripgrep
+      - fd
+      - bat
+      - jq
+      - fzf
+    provider: homebrew
+    where: 'os.name == "macos"'
+
+  # Homebrew cask (GUI app).
+  - action: package.install
+    name: alfred
+    provider: homebrew
+    cask: true
+    where: 'os.name == "macos"'
+
+  # apt packages (Linux).
+  - action: package.install
+    list:
+      - build-essential
+      - curl
+      - git
+      - ripgrep
+    provider: apt
+    where: 'os.family == "linux"'
+
+  # Add a tap before installing from it.
+  - action: package.repository
+    name: go-task/tap
+    provider: homebrew
+    where: 'os.name == "macos"'
+
+  - action: package.install
+    name: go-task/tap/go-task
+    provider: homebrew
+    where: 'os.name == "macos"'
+
+  # ── Binaries from URL ──────────────────────────────────────────────────────
+
+  # Download a versioned binary from a URL template.
+  - action: binary.url
+    name: kubectl
+    version: "1.30.0"
+    url: "https://dl.k8s.io/release/v{{ version }}/bin/darwin/arm64/kubectl"
+    directory: /usr/local/bin
+    where: 'os.name == "macos" && variables.has_k8s'
+
+  # Extract a specific file from a tarball.
+  - action: binary.url
+    name: helm
+    version: "3.15.0"
+    url: "https://get.helm.sh/helm-v{{ version }}-darwin-arm64.tar.gz"
+    file: darwin-arm64/helm
+    directory: /usr/local/bin
+    where: 'os.name == "macos" && variables.has_k8s'
+
+  # ── macOS defaults ─────────────────────────────────────────────────────────
+
+  - action: macos.default
+    domain: com.apple.dock
+    key: orientation
+    kind: string
+    value: left
+    where: 'os.name == "macos"'
+
+  - action: macos.default
+    domain: com.apple.screensaver
+    key: askForPassword
+    kind: int
+    value: "1"
+    where: 'os.name == "macos"'
+
+  - action: macos.default
+    operation: array-add
+    domain: com.apple.systemuiserver
+    key: menuExtras
+    kind: string
+    value: "/System/Library/CoreServices/Menu Extras/Volume.menu"
+    where: 'os.name == "macos"'
+
+  # ── Commands ───────────────────────────────────────────────────────────────
+
+  # Run a command with arguments.
+  - action: command.run
+    command: echo
+    args:
+      - "provisioning {{ user.username }} on {{ os.hostname }}"
+
+  # Run a privileged command (via sudo).
+  - action: command.run
+    command: sysctl
+    args:
+      - "-w"
+      - "net.inet.tcp.msl=1000"
+    privileged: true
+    where: 'os.name == "macos"'
+
+  # skip_if_exists — skip if a path already exists (idempotent install guard).
+  - action: command.run
+    command: sh
+    args:
+      - "-c"
+      - "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+    skip_if_exists: "{{ user.home_dir }}/.oh-my-zsh"

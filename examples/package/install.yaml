@@ -1,0 +1,62 @@
+actions:
+  # Install a single package via Homebrew (macOS default provider).
+  - action: package.install
+    name: ripgrep
+    provider: homebrew
+
+  # Install a list of packages in one action.
+  - action: package.install
+    list:
+      - jq
+      - fd
+      - bat
+      - fzf
+    provider: homebrew
+
+  # Install a Homebrew cask (GUI application).
+  # cask: true passes --cask to brew install.
+  - action: package.install
+    name: visual-studio-code
+    provider: homebrew
+    cask: true
+
+  # Install multiple casks at once.
+  - action: package.install
+    list:
+      - alfred
+      - iterm2
+      - obsidian
+    provider: homebrew
+    cask: true
+
+  # Install via apt (Linux/Debian/Ubuntu).
+  - action: package.install
+    name: ripgrep
+    provider: apt
+    where: 'os.family == "linux"'
+
+  # Install multiple packages via apt.
+  - action: package.install
+    list:
+      - build-essential
+      - curl
+      - git
+      - unzip
+    provider: apt
+    where: 'os.family == "linux"'
+
+  # Install via snap (Linux).
+  - action: package.install
+    name: code
+    provider: snap
+    where: 'variables.has_snap'
+
+  # OS-variant pattern: different provider per OS, same logical package.
+  # The variants block overrides fields for a specific OS type.
+  - action: package.install
+    name: ripgrep
+    provider: homebrew
+    variants:
+      Ubuntu:
+        name: ripgrep
+        provider: apt

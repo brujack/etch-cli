@@ -1,0 +1,50 @@
+actions:
+  # Set a single global gitconfig key/value.
+  - action: git.config
+    key: user.name
+    value: "Todd Martin"
+
+  - action: git.config
+    key: user.email
+    value: "todd@example.com"
+
+  # scope defaults to "global". Explicit for clarity:
+  - action: git.config
+    scope: global
+    key: core.editor
+    value: vim
+
+  # Unset a key (removes it from gitconfig).
+  # Mutually exclusive with value.
+  - action: git.config
+    key: credential.helper
+    unset: true
+
+  # settings: set multiple keys at once (preserves insertion order).
+  # More efficient than one action per key.
+  - action: git.config
+    settings:
+      pull.rebase: "false"
+      push.default: current
+      init.defaultBranch: main
+      core.autocrlf: input
+
+  # scope: local — apply to a specific repo, not the global gitconfig.
+  # directory is required when scope is local.
+  - action: git.config
+    scope: local
+    directory: "{{ user.home_dir }}/git-repos/work/my-project"
+    key: user.email
+    value: "todd@work-company.com"
+
+  # scope: system — apply to /etc/gitconfig (system-wide).
+  # Automatically elevated via etch's privilege infrastructure (no privileged: field needed).
+  - action: git.config
+    scope: system
+    key: http.sslVerify
+    value: "true"
+
+  # Alias: git.cfg is an alias for git.config.
+  - action: git.cfg
+    key: alias.st
+    value: status

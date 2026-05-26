@@ -1,0 +1,24 @@
+actions:
+  # glob: expand a pattern relative to the manifest's files/ directory.
+  # Creates one symlink per matched file, preserving subdirectory structure
+  # under the target directory.
+  #
+  # Example: if files/ contains:
+  #   dotfiles/.zshrc
+  #   dotfiles/.gitconfig
+  #   dotfiles/.config/starship.toml
+  #
+  # The action below creates:
+  #   ~/.zshrc             → <manifest>/files/dotfiles/.zshrc
+  #   ~/.gitconfig         → <manifest>/files/dotfiles/.gitconfig
+  #   ~/.config/starship.toml → <manifest>/files/dotfiles/.config/starship.toml
+  - action: file.link
+    glob: "dotfiles/**"
+    target: "{{ user.home_dir }}"
+
+  # glob is mutually exclusive with source — do not combine them.
+  # privileged works with glob the same way as single-file links.
+  - action: file.link
+    glob: "system-config/**"
+    target: /etc/myapp
+    privileged: true

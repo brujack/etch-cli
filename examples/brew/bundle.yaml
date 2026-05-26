@@ -1,0 +1,19 @@
+actions:
+  # Install everything in a Brewfile — taps, formulae, casks, and MAS apps.
+  # This is the recommended approach for managing a full macOS package set.
+  - action: brew.bundle
+    # Path to the Brewfile. Supports Tera templates.
+    file: "{{ user.home_dir }}/git-repos/personal/dotfiles/Brewfile"
+
+  # no_upgrade: true — skip `brew upgrade` for already-installed packages.
+  # Use when you want install-only behavior (faster, avoids unintended upgrades).
+  - action: brew.bundle
+    file: "{{ user.home_dir }}/git-repos/personal/dotfiles/Brewfile"
+    no_upgrade: true
+
+  # cleanup: true — remove packages NOT listed in the Brewfile after install.
+  # Destructive: treats the Brewfile as the complete desired state.
+  # Omit or set false (default) to leave unmanaged packages in place.
+  - action: brew.bundle
+    file: "{{ user.home_dir }}/git-repos/personal/dotfiles/Brewfile"
+    cleanup: true

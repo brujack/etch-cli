@@ -1,0 +1,29 @@
+actions:
+  # skip_if_exists: skip this action if the given path already exists.
+  # Use for install scripts that are not idempotent on their own.
+  # The path is checked before execution; if it exists the whole action is skipped.
+
+  # Install oh-my-zsh only if ~/.oh-my-zsh doesn't exist yet.
+  - action: command.run
+    command: sh
+    args:
+      - "-c"
+      - "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+    skip_if_exists: "{{ user.home_dir }}/.oh-my-zsh"
+
+  # Install rustup only if cargo is not already present.
+  - action: command.run
+    command: sh
+    args:
+      - "-c"
+      - "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y"
+    skip_if_exists: "{{ user.home_dir }}/.cargo/bin/cargo"
+
+  # Install Homebrew only if it's not already installed.
+  - action: command.run
+    command: sh
+    args:
+      - "-c"
+      - '/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+    skip_if_exists: /opt/homebrew/bin/brew
+    where: 'os.name == "macos"'
