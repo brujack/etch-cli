@@ -1,4 +1,5 @@
 use super::super::Atom;
+use crate::atoms::command::Exec;
 use crate::atoms::Outcome;
 
 pub struct GitConfigUnset {
@@ -34,7 +35,17 @@ impl Atom for GitConfigUnset {
     }
 
     fn execute(&mut self) -> anyhow::Result<()> {
-        todo!()
+        let mut args = self.config_args.clone();
+        args.push("--unset".into());
+        args.push(self.key.clone());
+        let mut exec = Exec {
+            command: "git".into(),
+            arguments: args,
+            privileged: self.privileged,
+            privilege_provider: self.privilege_provider.clone(),
+            ..Default::default()
+        };
+        exec.execute()
     }
 }
 
@@ -91,5 +102,48 @@ mod tests {
             privilege_provider: String::new(),
         };
         assert!(atom.plan().unwrap().should_run);
+    }
+
+    #[test]
+    fn execute_removes_the_key() {
+        let tmp = setup_repo();
+        let path = tmp.path().to_str().unwrap();
+        // Set the key first
+        Command::new("git")
+            .args(["-C", path, "config", "--local", "user.name", "Test User"])
+            .status()
+            .unwrap();
+        // Verify it exists
+        let before = Command::new("git")
+            .args(["-C", path, "config", "--local", "--get", "user.name"])
+            .status()
+            .unwrap();
+        assert!(before.success());
+
+        let mut atom = GitConfigUnset {
+            config_args: local_config_args(path),
+            key: "user.name".into(),
+            privileged: false,
+            privilege_provider: String::new(),
+        };
+        atom.execute().unwrap();
+
+        // Key should be gone
+        let after = Command::new("git")
+            .args(["-C", path, "config", "--local", "--get", "user.name"])
+            .status()
+            .unwrap();
+        assert!(!after.success());
+    }
+
+    #[test]
+    fn display_includes_key() {
+        let atom = GitConfigUnset {
+            config_args: vec!["config".into(), "--global".into()],
+            key: "credential.helper".into(),
+            privileged: false,
+            privilege_provider: String::new(),
+        };
+        assert!(format!("{atom}").contains("credential.helper"));
     }
 }
