@@ -6,8 +6,6 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
-// Task 3 wires GitPull into the Actions enum; allow dead-code until then
-#[allow(dead_code)]
 #[derive(JsonSchema, Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GitPull {
     pub repo_url: String,
