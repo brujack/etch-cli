@@ -16,3 +16,17 @@ actions:
     key: "NSTableViewDefaultSizeMode"
     kind: int
     value: "1"
+
+  # array-add: idempotent append to an array key
+  - action: macos.default
+    operation: array-add
+    domain: com.apple.systemuiserver
+    key: menuExtras
+    kind: string
+    value: "/System/Library/CoreServices/Menu Extras/Volume.menu"
+
+  # delete: remove a key (no-op if absent)
+  - action: macos.default
+    operation: delete
+    domain: com.apple.dock
+    key: stale-key
