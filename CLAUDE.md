@@ -324,4 +324,5 @@ A PR or direct master commit is complete when **all** of the following are true:
 - [ ] `pr-review` skill PASS verdict obtained before push
 - [ ] Plan index updated (`docs/cursor/README.md`) if this PR implements a tracked spec
 - [ ] Action catalog updated in `README.md` if a new action was added
+- [ ] `examples/<action>/` updated when a new action or field variant is added — at minimum one `.yaml` per option combination, with inline comments on every field
 - [ ] Learning analysis complete (session-end or post-merge)
