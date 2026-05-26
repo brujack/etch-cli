@@ -1,0 +1,39 @@
+actions:
+    # Enable the SSH server daemon (requires privileged: true for system daemons).
+    # The label is automatically extracted from the plist when label: is omitted.
+    - action: macos.service
+      plist: /System/Library/LaunchDaemons/com.apple.ssh.plist
+      state: loaded
+      privileged: true
+
+    # Enable Apple Remote Desktop (ARD).
+    - action: macos.service
+      plist: /System/Library/LaunchDaemons/com.apple.RemoteDesktop.PrivilegeProxy.plist
+      state: loaded
+      privileged: true
+
+    # Provide an explicit label to skip plist label extraction.
+    # Use this when defaults read is unavailable or the plist is protected.
+    - action: macos.service
+      plist: /Library/LaunchDaemons/com.myapp.daemon.plist
+      label: com.myapp.daemon
+      state: loaded
+      privileged: true
+
+    # User LaunchAgent — no privileged needed.
+    # Installs in ~/Library/LaunchAgents, runs in the user session.
+    - action: macos.service
+      plist: ~/Library/LaunchAgents/com.myapp.agent.plist
+      state: loaded
+
+    # Disable a user agent.
+    - action: macos.service
+      plist: ~/Library/LaunchAgents/com.myapp.agent.plist
+      state: unloaded
+
+    # Conditional — only on macOS.
+    - action: macos.service
+      plist: /System/Library/LaunchDaemons/com.apple.ssh.plist
+      state: loaded
+      privileged: true
+      where: 'os.name == "macos"'
