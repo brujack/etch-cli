@@ -45,7 +45,7 @@ Master status index for all specs and implementation plans in this directory.
 | 2026-05-25 | [glob-file-link](plans/2026-05-25-glob-file-link.md)                                     | [spec](specs/2026-05-25-glob-file-link-design.md)                                                                         | Done    |
 | 2026-05-25 | [binary-url](plans/2026-05-25-binary-url.md)                                             | [spec](specs/2026-05-25-binary-url-design.md)                                                                             | Done    |
 | 2026-05-25 | [git-config](plans/2026-05-25-git-config.md)                                             | [git-config](specs/2026-05-25-git-config-design.md)                                                                       | Done    |
-| 2026-05-26 | —                                                                                        | [macos-defaults](specs/2026-05-26-macos-defaults-design.md)                                                               | Pending |
+| 2026-05-26 | [macos-defaults](plans/2026-05-26-macos-defaults.md)                                     | [macos-defaults](specs/2026-05-26-macos-defaults-design.md)                                                               | Pending |
 
 ---
 
