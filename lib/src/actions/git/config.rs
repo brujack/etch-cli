@@ -1,7 +1,9 @@
 use crate::actions::Action;
+use crate::atoms::command::Exec;
 use crate::contexts::Contexts;
 use crate::manifests::Manifest;
 use crate::steps::Step;
+use crate::utilities;
 use indexmap::IndexMap;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -27,6 +29,19 @@ pub struct GitConfig {
     pub directory: Option<String>,
 }
 
+impl GitConfig {
+    fn config_args(&self) -> Vec<String> {
+        match &self.scope {
+            GitConfigScope::Global => vec!["config".into(), "--global".into()],
+            GitConfigScope::Local => {
+                let dir = self.directory.as_deref().unwrap_or(".");
+                vec!["-C".into(), dir.into(), "config".into(), "--local".into()]
+            }
+            GitConfigScope::System => vec!["config".into(), "--system".into()],
+        }
+    }
+}
+
 impl Action for GitConfig {
     fn summarize(&self) -> String {
         let scope = match self.scope {
@@ -45,7 +60,7 @@ impl Action for GitConfig {
         format!("Set {count} git.{scope} config values")
     }
 
-    fn plan(&self, _manifest: &Manifest, _contexts: &Contexts) -> anyhow::Result<Vec<Step>> {
+    fn plan(&self, _manifest: &Manifest, contexts: &Contexts) -> anyhow::Result<Vec<Step>> {
         use anyhow::anyhow;
 
         if self.key.is_some() && self.settings.is_some() {
@@ -79,7 +94,30 @@ impl Action for GitConfig {
             ));
         }
 
-        todo!("step generation — implemented in Tasks 5–8")
+        let config_args = self.config_args();
+        let privileged = matches!(self.scope, GitConfigScope::System);
+        let privilege_provider =
+            utilities::get_privilege_provider(contexts).unwrap_or_else(|| "sudo".to_string());
+
+        // Single key set
+        if let (Some(key), Some(value)) = (&self.key, &self.value) {
+            let mut args = config_args;
+            args.push(key.clone());
+            args.push(value.clone());
+            return Ok(vec![Step {
+                atom: Box::new(Exec {
+                    command: "git".into(),
+                    arguments: args,
+                    privileged,
+                    privilege_provider,
+                    ..Default::default()
+                }),
+                initializers: vec![],
+                finalizers: vec![],
+            }]);
+        }
+
+        todo!("unset and settings — implemented in Tasks 7–8")
     }
 }
 
@@ -241,5 +279,23 @@ mod tests {
             ..Default::default()
         };
         assert!(plan(action).is_err());
+    }
+
+    #[test]
+    fn plan_global_set_emits_one_exec_step() {
+        let action = GitConfig {
+            scope: GitConfigScope::Global,
+            key: Some("user.email".into()),
+            value: Some("test@example.com".into()),
+            ..Default::default()
+        };
+        let steps = plan(action).unwrap();
+        assert_eq!(steps.len(), 1);
+        let display = steps[0].atom.to_string();
+        assert!(display.contains("config"), "display: {display}");
+        assert!(display.contains("--global"), "display: {display}");
+        assert!(display.contains("user.email"), "display: {display}");
+        assert!(display.contains("test@example.com"), "display: {display}");
+        assert!(display.contains("privileged=false"), "display: {display}");
     }
 }
