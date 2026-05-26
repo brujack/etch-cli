@@ -1,5 +1,7 @@
 # git.config Implementation Plan
 
+> **Status: DONE** — Merged via PR #45 (2026-05-25)
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add a `git.config` action (alias `git.cfg`) that sets or unsets git configuration values at global, local, or system scope.
