@@ -32,7 +32,7 @@ impl Atom for Pull {
     fn execute(&mut self) -> anyhow::Result<()> {
         if !self.directory.exists() {
             let status = std::process::Command::new("git")
-                .args(["clone", &self.repository, self.directory.to_str().unwrap()])
+                .args(["clone", &self.repository, &self.directory.to_string_lossy()])
                 .status()?;
             if !status.success() {
                 anyhow::bail!(
@@ -44,7 +44,7 @@ impl Atom for Pull {
             }
         } else {
             let status = std::process::Command::new("git")
-                .args(["-C", self.directory.to_str().unwrap(), "pull"])
+                .args(["-C", &self.directory.to_string_lossy(), "pull"])
                 .status()?;
             if !status.success() {
                 anyhow::bail!(
@@ -83,7 +83,9 @@ mod tests {
             repository: "https://github.com/example/repo.git".into(),
             directory: missing,
         };
-        assert!(atom.plan().unwrap().should_run);
+        let outcome = atom.plan().unwrap();
+        assert!(outcome.should_run);
+        assert!(outcome.side_effects.is_empty());
     }
 
     #[test]
@@ -93,7 +95,9 @@ mod tests {
             repository: "https://github.com/example/repo.git".into(),
             directory: tmp.path().to_path_buf(),
         };
-        assert!(atom.plan().unwrap().should_run);
+        let outcome = atom.plan().unwrap();
+        assert!(outcome.should_run);
+        assert!(outcome.side_effects.is_empty());
     }
 
     #[test]
