@@ -64,16 +64,17 @@ See the [comtrya documentation](https://comtrya.dev) for the full action catalog
 
 ## Action catalog
 
-| Action                                      | Description                              |
-| ------------------------------------------- | ---------------------------------------- |
-| `command.run`                               | Run shell commands                       |
-| `directory.create` / `directory.copy`       | Manage directories                       |
-| `file.copy` / `file.link` / `file.template` | Manage files                             |
-| `git.clone`                                 | Clone git repositories                   |
-| `package.install`                           | Install packages (Homebrew, apt, dnf, …) |
-| `macos.defaults`                            | Write macOS defaults                     |
-| `group` / `user`                            | Manage Unix groups and users             |
-| `binary`                                    | Install binaries from GitHub releases    |
+| Action                                      | Description                                |
+| ------------------------------------------- | ------------------------------------------ |
+| `command.run`                               | Run shell commands                         |
+| `directory.create` / `directory.copy`       | Manage directories                         |
+| `file.copy` / `file.link` / `file.template` | Manage files                               |
+| `git.clone`                                 | Clone git repositories                     |
+| `git.config`                                | Set gitconfig values (global/local/system) |
+| `package.install`                           | Install packages (Homebrew, apt, dnf, …)   |
+| `macos.defaults`                            | Write macOS defaults                       |
+| `group` / `user`                            | Manage Unix groups and users               |
+| `binary`                                    | Install binaries from GitHub releases      |
 
 ## Development
 
