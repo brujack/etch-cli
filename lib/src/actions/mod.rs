@@ -27,7 +27,7 @@ use file::copy::FileCopy;
 use file::download::FileDownload;
 use file::remove::FileRemove;
 use file::unarchive::FileUnarchive;
-use git::{GitClone, GitConfig};
+use git::{GitClone, GitConfig, GitPull};
 use group::add::GroupAdd;
 use package::{PackageInstall, PackageRepository};
 use plugin::Plugin;
@@ -180,6 +180,9 @@ pub enum Actions {
     #[serde(rename = "git.config", alias = "git.cfg")]
     GitConfig(ConditionalVariantAction<GitConfig>),
 
+    #[serde(rename = "git.pull")]
+    GitPull(ConditionalVariantAction<GitPull>),
+
     #[serde(rename = "group.add")]
     GroupAdd(ConditionalVariantAction<GroupAdd>),
 
@@ -224,6 +227,7 @@ impl Actions {
             Actions::FileUnarchive(a) => a,
             Actions::GitClone(a) => a,
             Actions::GitConfig(a) => a,
+            Actions::GitPull(a) => a,
             Actions::GroupAdd(a) => a,
             Actions::MacOSDefault(a) => a,
             Actions::MasInstall(a) => a,
@@ -259,6 +263,7 @@ impl Deref for Actions {
             Actions::FileUnarchive(a) => a,
             Actions::GitClone(a) => a,
             Actions::GitConfig(a) => a,
+            Actions::GitPull(a) => a,
             Actions::GroupAdd(a) => a,
             Actions::MacOSDefault(a) => a,
             Actions::MasInstall(a) => a,
@@ -295,6 +300,7 @@ impl Display for Actions {
             Actions::BrewUpgrade(_) => "brew.upgrade",
             Actions::GitClone(_) => "git.clone",
             Actions::GitConfig(_) => "git.config",
+            Actions::GitPull(_) => "git.pull",
             Actions::GroupAdd(_) => "group.add",
             Actions::MacOSDefault(_) => "macos.default",
             Actions::MasInstall(_) => "mas.install",
@@ -416,6 +422,9 @@ actions:
   - action: git.clone
     repo_url: https://github.com/example/repo.git
     directory: /tmp/repo
+  - action: git.pull
+    repo_url: https://github.com/example/repo.git
+    directory: /tmp/repo
   - action: group.add
     group_name: mygroup
   - action: macos.default
@@ -441,7 +450,7 @@ actions:
     value: test@example.com
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(21, manifest.actions.len());
+        assert_eq!(22, manifest.actions.len());
     }
 
     #[test]
@@ -477,6 +486,9 @@ actions:
     from: a.tar.gz
     to: /tmp/dest
   - action: git.clone
+    repo_url: https://github.com/example/repo.git
+    directory: /tmp/repo
+  - action: git.pull
     repo_url: https://github.com/example/repo.git
     directory: /tmp/repo
   - action: group.add
@@ -519,6 +531,7 @@ actions:
             "file.remove",
             "file.unarchive",
             "git.clone",
+            "git.pull",
             "group.add",
             "macos.default",
             "mas.install",
@@ -710,6 +723,9 @@ actions:
   - action: git.clone
     repo_url: https://github.com/example/repo.git
     directory: /tmp/repo
+  - action: git.pull
+    repo_url: https://github.com/example/repo.git
+    directory: /tmp/repo
   - action: group.add
     group_name: mygroup
   - action: macos.default
@@ -740,7 +756,7 @@ actions:
     value: test@example.com
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(25, manifest.actions.len());
+        assert_eq!(26, manifest.actions.len());
 
         for action in &manifest.actions {
             // Exercise inner_ref() for every variant
@@ -862,5 +878,18 @@ actions:
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
         assert_eq!(format!("{}", manifest.actions[0]), "git.config");
+    }
+
+    #[test]
+    fn git_pull_deserializes() {
+        let yaml = r#"
+actions:
+  - action: git.pull
+    repo_url: https://github.com/example/repo.git
+    directory: /tmp/repo
+"#;
+        let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
+        assert_eq!(1, manifest.actions.len());
+        assert!(matches!(manifest.actions[0], Actions::GitPull(_)));
     }
 }
