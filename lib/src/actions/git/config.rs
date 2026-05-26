@@ -29,10 +29,217 @@ pub struct GitConfig {
 
 impl Action for GitConfig {
     fn summarize(&self) -> String {
-        todo!()
+        let scope = match self.scope {
+            GitConfigScope::Global => "global",
+            GitConfigScope::Local => "local",
+            GitConfigScope::System => "system",
+        };
+        if let Some(ref key) = self.key {
+            if self.unset == Some(true) {
+                return format!("Unset git.{scope} {key}");
+            }
+            let val = self.value.as_deref().unwrap_or("(from settings)");
+            return format!("Set git.{scope} {key} = {val}");
+        }
+        let count = self.settings.as_ref().map_or(0, |s| s.len());
+        format!("Set {count} git.{scope} config values")
     }
 
-    fn plan(&self, _: &Manifest, _: &Contexts) -> anyhow::Result<Vec<Step>> {
-        todo!()
+    fn plan(&self, _manifest: &Manifest, _contexts: &Contexts) -> anyhow::Result<Vec<Step>> {
+        use anyhow::anyhow;
+
+        if self.key.is_some() && self.settings.is_some() {
+            return Err(anyhow!(
+                "git.config: 'key' and 'settings' are mutually exclusive"
+            ));
+        }
+        if self.key.is_none() && self.settings.is_none() {
+            return Err(anyhow!(
+                "git.config: one of 'key' or 'settings' is required"
+            ));
+        }
+        if self.unset == Some(true) && self.settings.is_some() {
+            return Err(anyhow!(
+                "git.config: 'unset' cannot be used with 'settings'"
+            ));
+        }
+        if self.unset == Some(true) && self.value.is_some() {
+            return Err(anyhow!(
+                "git.config: 'unset' and 'value' are mutually exclusive"
+            ));
+        }
+        if matches!(self.scope, GitConfigScope::Local) && self.directory.is_none() {
+            return Err(anyhow!(
+                "git.config: 'directory' is required for scope 'local'"
+            ));
+        }
+        if self.key.is_some() && self.value.is_none() && self.unset != Some(true) {
+            return Err(anyhow!(
+                "git.config: 'key' requires either 'value' (to set) or 'unset: true'"
+            ));
+        }
+
+        todo!("step generation — implemented in Tasks 5–8")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::contexts::Contexts;
+    use crate::manifests::Manifest;
+
+    fn plan(action: GitConfig) -> anyhow::Result<Vec<Step>> {
+        action.plan(&Manifest::default(), &Contexts::default())
+    }
+
+    // TODO: uncomment after registration in Task 9
+    // #[test]
+    // fn deserialize_single_key_value() {
+    //     let yaml = r#"
+    // - action: git.config
+    //   scope: global
+    //   key: user.email
+    //   value: test@example.com
+    // "#;
+    //     let mut actions: Vec<crate::actions::Actions> = serde_yaml_ng::from_str(yaml).unwrap();
+    //     match actions.pop() {
+    //         Some(crate::actions::Actions::GitConfig(a)) => {
+    //             assert_eq!(a.action.key, Some("user.email".into()));
+    //             assert_eq!(a.action.value, Some("test@example.com".into()));
+    //             assert!(matches!(a.action.scope, GitConfigScope::Global));
+    //         }
+    //         _ => panic!("wrong variant"),
+    //     }
+    // }
+
+    // #[test]
+    // fn deserialize_unset() {
+    //     let yaml = r#"
+    // - action: git.config
+    //   scope: global
+    //   key: credential.helper
+    //   unset: true
+    // "#;
+    //     let mut actions: Vec<crate::actions::Actions> = serde_yaml_ng::from_str(yaml).unwrap();
+    //     match actions.pop() {
+    //         Some(crate::actions::Actions::GitConfig(a)) => {
+    //             assert_eq!(a.action.key, Some("credential.helper".into()));
+    //             assert_eq!(a.action.unset, Some(true));
+    //         }
+    //         _ => panic!("wrong variant"),
+    //     }
+    // }
+
+    // #[test]
+    // fn deserialize_settings_map() {
+    //     let yaml = r#"
+    // - action: git.config
+    //   scope: global
+    //   settings:
+    //     user.name: Bruce
+    //     user.email: bruce@example.com
+    // "#;
+    //     let mut actions: Vec<crate::actions::Actions> = serde_yaml_ng::from_str(yaml).unwrap();
+    //     match actions.pop() {
+    //         Some(crate::actions::Actions::GitConfig(a)) => {
+    //             let s = a.action.settings.unwrap();
+    //             assert_eq!(s.len(), 2);
+    //             assert_eq!(s["user.name"], "Bruce");
+    //         }
+    //         _ => panic!("wrong variant"),
+    //     }
+    // }
+
+    // #[test]
+    // fn deserialize_local_scope() {
+    //     let yaml = r#"
+    // - action: git.config
+    //   scope: local
+    //   directory: /tmp/repo
+    //   key: user.email
+    //   value: local@example.com
+    // "#;
+    //     let mut actions: Vec<crate::actions::Actions> = serde_yaml_ng::from_str(yaml).unwrap();
+    //     match actions.pop() {
+    //         Some(crate::actions::Actions::GitConfig(a)) => {
+    //             assert!(matches!(a.action.scope, GitConfigScope::Local));
+    //             assert_eq!(a.action.directory, Some("/tmp/repo".into()));
+    //         }
+    //         _ => panic!("wrong variant"),
+    //     }
+    // }
+
+    #[test]
+    fn error_key_and_settings_both_present() {
+        let action = GitConfig {
+            scope: GitConfigScope::Global,
+            key: Some("user.email".into()),
+            value: Some("foo@bar.com".into()),
+            settings: Some({
+                let mut m = IndexMap::new();
+                m.insert("user.name".into(), "Foo".into());
+                m
+            }),
+            ..Default::default()
+        };
+        assert!(plan(action).is_err());
+    }
+
+    #[test]
+    fn error_neither_key_nor_settings() {
+        let action = GitConfig {
+            scope: GitConfigScope::Global,
+            ..Default::default()
+        };
+        assert!(plan(action).is_err());
+    }
+
+    #[test]
+    fn error_unset_with_settings() {
+        let action = GitConfig {
+            scope: GitConfigScope::Global,
+            unset: Some(true),
+            settings: Some({
+                let mut m = IndexMap::new();
+                m.insert("user.email".into(), "foo@bar.com".into());
+                m
+            }),
+            ..Default::default()
+        };
+        assert!(plan(action).is_err());
+    }
+
+    #[test]
+    fn error_unset_with_value() {
+        let action = GitConfig {
+            scope: GitConfigScope::Global,
+            key: Some("user.email".into()),
+            unset: Some(true),
+            value: Some("foo@bar.com".into()),
+            ..Default::default()
+        };
+        assert!(plan(action).is_err());
+    }
+
+    #[test]
+    fn error_local_scope_without_directory() {
+        let action = GitConfig {
+            scope: GitConfigScope::Local,
+            key: Some("user.email".into()),
+            value: Some("foo@bar.com".into()),
+            ..Default::default()
+        };
+        assert!(plan(action).is_err());
+    }
+
+    #[test]
+    fn error_key_without_value_or_unset() {
+        let action = GitConfig {
+            scope: GitConfigScope::Global,
+            key: Some("user.email".into()),
+            ..Default::default()
+        };
+        assert!(plan(action).is_err());
     }
 }
