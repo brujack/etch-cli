@@ -1,0 +1,5 @@
+actions:
+    # Clone if missing, pull if already cloned — idempotent
+    - action: git.pull
+      repo_url: https://github.com/brujack/dotfiles
+      directory: /Users/toddmartin/git-repos/personal/dotfiles
