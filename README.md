@@ -60,21 +60,23 @@ actions:
       to: ~/.zshrc
 ```
 
-See the [comtrya documentation](https://comtrya.dev) for the full action catalog — the manifest format is identical.
+See `CLAUDE.md` for the full action catalog with all fields documented.
 
 ## Action catalog
 
-| Action                                      | Description                                |
-| ------------------------------------------- | ------------------------------------------ |
-| `command.run`                               | Run shell commands                         |
-| `directory.create` / `directory.copy`       | Manage directories                         |
-| `file.copy` / `file.link` / `file.template` | Manage files                               |
-| `git.clone`                                 | Clone git repositories                     |
-| `git.config`                                | Set gitconfig values (global/local/system) |
-| `package.install`                           | Install packages (Homebrew, apt, dnf, …)   |
-| `macos.defaults`                            | Write macOS defaults                       |
-| `group` / `user`                            | Manage Unix groups and users               |
-| `binary`                                    | Install binaries from GitHub releases      |
+| Action                                   | Description                                |
+| ---------------------------------------- | ------------------------------------------ |
+| `command.run`                            | Run shell commands                         |
+| `directory.create` / `directory.copy`    | Manage directories                         |
+| `file.copy` / `file.link` / `file.chmod` | Manage files and permissions               |
+| `git.clone` / `git.pull` / `git.config`  | Git repository and config management       |
+| `package.install` / `package.repository` | Install packages (Homebrew, apt, …)        |
+| `brew.bundle` / `brew.upgrade`           | Homebrew bundle and upgrades               |
+| `mas.install` / `mas.upgrade`            | Mac App Store apps (macOS)                 |
+| `macos.defaults`                         | Write macOS defaults                       |
+| `macos.service`                          | Load/unload LaunchDaemons and LaunchAgents |
+| `binary.github` / `binary.url`           | Install binaries from releases or URLs     |
+| `group` / `user`                         | Manage Unix groups and users               |
 
 ## Development
 
