@@ -13,7 +13,7 @@ mod package;
 mod plugin;
 mod user;
 
-use crate::actions::macos::MacOSDefault;
+use crate::actions::macos::{MacOSDefault, MacOSService};
 use crate::actions::mas::{MasInstall, MasUpgrade};
 use crate::{contexts::Contexts, manifests::Manifest, steps::Step};
 use anyhow::anyhow;
@@ -189,6 +189,9 @@ pub enum Actions {
     #[serde(rename = "macos.default")]
     MacOSDefault(ConditionalVariantAction<MacOSDefault>),
 
+    #[serde(rename = "macos.service")]
+    MacOSService(ConditionalVariantAction<MacOSService>),
+
     #[serde(rename = "mas.install")]
     MasInstall(ConditionalVariantAction<MasInstall>),
 
@@ -230,6 +233,7 @@ impl Actions {
             Actions::GitPull(a) => a,
             Actions::GroupAdd(a) => a,
             Actions::MacOSDefault(a) => a,
+            Actions::MacOSService(a) => a,
             Actions::MasInstall(a) => a,
             Actions::MasUpgrade(a) => a,
             Actions::PackageInstall(a) => a,
@@ -266,6 +270,7 @@ impl Deref for Actions {
             Actions::GitPull(a) => a,
             Actions::GroupAdd(a) => a,
             Actions::MacOSDefault(a) => a,
+            Actions::MacOSService(a) => a,
             Actions::MasInstall(a) => a,
             Actions::MasUpgrade(a) => a,
             Actions::PackageInstall(a) => a,
@@ -303,6 +308,7 @@ impl Display for Actions {
             Actions::GitPull(_) => "git.pull",
             Actions::GroupAdd(_) => "group.add",
             Actions::MacOSDefault(_) => "macos.default",
+            Actions::MacOSService(_) => "macos.service",
             Actions::MasInstall(_) => "mas.install",
             Actions::MasUpgrade(_) => "mas.upgrade",
             Actions::PackageInstall(_) => "package.install",

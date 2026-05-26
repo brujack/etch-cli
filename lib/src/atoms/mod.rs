@@ -4,6 +4,7 @@ pub mod directory;
 pub mod file;
 pub mod git;
 pub mod http;
+pub mod macos;
 pub mod plugin;
 
 pub enum SideEffect {}
