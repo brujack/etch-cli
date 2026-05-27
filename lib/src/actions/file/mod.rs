@@ -2,6 +2,7 @@ pub mod chmod;
 pub mod chown;
 pub mod copy;
 pub mod download;
+pub mod flags;
 pub mod link;
 pub mod remove;
 pub mod unarchive;
