@@ -24,7 +24,11 @@ impl Action for SystemdService {
         if let Some(s) = self.started {
             parts.push(if s { "start" } else { "stop" });
         }
-        format!("{} service {}", parts.join("+"), self.unit)
+        if parts.is_empty() {
+            format!("systemd service {}", self.unit)
+        } else {
+            format!("{} service {}", parts.join("+"), self.unit)
+        }
     }
 
     fn plan(&self, _: &Manifest, contexts: &Contexts) -> anyhow::Result<Vec<Step>> {
