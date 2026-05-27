@@ -386,3 +386,107 @@ fn failed_handler_does_not_stop_subsequent_handlers() {
         "second handler should run even when first handler failed"
     );
 }
+
+// ─── file.flags (macOS only) ──────────────────────────────────────────────────
+
+#[cfg(target_os = "macos")]
+fn ls_flags(path: &std::path::Path) -> String {
+    let output = std::process::Command::new("ls")
+        .args(["-lO", path.to_str().unwrap()])
+        .output()
+        .expect("ls -lO failed");
+    String::from_utf8(output.stdout).expect("non-UTF8 output")
+}
+
+#[test]
+#[cfg(target_os = "macos")]
+fn file_flags_sets_hidden() {
+    let dir = tempdir().unwrap();
+
+    let target = dir.path().join("flagtest.txt");
+    fs::write(&target, "flagged").unwrap();
+
+    fs::write(
+        dir.path().join("test.yaml"),
+        format!(
+            "actions:\n  - action: file.flags\n    path: {}\n    flags: [hidden]\n",
+            target.display()
+        ),
+    )
+    .unwrap();
+
+    apply(dir.path()).success();
+
+    let flags_output = ls_flags(&target);
+    assert!(
+        flags_output.contains("hidden"),
+        "expected 'hidden' in ls -lO output, got: {flags_output}"
+    );
+
+    // Clear flag so tempdir cleanup succeeds
+    std::process::Command::new("chflags")
+        .args(["nohidden", target.to_str().unwrap()])
+        .status()
+        .unwrap();
+}
+
+#[test]
+#[cfg(target_os = "macos")]
+fn file_flags_is_idempotent() {
+    let dir = tempdir().unwrap();
+
+    let target = dir.path().join("flagtest.txt");
+    fs::write(&target, "flagged").unwrap();
+
+    fs::write(
+        dir.path().join("test.yaml"),
+        format!(
+            "actions:\n  - action: file.flags\n    path: {}\n    flags: [hidden]\n",
+            target.display()
+        ),
+    )
+    .unwrap();
+
+    apply(dir.path()).success();
+    apply(dir.path()).success(); // second apply must also succeed
+
+    let flags_output = ls_flags(&target);
+    assert!(flags_output.contains("hidden"));
+
+    std::process::Command::new("chflags")
+        .args(["nohidden", target.to_str().unwrap()])
+        .status()
+        .unwrap();
+}
+
+#[test]
+#[cfg(target_os = "macos")]
+fn file_flags_clears_hidden() {
+    let dir = tempdir().unwrap();
+
+    let target = dir.path().join("flagtest.txt");
+    fs::write(&target, "flagged").unwrap();
+
+    // Set the flag manually first
+    std::process::Command::new("chflags")
+        .args(["hidden", target.to_str().unwrap()])
+        .status()
+        .unwrap();
+    assert!(ls_flags(&target).contains("hidden"));
+
+    fs::write(
+        dir.path().join("test.yaml"),
+        format!(
+            "actions:\n  - action: file.flags\n    path: {}\n    flags: [nohidden]\n",
+            target.display()
+        ),
+    )
+    .unwrap();
+
+    apply(dir.path()).success();
+
+    assert!(
+        !ls_flags(&target).contains("hidden"),
+        "expected 'hidden' to be cleared"
+    );
+}
