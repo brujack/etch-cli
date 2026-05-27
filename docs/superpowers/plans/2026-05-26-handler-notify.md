@@ -1,5 +1,7 @@
 # Handler/Notify Pattern Implementation Plan
 
+> **Status: DONE** — merged in PR #50 (2026-05-27)
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add Ansible-style handlers to etch manifests — actions declare `notify: [name]`; named handlers in a `handlers:` section run once at end of manifest if any notifying action made a change.

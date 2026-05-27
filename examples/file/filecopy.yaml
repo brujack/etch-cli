@@ -1,7 +1,12 @@
 actions:
-  # This will be rendered with contexts
+  # Template rendering with Tera (Jinja2-compatible syntax).
+  # Source file is in the `files/` subdirectory next to this manifest.
+  # All context namespaces are available: user.*, os.*, variables.*, env.*, manifest_dir.
+  # IMPORTANT: manifest variables use the `variables.` prefix — {{ variables.my_var }},
+  # NOT {{ my_var }} (bare names render empty without error).
+  # See files/some-file.j2 for a full variable reference with examples.
   - action: file.copy
-    from: some-file
+    from: some-file.j2
     to: /tmp/some-file-rendered
     template: true
 

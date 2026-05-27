@@ -80,6 +80,34 @@ handlers:
       args: [Dock]
 ```
 
+### Templates
+
+`file.copy` supports Tera (Jinja2-compatible) template rendering with `template: true`. The source file is rendered before being written to the destination.
+
+```yaml
+actions:
+    - action: file.copy
+      from: nginx.conf.j2 # file in the `files/` subdirectory
+      to: /etc/nginx/nginx.conf
+      template: true
+      chmod: "0644"
+      privileged: true
+```
+
+Available context namespaces inside templates:
+
+| Namespace      | Examples                                                        |
+| -------------- | --------------------------------------------------------------- |
+| `user.*`       | `{{ user.username }}`, `{{ user.home_dir }}`                    |
+| `os.*`         | `{{ os.name }}` (`macos`/`linux`), `{{ os.hostname }}`          |
+| `variables.*`  | `{{ variables.my_var }}` — values from `etch.yaml` `variables:` |
+| `env.*`        | `{{ env.HOME }}`                                                |
+| `manifest_dir` | absolute path to the manifest directory                         |
+
+**Common mistake:** using `{{ my_var }}` (bare) instead of `{{ variables.my_var }}`. Bare names render empty without error.
+
+Tera supports `{% if %}`, `{% for %}`, filters (`| default(value="x")`), and the custom `read_file_contents(path=...)` function. See `examples/file/files/some-file.j2` for a full reference.
+
 See `CLAUDE.md` for the full action catalog with all fields documented.
 
 ## Action catalog
