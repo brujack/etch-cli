@@ -1,0 +1,35 @@
+# Enable and start SSH daemon (system daemon — needs privileged)
+- action: systemd.service
+  unit: sshd.service
+  enabled: true
+  started: true
+  privileged: true
+  where: 'os.family == "linux"'
+
+# Disable bluetooth at boot, leave runtime state alone
+- action: systemd.service
+  unit: bluetooth.service
+  enabled: false
+  privileged: true
+  where: 'os.family == "linux"'
+
+# Stop a service without disabling it at boot
+- action: systemd.service
+  unit: cups.service
+  started: false
+  privileged: true
+  where: 'os.family == "linux"'
+
+# Enable at boot without starting now
+- action: systemd.service
+  unit: nginx.service
+  enabled: true
+  privileged: true
+  where: 'os.family == "linux"'
+
+# Control runtime only — no change to boot persistence
+- action: systemd.service
+  unit: redis.service
+  started: true
+  privileged: true
+  where: 'os.family == "linux"'

@@ -11,10 +11,12 @@ mod macos;
 mod mas;
 mod package;
 mod plugin;
+mod systemd;
 mod user;
 
 use crate::actions::macos::{MacOSDefault, MacOSService};
 use crate::actions::mas::{MasInstall, MasUpgrade};
+use crate::actions::systemd::SystemdService;
 use crate::{contexts::Contexts, manifests::Manifest, steps::Step};
 use anyhow::anyhow;
 use binary::{BinaryGitHub, BinaryUrl};
@@ -192,6 +194,9 @@ pub enum Actions {
     #[serde(rename = "macos.service")]
     MacOSService(ConditionalVariantAction<MacOSService>),
 
+    #[serde(rename = "systemd.service")]
+    SystemdService(ConditionalVariantAction<SystemdService>),
+
     #[serde(rename = "mas.install")]
     MasInstall(ConditionalVariantAction<MasInstall>),
 
@@ -234,6 +239,7 @@ impl Actions {
             Actions::GroupAdd(a) => a,
             Actions::MacOSDefault(a) => a,
             Actions::MacOSService(a) => a,
+            Actions::SystemdService(a) => a,
             Actions::MasInstall(a) => a,
             Actions::MasUpgrade(a) => a,
             Actions::PackageInstall(a) => a,
@@ -271,6 +277,7 @@ impl Deref for Actions {
             Actions::GroupAdd(a) => a,
             Actions::MacOSDefault(a) => a,
             Actions::MacOSService(a) => a,
+            Actions::SystemdService(a) => a,
             Actions::MasInstall(a) => a,
             Actions::MasUpgrade(a) => a,
             Actions::PackageInstall(a) => a,
@@ -309,6 +316,7 @@ impl Display for Actions {
             Actions::GroupAdd(_) => "group.add",
             Actions::MacOSDefault(_) => "macos.default",
             Actions::MacOSService(_) => "macos.service",
+            Actions::SystemdService(_) => "systemd.service",
             Actions::MasInstall(_) => "mas.install",
             Actions::MasUpgrade(_) => "mas.upgrade",
             Actions::PackageInstall(_) => "package.install",
@@ -454,9 +462,12 @@ actions:
     scope: global
     key: user.email
     value: test@example.com
+  - action: systemd.service
+    unit: sshd.service
+    enabled: true
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(22, manifest.actions.len());
+        assert_eq!(23, manifest.actions.len());
     }
 
     #[test]
@@ -521,6 +532,9 @@ actions:
   - action: brew.upgrade
   - action: brew.cleanup
   - action: mas.upgrade
+  - action: systemd.service
+    unit: sshd.service
+    enabled: true
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
 
@@ -549,6 +563,7 @@ actions:
             "brew.upgrade",
             "brew.cleanup",
             "mas.upgrade",
+            "systemd.service",
         ];
 
         for (action, expected) in manifest.actions.iter().zip(expected_names.iter()) {

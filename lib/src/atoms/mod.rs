@@ -6,6 +6,7 @@ pub mod git;
 pub mod http;
 pub mod macos;
 pub mod plugin;
+pub mod systemd;
 
 pub enum SideEffect {}
 
