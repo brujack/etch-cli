@@ -74,6 +74,9 @@ shellexpand = "3"
 [target.'cfg(unix)'.dependencies]
 uzers = "0.12"
 
+[target.'cfg(target_os = "macos")'.dependencies]
+libc = "0.2"
+
 [dev-dependencies]
 criterion = "0.5"
 tempfile = "3.26"
