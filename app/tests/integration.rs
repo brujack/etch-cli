@@ -392,7 +392,7 @@ fn failed_handler_does_not_stop_subsequent_handlers() {
 #[cfg(target_os = "macos")]
 fn ls_flags(path: &std::path::Path) -> String {
     let output = std::process::Command::new("ls")
-        .args(["-lO", path.to_str().unwrap()])
+        .args(["-lO", path.to_str().expect("path is valid UTF-8")])
         .output()
         .expect("ls -lO failed");
     String::from_utf8(output.stdout).expect("non-UTF8 output")
@@ -418,16 +418,17 @@ fn file_flags_sets_hidden() {
     apply(dir.path()).success();
 
     let flags_output = ls_flags(&target);
+
+    // cleanup BEFORE assert so it runs even if assert panics
+    std::process::Command::new("chflags")
+        .args(["nohidden", target.to_str().expect("path is valid UTF-8")])
+        .status()
+        .expect("chflags cleanup failed");
+
     assert!(
         flags_output.contains("hidden"),
         "expected 'hidden' in ls -lO output, got: {flags_output}"
     );
-
-    // Clear flag so tempdir cleanup succeeds
-    std::process::Command::new("chflags")
-        .args(["nohidden", target.to_str().unwrap()])
-        .status()
-        .unwrap();
 }
 
 #[test]
@@ -451,12 +452,14 @@ fn file_flags_is_idempotent() {
     apply(dir.path()).success(); // second apply must also succeed
 
     let flags_output = ls_flags(&target);
-    assert!(flags_output.contains("hidden"));
 
+    // cleanup BEFORE assert so it runs even if assert panics
     std::process::Command::new("chflags")
-        .args(["nohidden", target.to_str().unwrap()])
+        .args(["nohidden", target.to_str().expect("path is valid UTF-8")])
         .status()
-        .unwrap();
+        .expect("chflags cleanup failed");
+
+    assert!(flags_output.contains("hidden"));
 }
 
 #[test]
@@ -484,6 +487,12 @@ fn file_flags_clears_hidden() {
     .unwrap();
 
     apply(dir.path()).success();
+
+    // safety: ensure flag is cleared regardless of apply outcome
+    std::process::Command::new("chflags")
+        .args(["nohidden", target.to_str().expect("path is valid UTF-8")])
+        .status()
+        .ok(); // ignore error — file may already be clear
 
     assert!(
         !ls_flags(&target).contains("hidden"),
