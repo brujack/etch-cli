@@ -27,6 +27,7 @@ use file::chmod::FileChmod;
 use file::chown::FileChown;
 use file::copy::FileCopy;
 use file::download::FileDownload;
+use file::flags::FileFlags;
 use file::remove::FileRemove;
 use file::unarchive::FileUnarchive;
 use git::{GitClone, GitConfig, GitPull};
@@ -135,6 +136,9 @@ pub enum Actions {
     #[serde(rename = "file.chmod")]
     FileChmod(ConditionalVariantAction<FileChmod>),
 
+    #[serde(rename = "file.flags")]
+    FileFlags(ConditionalVariantAction<FileFlags>),
+
     #[serde(rename = "file.copy")]
     FileCopy(ConditionalVariantAction<FileCopy>),
 
@@ -231,6 +235,7 @@ impl Actions {
             Actions::DirectoryCopy(a) => a,
             Actions::DirectoryCreate(a) => a,
             Actions::FileChmod(a) => a,
+            Actions::FileFlags(a) => a,
             Actions::FileCopy(a) => a,
             Actions::FileChown(a) => a,
             Actions::FileDownload(a) => a,
@@ -267,6 +272,7 @@ impl Actions {
             Actions::DirectoryCreate(a) => &a.notify,
             Actions::DirectoryRemove(a) => &a.notify,
             Actions::FileChmod(a) => &a.notify,
+            Actions::FileFlags(a) => &a.notify,
             Actions::FileCopy(a) => &a.notify,
             Actions::FileChown(a) => &a.notify,
             Actions::FileDownload(a) => &a.notify,
@@ -304,6 +310,7 @@ impl Deref for Actions {
             Actions::DirectoryCopy(a) => a,
             Actions::DirectoryCreate(a) => a,
             Actions::FileChmod(a) => a,
+            Actions::FileFlags(a) => a,
             Actions::FileCopy(a) => a,
             Actions::FileChown(a) => a,
             Actions::FileDownload(a) => a,
@@ -336,6 +343,7 @@ impl Display for Actions {
             Actions::DirectoryCopy(_) => "directory.copy",
             Actions::DirectoryCreate(_) => "directory.create",
             Actions::FileChmod(_) => "file.chmod",
+            Actions::FileFlags(_) => "file.flags",
             Actions::FileCopy(_) => "file.copy",
             Actions::FileChown(_) => "file.chown",
             Actions::FileDownload(_) => "file.download",
@@ -534,9 +542,12 @@ actions:
   - action: systemd.service
     unit: sshd.service
     enabled: true
+  - action: file.flags
+    path: /tmp/f
+    flags: [hidden]
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(23, manifest.actions.len());
+        assert_eq!(24, manifest.actions.len());
     }
 
     #[test]
@@ -560,6 +571,9 @@ actions:
   - action: file.chmod
     path: /tmp/f
     mode: "700"
+  - action: file.flags
+    path: /tmp/f
+    flags: [hidden]
   - action: file.download
     from: https://example.com/file.txt
     to: /tmp/file.txt
@@ -615,6 +629,7 @@ actions:
             "file.copy",
             "file.chown",
             "file.chmod",
+            "file.flags",
             "file.download",
             "file.link",
             "file.remove",
@@ -790,6 +805,9 @@ actions:
   - action: file.chmod
     path: /tmp/f
     mode: "700"
+  - action: file.flags
+    path: /tmp/f
+    flags: [hidden]
   - action: file.copy
     from: a
     to: b
@@ -846,7 +864,7 @@ actions:
     value: test@example.com
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(26, manifest.actions.len());
+        assert_eq!(27, manifest.actions.len());
 
         for action in &manifest.actions {
             // Exercise inner_ref() for every variant

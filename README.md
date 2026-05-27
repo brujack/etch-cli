@@ -116,7 +116,7 @@ See `CLAUDE.md` for the full action catalog with all fields documented.
 | ---------------------------------------- | ------------------------------------------ |
 | `command.run`                            | Run shell commands                         |
 | `directory.create` / `directory.copy`    | Manage directories                         |
-| `file.copy` / `file.link` / `file.chmod` | Manage files and permissions               |
+| `file.copy` / `file.link` / `file.chmod` / `file.flags` | Manage files, permissions, and BSD flags   |
 | `git.clone` / `git.pull` / `git.config`  | Git repository and config management       |
 | `package.install` / `package.repository` | Install packages (Homebrew, apt, …)        |
 | `brew.bundle` / `brew.upgrade`           | Homebrew bundle and upgrades               |

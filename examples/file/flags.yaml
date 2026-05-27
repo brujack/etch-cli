@@ -1,0 +1,12 @@
+actions:
+  # Unhide ~/Library (macOS hides it by default)
+  - action: file.flags
+    path: "{{ user.home_dir }}/Library"
+    flags: [nohidden]
+    where: 'os.name == "macos"'
+
+  # Protect SSH private key from accidental modification
+  - action: file.flags
+    path: "{{ user.home_dir }}/.ssh/id_ed25519"
+    flags: [uchg]
+    where: 'os.name == "macos"'

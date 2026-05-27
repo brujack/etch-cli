@@ -1347,6 +1347,7 @@ dependencies = [
  "hickory-resolver",
  "ignore",
  "indexmap 2.14.0",
+ "libc",
  "normpath",
  "octocrab",
  "os_info",

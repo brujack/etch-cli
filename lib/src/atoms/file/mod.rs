@@ -1,3 +1,8 @@
+#[cfg(target_os = "macos")]
+pub mod chflags;
+#[cfg(target_os = "macos")]
+pub use chflags::Chflags;
+
 mod chmod;
 mod chown;
 mod contents;
