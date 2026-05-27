@@ -287,6 +287,8 @@ Pre-push hook: `make test` (full suite before push reaches GitHub)
 
 The release workflow (`release.yml`) checks against the previous git tag. The tag `v${VERSION}` is created **after** the semver check step (near the end of the workflow), so `git tag --sort=-version:refname | grep "^v" | head -1` correctly returns the previous release tag at check time — not the one being released. Do not change `head -1` to `sed -n '2p'`; that would skip a valid previous tag on future runs.
 
+Adding a new variant to the `Actions` enum always triggers an `enum_variant_added` advisory failure on the `semver-check` CI job. This is expected — every new action adds a public enum variant, which is a semver-breaking change by the spec. The semver-check job is `continue-on-error: true` and is not in the auto-merge `needs:` list, so it never blocks the PR.
+
 ## Security Baseline (captured Phase 1)
 
 - **cargo audit:** 3 unfixable advisories remain — hickory-proto ×2 (DNS DoS, no server surface), rsa (Marvin timing, not a signing oracle). Ignored via `--ignore` flags in `.github/workflows/cargo-audit-scheduled.yml`. **`cargo audit` does NOT read `deny.toml`** — that file is for `cargo deny` only. New advisories must be triaged in both places independently.
