@@ -1311,6 +1311,7 @@ dependencies = [
  "dirs-next",
  "etch-lib",
  "gix",
+ "indexmap 2.14.0",
  "insta",
  "petgraph",
  "predicates",

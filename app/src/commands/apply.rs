@@ -5,6 +5,7 @@ use comfy_table::{Cell, ContentArrangement, Table};
 use core::panic;
 use etch_lib::contexts::to_rhai;
 use etch_lib::manifests::{load, Manifest};
+use indexmap::IndexSet;
 use petgraph::{visit::DfsPostOrder, Graph};
 use rhai::Engine;
 use std::path::PathBuf;
@@ -214,6 +215,7 @@ impl EtchCommand for Apply {
                 .entered();
 
                 let mut successful = true;
+                let mut notified: IndexSet<String> = IndexSet::new();
 
                 if let Some(label) = self.label.as_ref() {
                     if !m1.labels.contains(label) {
@@ -249,16 +251,17 @@ impl EtchCommand for Apply {
                     }
                 }
 
-                for action in m1.actions.iter() {
-                    let span_action = span!(tracing::Level::INFO, "", %action).entered();
+                for raw_action in m1.actions.iter() {
+                    let span_action = span!(tracing::Level::INFO, "", %raw_action).entered();
 
-                    let action = action.inner_ref();
+                    let action = raw_action.inner_ref();
 
                     let plan = match action.plan(m1, contexts) {
                         Ok(steps) => steps,
                         Err(err) => {
                             info!("Action failed to get plan: {:?}", err);
                             successful = false;
+                            span_action.exit();
                             continue;
                         }
                     };
@@ -279,6 +282,8 @@ impl EtchCommand for Apply {
                     }
 
                     let mut dry_run_count = 0usize;
+                    let mut steps_ran = 0usize;
+                    let mut all_succeeded = true;
                     for mut step in steps {
                         if dry_run {
                             dry_run_count += 1;
@@ -289,10 +294,13 @@ impl EtchCommand for Apply {
                         }
 
                         match step.atom.execute() {
-                            Ok(_) => (),
+                            Ok(_) => {
+                                steps_ran += 1;
+                            }
                             Err(err) => {
                                 debug!("Atom failed to execute: {:?}", err);
                                 successful = false;
+                                all_succeeded = false;
                                 break;
                             }
                         }
@@ -300,6 +308,7 @@ impl EtchCommand for Apply {
                         if !step.do_finalizers_allow_us_to_continue() {
                             debug!("Finalizers won't allow us to continue with this action");
                             successful = false;
+                            all_succeeded = false;
                             break;
                         }
                     }
@@ -309,10 +318,74 @@ impl EtchCommand for Apply {
                             action.summarize(),
                             dry_run_count
                         );
+                        if dry_run_count > 0 {
+                            for name in raw_action.notify() {
+                                println!("[dry run] handler '{}' would run", name);
+                            }
+                        }
                     } else {
                         info!("{}", action.summarize());
+                        if all_succeeded && steps_ran > 0 {
+                            for name in raw_action.notify() {
+                                notified.insert(name.clone());
+                            }
+                        }
                     }
                     span_action.exit();
+                }
+
+                // Run notified handlers in declaration order
+                if !dry_run {
+                    for handler in m1.handlers.iter() {
+                        if !notified.contains(&handler.name) {
+                            continue;
+                        }
+
+                        let handler_action = handler.action.inner_ref();
+
+                        let plan = match handler_action.plan(m1, contexts) {
+                            Ok(steps) => steps,
+                            Err(err) => {
+                                info!("Handler '{}' failed to plan: {:?}", handler.name, err);
+                                successful = false;
+                                continue;
+                            }
+                        };
+
+                        let mut steps = plan
+                            .into_iter()
+                            .filter(|step| step.do_initializers_allow_us_to_run())
+                            .filter(|step| match step.atom.plan() {
+                                Ok(outcome) => outcome.should_run,
+                                Err(_) => false,
+                            })
+                            .peekable();
+
+                        if steps.peek().is_none() {
+                            info!("Handler '{}': nothing to do", handler.name);
+                            continue;
+                        }
+
+                        for mut step in steps {
+                            match step.atom.execute() {
+                                Ok(_) => {}
+                                Err(err) => {
+                                    debug!("Handler '{}' failed: {:?}", handler.name, err);
+                                    successful = false;
+                                    break;
+                                }
+                            }
+                            if !step.do_finalizers_allow_us_to_continue() {
+                                debug!(
+                                    "Handler '{}': finalizers won't allow us to continue",
+                                    handler.name
+                                );
+                                successful = false;
+                                break;
+                            }
+                        }
+                        info!("Handler '{}' complete", handler.name);
+                    }
                 }
 
                 if dry_run {
