@@ -53,6 +53,9 @@ pub struct ConditionalVariantAction<T> {
 
     #[serde(default)]
     pub variants: Vec<Variant<T>>,
+
+    #[serde(default)]
+    pub notify: Vec<String>,
 }
 
 #[derive(JsonSchema, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -251,6 +254,41 @@ impl Actions {
             Actions::Plugin(a) => a,
         }
     }
+
+    pub fn notify(&self) -> &[String] {
+        match self {
+            Actions::BinaryGitHub(a) => &a.notify,
+            Actions::BinaryUrl(a) => &a.notify,
+            Actions::BrewBundle(a) => &a.notify,
+            Actions::BrewCleanup(a) => &a.notify,
+            Actions::BrewUpgrade(a) => &a.notify,
+            Actions::CommandRun(a) => &a.notify,
+            Actions::DirectoryCopy(a) => &a.notify,
+            Actions::DirectoryCreate(a) => &a.notify,
+            Actions::DirectoryRemove(a) => &a.notify,
+            Actions::FileChmod(a) => &a.notify,
+            Actions::FileCopy(a) => &a.notify,
+            Actions::FileChown(a) => &a.notify,
+            Actions::FileDownload(a) => &a.notify,
+            Actions::FileLink(a) => &a.notify,
+            Actions::FileRemove(a) => &a.notify,
+            Actions::FileUnarchive(a) => &a.notify,
+            Actions::GitClone(a) => &a.notify,
+            Actions::GitConfig(a) => &a.notify,
+            Actions::GitPull(a) => &a.notify,
+            Actions::GroupAdd(a) => &a.notify,
+            Actions::MacOSDefault(a) => &a.notify,
+            Actions::MacOSService(a) => &a.notify,
+            Actions::SystemdService(a) => &a.notify,
+            Actions::MasInstall(a) => &a.notify,
+            Actions::MasUpgrade(a) => &a.notify,
+            Actions::PackageInstall(a) => &a.notify,
+            Actions::PackageRepository(a) => &a.notify,
+            Actions::UserAdd(a) => &a.notify,
+            Actions::UserAddGroup(a) => &a.notify,
+            Actions::Plugin(a) => &a.notify,
+        }
+    }
 }
 
 impl Deref for Actions {
@@ -402,6 +440,37 @@ actions:
         let variant = &ext.variants[0];
         assert_eq!(variant.condition, Some(String::from("Debian")));
         assert_eq!(variant.action.command, "halt");
+    }
+
+    #[test]
+    fn notify_deserializes_from_yaml() {
+        let yaml = r#"
+actions:
+  - action: command.run
+    command: echo
+    notify: [restart-dock, reload-nginx]
+"#;
+        let m: Manifest = serde_yaml_ng::from_str(yaml).unwrap();
+        let action = match &m.actions[0] {
+            Actions::CommandRun(a) => a,
+            _ => panic!("expected CommandRun"),
+        };
+        assert_eq!(action.notify, vec!["restart-dock", "reload-nginx"]);
+    }
+
+    #[test]
+    fn notify_defaults_empty() {
+        let yaml = r#"
+actions:
+  - action: command.run
+    command: echo
+"#;
+        let m: Manifest = serde_yaml_ng::from_str(yaml).unwrap();
+        let action = match &m.actions[0] {
+            Actions::CommandRun(a) => a,
+            _ => panic!("expected CommandRun"),
+        };
+        assert!(action.notify.is_empty());
     }
 
     #[test]
