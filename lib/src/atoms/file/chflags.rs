@@ -26,8 +26,9 @@ pub(crate) fn compute_desired(current: u32, flags: &[String]) -> anyhow::Result<
 }
 
 fn get_st_flags(path: &std::path::Path) -> anyhow::Result<u32> {
-    let cstr = CString::new(path.to_string_lossy().as_bytes())
-        .map_err(|e| anyhow!("invalid path: {e}"))?;
+    use std::os::unix::ffi::OsStrExt;
+    let cstr =
+        CString::new(path.as_os_str().as_bytes()).map_err(|e| anyhow!("invalid path: {e}"))?;
     let mut sb: libc::stat = unsafe { std::mem::zeroed() };
     if unsafe { libc::stat(cstr.as_ptr(), &mut sb) } != 0 {
         return Err(anyhow!(
@@ -63,7 +64,8 @@ impl Atom for Chflags {
     fn execute(&mut self) -> anyhow::Result<()> {
         let current = get_st_flags(&self.path)?;
         let desired = compute_desired(current, &self.flags)?;
-        let cstr = CString::new(self.path.to_string_lossy().as_bytes())
+        use std::os::unix::ffi::OsStrExt;
+        let cstr = CString::new(self.path.as_os_str().as_bytes())
             .map_err(|e| anyhow!("invalid path: {e}"))?;
         if unsafe { libc::chflags(cstr.as_ptr(), desired as libc::c_uint) } != 0 {
             return Err(anyhow!(
@@ -123,6 +125,13 @@ mod tests {
         let flags = vec!["nohidden".to_string()];
         let desired = compute_desired(0, &flags).unwrap();
         assert_eq!(desired, 0);
+    }
+
+    #[test]
+    fn compute_desired_empty_flags_is_noop() {
+        let flags: Vec<String> = vec![];
+        let desired = compute_desired(0xDEAD, &flags).unwrap();
+        assert_eq!(desired, 0xDEAD);
     }
 
     #[test]
