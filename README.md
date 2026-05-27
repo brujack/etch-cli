@@ -75,6 +75,7 @@ See `CLAUDE.md` for the full action catalog with all fields documented.
 | `mas.install` / `mas.upgrade`            | Mac App Store apps (macOS)                 |
 | `macos.defaults`                         | Write macOS defaults                       |
 | `macos.service`                          | Load/unload LaunchDaemons and LaunchAgents |
+| `systemd.service`                        | Enable/disable/start/stop systemd units    |
 | `binary.github` / `binary.url`           | Install binaries from releases or URLs     |
 | `group` / `user`                         | Manage Unix groups and users               |
 
