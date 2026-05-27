@@ -1,0 +1,60 @@
+# Handler/notify pattern examples
+#
+# Handlers run once at the end of the manifest if any notifying action
+# made a change. Multiple actions can notify the same handler — it runs once.
+
+actions:
+    # macOS: restart Dock after any dock pref change
+    - action: macos.defaults
+      domain: com.apple.dock
+      key: autohide
+      kind: bool
+      value: "true"
+      notify: [restart-dock]
+      where: 'os.name == "macos"'
+
+    - action: macos.defaults
+      domain: com.apple.dock
+      key: tilesize
+      kind: integer
+      value: "48"
+      notify: [restart-dock]
+      where: 'os.name == "macos"'
+
+    # Linux: reload nginx after enabling the service
+    - action: systemd.service
+      unit: nginx.service
+      enabled: true
+      started: true
+      notify: [reload-nginx]
+      where: 'os.family == "linux"'
+
+    # Handler notified but skipped — skip_if_exists makes this a no-op
+    # when the file already exists, so the handler does not run.
+    - action: command.run
+      command: touch
+      args: [/tmp/etch-example-marker]
+      skip_if_exists: /tmp/etch-example-marker
+      notify: [on-first-run]
+
+handlers:
+    # Runs once after all dock pref actions, only if any changed
+    - name: restart-dock
+      action: command.run
+      command: killall
+      args: [Dock]
+      where: 'os.name == "macos"'
+
+    # Runs once after nginx is enabled, only if the service state changed
+    - name: reload-nginx
+      action: command.run
+      command: systemctl
+      args: [reload, nginx]
+      privileged: true
+      where: 'os.family == "linux"'
+
+    # Runs only on first apply (when marker file doesn't exist yet)
+    - name: on-first-run
+      action: command.run
+      command: echo
+      args: ["First run complete"]

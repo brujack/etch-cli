@@ -60,6 +60,26 @@ actions:
       to: ~/.zshrc
 ```
 
+### Handlers
+
+Handlers run once at the end of the manifest when a notifying action made a change:
+
+```yaml
+actions:
+    - action: macos.defaults
+      domain: com.apple.dock
+      key: autohide
+      kind: bool
+      value: "true"
+      notify: [restart-dock]
+
+handlers:
+    - name: restart-dock
+      action: command.run
+      command: killall
+      args: [Dock]
+```
+
 See `CLAUDE.md` for the full action catalog with all fields documented.
 
 ## Action catalog
