@@ -462,9 +462,12 @@ actions:
     scope: global
     key: user.email
     value: test@example.com
+  - action: systemd.service
+    unit: sshd.service
+    enabled: true
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(22, manifest.actions.len());
+        assert_eq!(23, manifest.actions.len());
     }
 
     #[test]
@@ -529,6 +532,9 @@ actions:
   - action: brew.upgrade
   - action: brew.cleanup
   - action: mas.upgrade
+  - action: systemd.service
+    unit: sshd.service
+    enabled: true
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
 
@@ -557,6 +563,7 @@ actions:
             "brew.upgrade",
             "brew.cleanup",
             "mas.upgrade",
+            "systemd.service",
         ];
 
         for (action, expected) in manifest.actions.iter().zip(expected_names.iter()) {

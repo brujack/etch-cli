@@ -41,17 +41,17 @@ impl Service {
         Ok(String::from_utf8_lossy(&output.stdout).trim() == "enabled")
     }
 
-    fn is_active(&self) -> bool {
+    fn is_active(&self) -> anyhow::Result<bool> {
         let status = if self.privileged {
             std::process::Command::new(&self.privilege_provider)
                 .args(["systemctl", "is-active", &self.unit])
-                .status()
+                .status()?
         } else {
             std::process::Command::new("systemctl")
                 .args(["is-active", &self.unit])
-                .status()
+                .status()?
         };
-        matches!(status, Ok(s) if s.success())
+        Ok(status.success())
     }
 
     fn run_systemctl(&self, subcommand: &str) -> anyhow::Result<()> {
@@ -119,7 +119,7 @@ impl Atom for Service {
         }
 
         if let Some(want_started) = self.started {
-            let currently_active = self.is_active();
+            let currently_active = self.is_active()?;
             if currently_active != want_started {
                 let subcommand = if want_started { "start" } else { "stop" };
                 self.run_systemctl(subcommand)?;
