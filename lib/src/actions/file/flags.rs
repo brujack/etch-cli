@@ -235,4 +235,36 @@ mod tests {
         assert!(s.contains("/tmp/myfile"));
         assert!(s.contains("uchg"));
     }
+
+    #[test]
+    #[cfg(target_os = "macos")]
+    fn plan_returns_exec_step_when_privileged() {
+        use super::FileFlags;
+        use crate::actions::file::FileActionConfig;
+        use crate::actions::Action;
+
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("test.txt");
+        std::fs::write(&path, "").unwrap();
+
+        let action = FileFlags {
+            path: path.display().to_string(),
+            flags: vec!["hidden".to_string()],
+            config: FileActionConfig { privileged: true },
+        };
+        let steps = action
+            .plan(
+                &crate::manifests::Manifest::default(),
+                &crate::contexts::Contexts::default(),
+            )
+            .unwrap();
+        // plan() may return 0 steps (already at desired) or 1 step (Exec atom).
+        // A fresh temp file has no flags set, so hidden needs to be set → 1 step.
+        assert_eq!(1, steps.len());
+        // The Exec atom's Display shows the command, not "BSD flags" (that's Chflags).
+        assert!(
+            steps[0].atom.to_string().contains("chflags")
+                || steps[0].atom.to_string().contains("CommandExec")
+        );
+    }
 }
