@@ -19,23 +19,38 @@ impl std::fmt::Display for Service {
         if let Some(s) = self.started {
             parts.push(if s { "start" } else { "stop" });
         }
-        write!(f, "SystemdService {} {}", parts.join("+"), self.unit)
+        if parts.is_empty() {
+            write!(f, "SystemdService {}", self.unit)
+        } else {
+            write!(f, "SystemdService {} {}", parts.join("+"), self.unit)
+        }
     }
 }
 
 impl Service {
     fn is_enabled(&self) -> anyhow::Result<bool> {
-        let output = std::process::Command::new("systemctl")
-            .args(["is-enabled", &self.unit])
-            .output()?;
-        let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
-        Ok(stdout == "enabled")
+        let output = if self.privileged {
+            std::process::Command::new(&self.privilege_provider)
+                .args(["systemctl", "is-enabled", &self.unit])
+                .output()?
+        } else {
+            std::process::Command::new("systemctl")
+                .args(["is-enabled", &self.unit])
+                .output()?
+        };
+        Ok(String::from_utf8_lossy(&output.stdout).trim() == "enabled")
     }
 
     fn is_active(&self) -> bool {
-        let status = std::process::Command::new("systemctl")
-            .args(["is-active", &self.unit])
-            .status();
+        let status = if self.privileged {
+            std::process::Command::new(&self.privilege_provider)
+                .args(["systemctl", "is-active", &self.unit])
+                .status()
+        } else {
+            std::process::Command::new("systemctl")
+                .args(["is-active", &self.unit])
+                .status()
+        };
         matches!(status, Ok(s) if s.success())
     }
 
@@ -57,12 +72,22 @@ impl Service {
         };
         let status = std::process::Command::new(&cmd).args(&args).status()?;
         if !status.success() {
-            anyhow::bail!(
-                "systemctl {} {} failed with {}",
-                subcommand,
-                self.unit,
-                status
-            );
+            if self.privileged {
+                anyhow::bail!(
+                    "{} systemctl {} {} failed with {}",
+                    self.privilege_provider,
+                    subcommand,
+                    self.unit,
+                    status
+                );
+            } else {
+                anyhow::bail!(
+                    "systemctl {} {} failed with {}",
+                    subcommand,
+                    self.unit,
+                    status
+                );
+            }
         }
         Ok(())
     }
@@ -468,5 +493,129 @@ mod tests {
         let s = format!("{atom}");
         assert!(s.contains("enable"), "expected 'enable' in: {s}");
         assert!(s.contains("start"), "expected 'start' in: {s}");
+    }
+
+    #[test]
+    fn display_empty_parts_no_double_space() {
+        // When both enabled and started are None, parts is empty; must not produce double space.
+        let atom = make_service("sshd.service", None, None);
+        let s = format!("{atom}");
+        assert!(
+            !s.contains("  "),
+            "expected no double space in display, got: {s}"
+        );
+        assert!(s.contains("sshd.service"), "expected unit in: {s}");
+        assert_eq!(s, "SystemdService sshd.service");
+    }
+
+    fn make_privileged_service(
+        unit: &str,
+        enabled: Option<bool>,
+        started: Option<bool>,
+        provider: &str,
+    ) -> Service {
+        Service {
+            unit: unit.to_string(),
+            enabled,
+            started,
+            privileged: true,
+            privilege_provider: provider.to_string(),
+        }
+    }
+
+    fn write_mock_provider(
+        mock_dir: &std::path::Path,
+        calls_file: &std::path::Path,
+        provider_name: &str,
+        is_enabled_output: &str,
+        is_active_exit: i32,
+        action_exit: i32,
+    ) {
+        use std::os::unix::fs::PermissionsExt;
+        let script = mock_dir.join(provider_name);
+        // Provider is called as: <provider> systemctl <subcommand> <unit>
+        let content = format!(
+            "#!/usr/bin/env bash\n\
+             printf '{provider_name} %s\\n' \"$*\" >> '{}'\n\
+             if [[ \"$2\" == \"is-enabled\" ]]; then\n\
+               printf '{}\\n'\n\
+               exit 0\n\
+             fi\n\
+             if [[ \"$2\" == \"is-active\" ]]; then\n\
+               exit {}\n\
+             fi\n\
+             exit {}\n",
+            calls_file.display(),
+            is_enabled_output,
+            is_active_exit,
+            action_exit,
+            provider_name = provider_name,
+        );
+        std::fs::write(&script, &content).unwrap();
+        std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).unwrap();
+    }
+
+    #[test]
+    #[serial]
+    fn execute_privileged_routes_is_enabled_through_provider() {
+        let tmp = tempfile::tempdir().unwrap();
+        let mock_dir = tempfile::tempdir().unwrap();
+        let calls_file = tmp.path().join("calls.log");
+        // provider reports unit is disabled → enable action should be triggered
+        write_mock_provider(mock_dir.path(), &calls_file, "sudo", "disabled", 1, 0);
+
+        let original_path = std::env::var("PATH").unwrap_or_default();
+        std::env::set_var(
+            "PATH",
+            format!("{}:{}", mock_dir.path().display(), original_path),
+        );
+
+        let mut atom = make_privileged_service("sshd.service", Some(true), None, "sudo");
+        let result = atom.execute();
+
+        std::env::set_var("PATH", &original_path);
+
+        assert!(result.is_ok(), "execute failed: {:?}", result);
+        let log = std::fs::read_to_string(&calls_file).unwrap_or_default();
+        assert!(
+            log.contains("sudo systemctl is-enabled"),
+            "expected is-enabled via sudo, got: {log}"
+        );
+        assert!(
+            log.contains("sudo systemctl enable sshd.service"),
+            "expected enable via sudo, got: {log}"
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn execute_privileged_routes_is_active_through_provider() {
+        let tmp = tempfile::tempdir().unwrap();
+        let mock_dir = tempfile::tempdir().unwrap();
+        let calls_file = tmp.path().join("calls.log");
+        // provider reports unit is inactive (exit 1) → start action should be triggered
+        write_mock_provider(mock_dir.path(), &calls_file, "sudo", "disabled", 1, 0);
+
+        let original_path = std::env::var("PATH").unwrap_or_default();
+        std::env::set_var(
+            "PATH",
+            format!("{}:{}", mock_dir.path().display(), original_path),
+        );
+
+        let mut atom = make_privileged_service("sshd.service", None, Some(true), "sudo");
+        let result = atom.execute();
+
+        std::env::set_var("PATH", &original_path);
+
+        assert!(result.is_ok(), "execute failed: {:?}", result);
+        let log = std::fs::read_to_string(&calls_file).unwrap_or_default();
+        assert!(
+            log.contains("sudo systemctl is-active"),
+            "expected is-active via sudo, got: {log}"
+        );
+        assert!(
+            log.contains("sudo systemctl start sshd.service"),
+            "expected start via sudo, got: {log}"
+        );
     }
 }
