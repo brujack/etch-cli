@@ -10,6 +10,13 @@ use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use tracing::error;
 
+#[derive(JsonSchema, Clone, Debug, Serialize, Deserialize)]
+pub struct ManifestHandler {
+    pub name: String,
+    #[serde(flatten)]
+    pub action: Actions,
+}
+
 #[derive(JsonSchema, Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Manifest {
     #[serde(default)]
@@ -26,6 +33,9 @@ pub struct Manifest {
 
     #[serde(default)]
     pub actions: Vec<Actions>,
+
+    #[serde(default)]
+    pub handlers: Vec<ManifestHandler>,
 
     #[serde(skip)]
     pub root_dir: Option<PathBuf>,
@@ -85,6 +95,7 @@ pub fn get_manifest_name(manifest_directory: &Path, location: &Path) -> anyhow::
 #[cfg(unix)]
 mod test {
     use super::*;
+    use serde_yaml_ng;
 
     #[test]
     fn test_top_level_main_yaml() {
@@ -150,5 +161,24 @@ mod test {
             "test.nested.hello",
             get_manifest_name(&manifest_directory, &location).unwrap()
         );
+    }
+
+    #[test]
+    fn handlers_section_deserializes() {
+        let yaml = r#"
+handlers:
+  - name: restart-dock
+    action: command.run
+    command: killall
+    args: [Dock]
+  - name: reload-nginx
+    action: command.run
+    command: systemctl
+    args: [reload, nginx]
+"#;
+        let m: Manifest = serde_yaml_ng::from_str(yaml).unwrap();
+        assert_eq!(m.handlers.len(), 2);
+        assert_eq!(m.handlers[0].name, "restart-dock");
+        assert_eq!(m.handlers[1].name, "reload-nginx");
     }
 }

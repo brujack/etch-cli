@@ -212,3 +212,177 @@ fn directory_create_is_idempotent() {
         "directory should still exist after second apply"
     );
 }
+
+// ─── handler/notify ───────────────────────────────────────────────────────────
+
+#[test]
+fn handler_runs_when_action_executes() {
+    let dir = tempdir().unwrap();
+    let sentinel = dir.path().join("handler_ran");
+
+    fs::write(
+        dir.path().join("test.yaml"),
+        format!(
+            "actions:\n\
+             - action: command.run\n\
+             \x20 command: echo\n\
+             \x20 args: [hello]\n\
+             \x20 notify: [mark-done]\n\
+             handlers:\n\
+             - name: mark-done\n\
+             \x20 action: command.run\n\
+             \x20 command: touch\n\
+             \x20 args: ['{sentinel}']\n",
+            sentinel = sentinel.display()
+        ),
+    )
+    .unwrap();
+
+    apply(dir.path()).success();
+
+    assert!(
+        sentinel.exists(),
+        "handler sentinel should exist after apply"
+    );
+}
+
+#[test]
+fn handler_runs_once_when_notified_by_multiple_actions() {
+    let dir = tempdir().unwrap();
+    let counter = dir.path().join("count.txt");
+
+    fs::write(
+        dir.path().join("test.yaml"),
+        format!(
+            "actions:\n\
+             - action: command.run\n\
+             \x20 command: echo\n\
+             \x20 args: [a]\n\
+             \x20 notify: [increment]\n\
+             - action: command.run\n\
+             \x20 command: echo\n\
+             \x20 args: [b]\n\
+             \x20 notify: [increment]\n\
+             handlers:\n\
+             - name: increment\n\
+             \x20 action: command.run\n\
+             \x20 command: sh\n\
+             \x20 args: ['-c', 'echo done >> {counter}']\n",
+            counter = counter.display()
+        ),
+    )
+    .unwrap();
+
+    apply(dir.path()).success();
+
+    let content = fs::read_to_string(&counter).unwrap();
+    let count = content.lines().filter(|l| *l == "done").count();
+    assert_eq!(
+        count, 1,
+        "handler should run exactly once, ran {count} times"
+    );
+}
+
+#[test]
+fn handler_not_triggered_when_action_skipped() {
+    let dir = tempdir().unwrap();
+    let guard_file = dir.path().join("guard.txt");
+    let sentinel = dir.path().join("handler_ran");
+
+    // Create the guard file so skip_if_exists causes the action to be skipped
+    fs::write(&guard_file, "exists").unwrap();
+
+    fs::write(
+        dir.path().join("test.yaml"),
+        format!(
+            "actions:\n\
+             - action: command.run\n\
+             \x20 command: echo\n\
+             \x20 args: [hello]\n\
+             \x20 skip_if_exists: '{guard}'\n\
+             \x20 notify: [mark-done]\n\
+             handlers:\n\
+             - name: mark-done\n\
+             \x20 action: command.run\n\
+             \x20 command: touch\n\
+             \x20 args: ['{sentinel}']\n",
+            guard = guard_file.display(),
+            sentinel = sentinel.display()
+        ),
+    )
+    .unwrap();
+
+    apply(dir.path()).success();
+
+    assert!(
+        !sentinel.exists(),
+        "handler should NOT run when action was skipped"
+    );
+}
+
+#[test]
+fn handler_not_triggered_when_action_fails() {
+    let dir = tempdir().unwrap();
+    let sentinel = dir.path().join("handler_ran");
+
+    fs::write(
+        dir.path().join("test.yaml"),
+        format!(
+            "actions:\n\
+             - action: command.run\n\
+             \x20 command: /nonexistent-binary-that-does-not-exist\n\
+             \x20 notify: [mark-done]\n\
+             handlers:\n\
+             - name: mark-done\n\
+             \x20 action: command.run\n\
+             \x20 command: touch\n\
+             \x20 args: ['{sentinel}']\n",
+            sentinel = sentinel.display()
+        ),
+    )
+    .unwrap();
+
+    // apply fails because the action errors, but handler must not have run
+    apply(dir.path()).failure();
+
+    assert!(
+        !sentinel.exists(),
+        "handler should NOT run when notifying action failed"
+    );
+}
+
+#[test]
+fn failed_handler_does_not_stop_subsequent_handlers() {
+    let dir = tempdir().unwrap();
+    let sentinel = dir.path().join("second_handler_ran");
+
+    fs::write(
+        dir.path().join("test.yaml"),
+        format!(
+            "actions:\n\
+             - action: command.run\n\
+             \x20 command: echo\n\
+             \x20 args: [hello]\n\
+             \x20 notify: [fail-first, mark-done]\n\
+             handlers:\n\
+             - name: fail-first\n\
+             \x20 action: command.run\n\
+             \x20 command: /nonexistent-binary-that-does-not-exist\n\
+             - name: mark-done\n\
+             \x20 action: command.run\n\
+             \x20 command: touch\n\
+             \x20 args: ['{sentinel}']\n",
+            sentinel = sentinel.display()
+        ),
+    )
+    .unwrap();
+
+    // apply fails because first handler errors
+    apply(dir.path()).failure();
+
+    // but second handler still ran
+    assert!(
+        sentinel.exists(),
+        "second handler should run even when first handler failed"
+    );
+}
