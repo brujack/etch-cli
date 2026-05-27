@@ -66,7 +66,7 @@ Handlers run once at the end of the manifest when a notifying action made a chan
 
 ```yaml
 actions:
-    - action: macos.defaults
+    - action: macos.default
       domain: com.apple.dock
       key: autohide
       kind: bool
