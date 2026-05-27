@@ -1,5 +1,7 @@
 # file.flags Implementation Plan
 
+> **Status: DONE** — merged in PR #51
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add a `file.flags` action that sets and clears BSD file flags (`hidden`, `nohidden`, `uchg`, `nouchg`) on macOS using `libc::stat()` and `libc::chflags()` for idempotent flag management.
