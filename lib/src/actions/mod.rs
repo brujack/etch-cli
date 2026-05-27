@@ -982,4 +982,16 @@ actions:
         assert_eq!(1, manifest.actions.len());
         assert!(matches!(manifest.actions[0], Actions::GitPull(_)));
     }
+
+    #[test]
+    fn actions_notify_method_returns_field() {
+        let yaml = r#"
+actions:
+  - action: command.run
+    command: echo
+    notify: [restart-dock]
+"#;
+        let m: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
+        assert_eq!(m.actions[0].notify(), &["restart-dock"]);
+    }
 }
