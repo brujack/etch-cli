@@ -5,7 +5,7 @@
 
 actions:
     # macOS: restart Dock after any dock pref change
-    - action: macos.defaults
+    - action: macos.default
       domain: com.apple.dock
       key: autohide
       kind: bool
@@ -13,7 +13,7 @@ actions:
       notify: [restart-dock]
       where: 'os.name == "macos"'
 
-    - action: macos.defaults
+    - action: macos.default
       domain: com.apple.dock
       key: tilesize
       kind: integer
