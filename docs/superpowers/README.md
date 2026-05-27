@@ -50,6 +50,7 @@ Master status index for all specs and implementation plans in this directory.
 | 2026-05-26 | [macos-service](plans/2026-05-26-macos-service.md)                                       | [macos-service](specs/2026-05-26-macos-service-design.md)                                                                 | Done    |
 | 2026-05-26 | [systemd-service](plans/2026-05-26-systemd-service.md)                                   | [systemd-service](specs/2026-05-26-systemd-service-design.md)                                                             | Done    |
 | 2026-05-26 | [handler-notify](plans/2026-05-26-handler-notify.md)                                     | [handler-notify](specs/2026-05-26-handler-notify-design.md)                                                               | Done    |
+| 2026-05-27 | [file-flags](plans/2026-05-27-file-flags.md)                                             | [file-flags](specs/2026-05-27-file-flags-design.md)                                                                       | Pending |
 
 ---
 
@@ -58,7 +59,6 @@ Master status index for all specs and implementation plans in this directory.
 | Feature                  | Notes                                                                                                                                                                                                                                                                                  |
 | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | ntfy notification action | Matches existing notification infra                                                                                                                                                                                                                                                    |
-| file.flags (chflags)     | `file.chmod` sets POSIX mode bits only. BSD file flags (`chflags nohidden`, `chflags uchg`) are macOS-specific and have no native action. Needs `file.flags` action with `path:`, `flags: [nohidden, uchg, …]`, `privileged: bool`. Idempotency via `ls -lO`.                          |
 | powershell.module        | No action for installing PowerShell modules from PSGallery. Dotfiles install 10 modules (Az, AWSPowerShell.NetCore, Microsoft.Graph, oh-my-posh, etc.) via script. Needs `powershell.module` with `name:`, `scope: CurrentUser\|AllUsers`, idempotent via `Get-Module -ListAvailable`. |
 | Mutation score threshold | Move `cargo mutants` from monthly advisory to a CI gate with a minimum score                                                                                                                                                                                                           |
 
