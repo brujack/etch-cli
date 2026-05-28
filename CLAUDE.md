@@ -238,11 +238,13 @@ Invoke `caveman:caveman-commit` skill to generate the commit message before runn
 
 **Run tests:** `make test`
 
-The test suite covers unit tests in `lib/src/` and integration tests in `app/tests/`. Current coverage is ~82% locally (macOS) and ~72% on Linux CI — the gap is macOS provider tests gated with `#[cfg(target_os = "macos")]` that don't run on ubuntu-latest. Practical ceiling is ~83% due to network operations, package managers, privilege escalation, and dead code that cannot be unit-tested.
+The test suite covers unit tests in `lib/src/` and integration tests in `app/tests/`. Current coverage is ~84% locally (macOS) and ~72% on Linux CI — the gap is macOS provider tests gated with `#[cfg(target_os = "macos")]` that don't run on ubuntu-latest. Practical ceiling is ~83% due to network operations, package managers, privilege escalation, and dead code that cannot be unit-tested.
 
 `app/tests/integration.rs` — 11 end-to-end tests spawning the real `etch` binary. Covers the core `etch apply` path for `file.link`, `file.copy`, `command.run`, `directory.create` (happy path + idempotency each), and `file.flags` (macOS only: set hidden, idempotent, clear hidden). These do not contribute to tarpaulin coverage (subprocess invocation) but verify behavioral correctness.
 
 `app/tests/snapshots.rs` — 5 snapshot tests using `insta` that lock the exact stdout format of `etch -h`, `etch apply --help`, `etch version`, `etch apply --dry-run`, and `etch apply -v --dry-run`. Version strings and tmpdir paths are scrubbed with filters. Any accidental format change fails CI. To update snapshots intentionally: run `INSTA_UPDATE=new cargo test --test snapshots`, then `cargo insta accept`, commit updated `.snap` files.
+
+`app/tests/cli_commands.rs` — 7 tests exercising CLI commands end-to-end: `version`, `gen-completions` (bash/zsh/fish), `contexts` (exits + contains "os"), and `plugin` (fails without subcommand). Uses `assert_cmd`.
 
 Coverage ceiling is approximately 83% due to hard-to-cover code:
 
