@@ -32,6 +32,29 @@ fn gen_completions_zsh_produces_output() {
 }
 
 #[test]
+fn gen_completions_fish_produces_output() {
+    etch()
+        .args(["gen-completions", "fish"])
+        .assert()
+        .success()
+        .stdout(predicates::str::contains("etch"));
+}
+
+#[test]
 fn contexts_exits_successfully() {
     etch().arg("contexts").assert().success();
+}
+
+#[test]
+fn contexts_output_contains_os_keys() {
+    etch()
+        .arg("contexts")
+        .assert()
+        .success()
+        .stdout(predicates::str::contains("os"));
+}
+
+#[test]
+fn plugin_without_subcommand_prints_help() {
+    etch().arg("plugin").assert().failure();
 }
