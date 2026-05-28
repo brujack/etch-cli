@@ -1,5 +1,7 @@
 # Test Coverage Improvement Implementation Plan
 
+> **Status: DONE** — merged in PR #52 (final CLI tests). Tasks 1–10 implemented across multiple PRs; coverage raised from ~39% to ~84% (local macOS). 90% goal dropped — structural ceiling ~83% due to uncoverable code (network ops, package managers, privilege escalation). CI gate remains at 70% (Linux ceiling ~72%).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Raise etch-cli test coverage from 39% to >90% by adding thorough tests across all action types, providers, atoms, and CLI commands.
