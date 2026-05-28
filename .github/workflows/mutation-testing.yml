@@ -2,7 +2,7 @@ name: mutation-testing
 
 # Runs cargo-mutants against etch-lib to verify tests catch behavior changes.
 # Coverage % measures whether code is exercised; mutation testing measures
-# whether tests catch behavior changes.
+# whether tests actually catch behavior changes — a much stronger quality signal.
 #
 # Triggered manually (workflow_dispatch) or monthly on schedule. Not on every PR
 # because mutant runs can take 20-60 minutes for etch-lib.
@@ -21,6 +21,7 @@ on:
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   TIMEOUT: ${{ github.event.inputs.timeout || '120' }}
+  MINIMUM_MUTATION_SCORE: "60"
 
 jobs:
   mutants:
@@ -42,6 +43,31 @@ jobs:
       - name: Run mutants
         working-directory: lib
         run: cargo mutants --timeout "${TIMEOUT}" --no-shuffle
+        continue-on-error: true
+
+      - name: Score gate
+        working-directory: lib
+        if: always()
+        run: |
+          if [[ ! -f mutants.out/caught.txt && ! -f mutants.out/missed.txt ]]; then
+            printf "ERROR: mutants.out/ missing — cargo mutants did not produce output\n"
+            exit 1
+          fi
+          count_lines() { [[ -f "$1" ]] && grep -c . "$1" || echo 0; }
+          CAUGHT=$(count_lines mutants.out/caught.txt)
+          MISSED=$(count_lines mutants.out/missed.txt)
+          TIMEOUT=$(count_lines mutants.out/timeout.txt)
+          TOTAL=$((CAUGHT + MISSED + TIMEOUT))
+          SCORE=$(( TOTAL > 0 ? (CAUGHT + TIMEOUT) * 100 / TOTAL : 100 ))
+          printf "Mutation score: %s%% (caught=%s missed=%s timeout=%s total=%s)\n" \
+            "${SCORE}" "${CAUGHT}" "${MISSED}" "${TIMEOUT}" "${TOTAL}"
+          if [[ ${SCORE} -lt ${MINIMUM_MUTATION_SCORE} ]]; then
+            printf "FAIL: score %s%% is below threshold %s%%\n" \
+              "${SCORE}" "${MINIMUM_MUTATION_SCORE}"
+            exit 1
+          fi
+          printf "PASS: score %s%% >= threshold %s%%\n" \
+            "${SCORE}" "${MINIMUM_MUTATION_SCORE}"
 
       - name: Upload mutants output
         if: always()
