@@ -52,6 +52,7 @@ impl Atom for GitConfigUnset {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
     use std::process::Command;
 
     fn setup_repo() -> tempfile::TempDir {
@@ -68,6 +69,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn plan_should_run_false_when_key_absent() {
         let tmp = setup_repo();
         let path = tmp.path().to_str().unwrap();
@@ -81,6 +83,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn plan_should_run_true_when_key_present() {
         let tmp = setup_repo();
         let path = tmp.path().to_str().unwrap();
@@ -105,6 +108,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn execute_removes_the_key() {
         let tmp = setup_repo();
         let path = tmp.path().to_str().unwrap();
