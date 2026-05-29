@@ -26,6 +26,9 @@ impl Atom for GitConfigUnset {
         args.push(self.key.clone());
         let status = std::process::Command::new("git")
             .args(&args)
+            .env_remove("GIT_DIR")
+            .env_remove("GIT_WORK_TREE")
+            .env_remove("GIT_INDEX_FILE")
             .output()?
             .status;
         Ok(Outcome {
@@ -59,6 +62,9 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         Command::new("git")
             .args(["-C", tmp.path().to_str().unwrap(), "init"])
+            .env_remove("GIT_DIR")
+            .env_remove("GIT_WORK_TREE")
+            .env_remove("GIT_INDEX_FILE")
             .status()
             .unwrap();
         tmp

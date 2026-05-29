@@ -1,0 +1,21 @@
+depends:
+  - ./core
+
+actions:
+  # Primary gitconfig — platform-aware.
+  # Add separate files per platform to your dotfiles repo if your git settings
+  # differ between macOS and Linux (e.g. credential helpers, diff tools).
+  - action: file.link
+    where: 'os.name == "macos"'
+    source: "{{ variables.dotfiles_dir }}/.gitconfig_mac"
+    target: "{{ user.home_dir }}/.gitconfig"
+
+  - action: file.link
+    where: 'os.name == "linux"'
+    source: "{{ variables.dotfiles_dir }}/.gitconfig_linux"
+    target: "{{ user.home_dir }}/.gitconfig"
+
+  # Global gitignore — referenced by gitconfig as core.excludesfile.
+  - action: file.link
+    source: "{{ variables.dotfiles_dir }}/.gitignore_global"
+    target: "{{ user.home_dir }}/.gitignore_global"

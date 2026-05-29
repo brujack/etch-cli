@@ -1,0 +1,13 @@
+actions:
+  # Install oh-my-zsh — skips if already present.
+  - action: command.run
+    command: bash
+    args:
+      - "-c"
+      - "RUNZSH=no KEEP_ZSHRC=yes sh -c \"$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)\""
+    skip_if_exists: "{{ user.home_dir }}/.oh-my-zsh"
+
+  # Clone tmux plugin manager — git.clone is idempotent (skips if dir exists).
+  - action: git.clone
+    repo_url: https://github.com/tmux-plugins/tpm
+    directory: "{{ user.home_dir }}/.tmux/plugins/tpm"
