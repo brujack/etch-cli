@@ -58,8 +58,7 @@ jobs:
           BINARY_NAME: ${{ inputs.binary_name }}
         run: |
           cosign sign-blob --yes "${BINARY_NAME}" \
-            --output-signature "${BINARY_NAME}.sig" \
-            --output-certificate "${BINARY_NAME}.pem"
+            --bundle "${BINARY_NAME}.bundle"
 
       - name: Upload signatures and SBOM to release
         env:
@@ -68,6 +67,5 @@ jobs:
           BINARY_NAME: ${{ inputs.binary_name }}
         run: |
           gh release upload "${RELEASE_TAG}" \
-            "${BINARY_NAME}.sig" \
-            "${BINARY_NAME}.pem" \
+            "${BINARY_NAME}.bundle" \
             "${BINARY_NAME}.sbom.spdx.json"
