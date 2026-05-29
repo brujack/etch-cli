@@ -9,6 +9,16 @@ on:
       binary_name:
         required: true
         type: string
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        required: true
+        type: string
+        description: "Release tag (e.g. v0.10.0)"
+      binary_name:
+        required: true
+        type: string
+        description: "Binary name (e.g. etch)"
 
 jobs:
   sign:
