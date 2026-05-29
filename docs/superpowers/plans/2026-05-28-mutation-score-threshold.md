@@ -1,5 +1,7 @@
 # Mutation Score Threshold Implementation Plan
 
+> **Status: DONE**
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add a minimum mutation score gate to `mutation-testing.yml` so the workflow fails when the mutation score drops below a threshold derived from the baseline run.
