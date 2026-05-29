@@ -1,0 +1,19 @@
+# Example etch.yaml — copy to ~/.config/etch/etch.yaml and customize.
+#
+# manifest_paths: where etch looks for manifests (this repo)
+# variables:      static values available as {{ variables.* }} in all manifests
+
+manifest_paths:
+  - ~/my-manifests
+
+variables:
+  # Path to your dotfiles repo. All symlink sources reference this.
+  dotfiles_dir: "~/git-repos/personal/dotfiles"
+
+  # Machine capabilities — set to true to enable gated actions.
+  # Use these in manifests with:  where: "variables.has_gui"
+  has_gui: false
+  has_devtools: false
+  has_k8s: false
+  has_docker: false
+  has_rust: false

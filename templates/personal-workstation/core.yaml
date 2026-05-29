@@ -1,0 +1,47 @@
+depends:
+  - ./tools
+
+actions:
+  # ── credential directories ──────────────────────────────────────────────
+  - action: directory.create
+    path: "{{ user.home_dir }}/.ssh"
+  - action: file.chmod
+    path: "{{ user.home_dir }}/.ssh"
+    mode: "700"
+
+  - action: directory.create
+    path: "{{ user.home_dir }}/.tf_creds"
+  - action: file.chmod
+    path: "{{ user.home_dir }}/.tf_creds"
+    mode: "700"
+
+  - action: directory.create
+    path: "{{ user.home_dir }}/.tsh"
+  - action: file.chmod
+    path: "{{ user.home_dir }}/.tsh"
+    mode: "700"
+
+  # ── shell config ────────────────────────────────────────────────────────
+  # Requires dotfiles_dir set in etch.yaml variables.
+  - action: file.link
+    source: "{{ variables.dotfiles_dir }}/.zshrc"
+    target: "{{ user.home_dir }}/.zshrc"
+
+  - action: file.link
+    source: "{{ variables.dotfiles_dir }}/.zprofile"
+    target: "{{ user.home_dir }}/.zprofile"
+
+  # ── editor ──────────────────────────────────────────────────────────────
+  - action: file.link
+    source: "{{ variables.dotfiles_dir }}/.vimrc"
+    target: "{{ user.home_dir }}/.vimrc"
+
+  # ── terminal multiplexer ────────────────────────────────────────────────
+  - action: file.link
+    source: "{{ variables.dotfiles_dir }}/.tmux.conf"
+    target: "{{ user.home_dir }}/.tmux.conf"
+
+  # ── SSH ─────────────────────────────────────────────────────────────────
+  - action: file.link
+    source: "{{ variables.dotfiles_dir }}/.ssh/config"
+    target: "{{ user.home_dir }}/.ssh/config"
