@@ -147,6 +147,7 @@ impl Atom for Exec {
             }
 
             Ok(output) => {
+                self.status.code = output.status.code().unwrap_or(1);
                 self.status.stdout = String::from_utf8(output.stdout)?;
                 self.status.stderr = String::from_utf8(output.stderr)?;
 
@@ -156,7 +157,7 @@ impl Atom for Exec {
 
                 Err(anyhow!(
                     "Command failed with exit code: {}",
-                    output.status.code().unwrap_or(1)
+                    self.status.code
                 ))
             }
 
