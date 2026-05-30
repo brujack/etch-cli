@@ -131,12 +131,14 @@ See `CLAUDE.md` for the full action catalog with all fields documented.
 
 ### Verbose output
 
-`RUST_LOG` is not used. Verbosity is controlled by the `-v` flag:
+`RUST_LOG` is not used. Verbosity is a **global flag** — it must come before the subcommand:
 
 ```bash
-etch apply -v    # DEBUG level — shows command exit codes and captured stdout/stderr
-etch apply -vv   # TRACE level
+etch -v apply    # DEBUG level — shows command exit codes and captured stdout/stderr
+etch -vv apply   # TRACE level
 ```
+
+**Common mistake:** `etch apply -v` fails with `error: unexpected argument '-v' found`.
 
 ### Linux: logs go to journald
 
@@ -156,7 +158,7 @@ journalctl -n 100 | grep -A5 "etch\|exit code\|stdout\|stderr"
 When `package.install` fails silently, etch has captured apt's stdout/stderr but only emits them at DEBUG level. To see the actual apt error:
 
 ```bash
-etch apply -v 2>&1 | tee /tmp/etch-debug.log
+etch -v apply 2>&1 | tee /tmp/etch-debug.log
 grep -A5 "exit code\|stderr\|stdout" /tmp/etch-debug.log
 ```
 
