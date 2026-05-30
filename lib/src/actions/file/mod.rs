@@ -33,12 +33,13 @@ pub trait FileAction: Action {
     fn file_action_config(&self) -> &FileActionConfig;
 
     fn resolve(&self, manifest: &Manifest, path: &str) -> anyhow::Result<PathBuf> {
+        let expanded = shellexpand::tilde(path).into_owned();
         Ok(manifest
             .root_dir
             .clone()
             .ok_or_else(|| anyhow!("Failed because manifest has no root_dir"))?
             .join("files")
-            .join(path)
+            .join(expanded)
             .normalize()
             .map_err(|e| {
                 anyhow!(

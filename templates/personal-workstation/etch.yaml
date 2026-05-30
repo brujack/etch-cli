@@ -8,7 +8,8 @@ manifest_paths:
 
 variables:
   # Path to your dotfiles repo. All symlink sources reference this.
-  dotfiles_dir: "~/git-repos/personal/dotfiles"
+  # Must be an absolute path — etch does not expand ~ in source: paths.
+  dotfiles_dir: "/home/yourname/git-repos/personal/dotfiles"
 
   # Machine capabilities — set to true to enable gated actions.
   # Use these in manifests with:  where: 'variables.has_gui == "true"'
