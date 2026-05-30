@@ -64,6 +64,8 @@ make install-hooks # install pre-commit and pre-push hooks (run once per checkou
 
 **Cross-compilation toolchain:** `cargo-zigbuild` + Zig (installed via `brew install zig` + `cargo install cargo-zigbuild`). Uses Zig's built-in C cross-compiler — no Docker required. `cross` (Docker-based) was attempted but has a known Apple Silicon bug in v0.2.5.
 
+**Release binary:** GitHub releases ship a single Linux x86_64 binary named `etch` (no platform suffix). There is no macOS binary in releases — macOS users must build from source (`cargo build --release`).
+
 ## Action Catalog
 
 Manifest actions map to `lib/src/actions/<name>/`:
