@@ -240,7 +240,7 @@ Invoke `caveman:caveman-commit` skill to generate the commit message before runn
 
 **Run tests:** `make test`
 
-The test suite covers unit tests in `lib/src/` and integration tests in `app/tests/`. Current coverage is ~84% locally (macOS) and ~72% on Linux CI — the gap is macOS provider tests gated with `#[cfg(target_os = "macos")]` that don't run on ubuntu-latest. Practical ceiling is ~83% due to network operations, package managers, privilege escalation, and dead code that cannot be unit-tested.
+The test suite covers unit tests in `lib/src/` and integration tests in `app/tests/`. Current coverage is ~84% locally (macOS) and ~75% on Linux CI — the gap is macOS provider tests gated with `#[cfg(target_os = "macos")]` that don't run on ubuntu-latest. Practical ceiling is ~83% due to network operations, package managers, privilege escalation, and dead code that cannot be unit-tested.
 
 `app/tests/integration.rs` — 11 end-to-end tests spawning the real `etch` binary. Covers the core `etch apply` path for `file.link`, `file.copy`, `command.run`, `directory.create` (happy path + idempotency each), and `file.flags` (macOS only: set hidden, idempotent, clear hidden). These do not contribute to tarpaulin coverage (subprocess invocation) but verify behavioral correctness.
 
@@ -262,9 +262,9 @@ cargo test -p etch-cli                                              # integratio
 cargo tarpaulin --exclude-files 'jsonschemagen/*' --fail-under 70  # coverage check (matches CI)
 ```
 
-**Coverage floor: 70%** (Linux CI gate; Linux measures ~72%, local macOS measures ~82% due to platform-specific tests).
+**Coverage floor: 70%** (Linux CI gate; Linux measures ~75%, local macOS measures ~84% due to platform-specific tests).
 
-**Exception to the global tdd.md ≥90% standard:** The global standard (`~/.claude/standards/tdd.md`) requires ≥90% line coverage. This repo operates at 70% CI gate due to structurally uncoverable code (network ops, package manager calls, privilege escalation, CLI binary dispatch). This is a documented exception — not a gap. Do not attempt to raise the gate above 74% (Linux ceiling) without verifying actual CI output first.
+**Exception to the global tdd.md ≥90% standard:** The global standard (`~/.claude/standards/tdd.md`) requires ≥90% line coverage. This repo operates at 70% CI gate due to structurally uncoverable code (network ops, package manager calls, privilege escalation, CLI binary dispatch). This is a documented exception — not a gap. Do not attempt to raise the gate above 76% (Linux ceiling) without verifying actual CI output first.
 
 ## CI
 
