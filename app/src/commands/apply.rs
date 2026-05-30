@@ -1,7 +1,6 @@
 use super::EtchCommand;
 use crate::Runtime;
 use clap::Parser;
-use comfy_table::{Cell, ContentArrangement, Table};
 use core::panic;
 use etch_lib::contexts::to_rhai;
 use etch_lib::manifests::{load, Manifest};
@@ -26,10 +25,14 @@ pub(crate) struct Apply {
     /// Define label selector
     #[arg(short, long)]
     pub label: Option<String>,
+
+    /// Output results as JSON
+    #[arg(long)]
+    pub json: bool,
 }
 
 impl Apply {
-    fn manifest_path(&self, runtime: &Runtime) -> anyhow::Result<PathBuf> {
+    pub(crate) fn manifest_path(&self, runtime: &Runtime) -> anyhow::Result<PathBuf> {
         for manifest in &self.manifests {
             if manifest.contains(std::path::MAIN_SEPARATOR) {
                 return Err(anyhow::anyhow!(
@@ -59,27 +62,7 @@ impl Apply {
 
     #[instrument(skip(self, runtime))]
     pub fn status(&self, runtime: &Runtime) -> anyhow::Result<()> {
-        let contexts = &runtime.contexts;
-        let manifest_path = self.manifest_path(runtime)?;
-
-        println!("Load manifests from path: {:#?}", manifest_path);
-
-        let manifests = load(manifest_path, contexts)?;
-
-        let mut table = Table::new();
-        table
-            .set_content_arrangement(ContentArrangement::Dynamic)
-            .set_width(40)
-            .set_header(vec!["Manifest", "Count of Actions"]);
-
-        for (name, manifest) in manifests.iter() {
-            table.add_row(vec![
-                Cell::new(name.to_string()),
-                Cell::new(format!("{}", manifest.actions.len())),
-            ]);
-        }
-        println!("{table}");
-        Ok(())
+        super::status::run_status(self, runtime)
     }
 }
 

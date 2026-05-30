@@ -1317,6 +1317,7 @@ dependencies = [
  "predicates",
  "rhai",
  "serde",
+ "serde_json",
  "serde_yaml_ng",
  "strip-ansi-escapes",
  "tealr",

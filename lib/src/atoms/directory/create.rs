@@ -1,6 +1,7 @@
-use crate::atoms::Outcome;
+use crate::atoms::{AtomStatus, Outcome};
 
 use super::super::Atom;
+use std::io;
 use std::path::PathBuf;
 
 pub struct Create {
@@ -30,6 +31,19 @@ impl Atom for Create {
 
         Ok(())
     }
+
+    fn status(&self) -> anyhow::Result<AtomStatus> {
+        match std::fs::metadata(&self.path) {
+            Ok(meta) if meta.is_dir() => Ok(AtomStatus::Ok),
+            Ok(_) => Ok(AtomStatus::Drifted {
+                expected: "directory".to_string(),
+                actual: "file".to_string(),
+            }),
+            Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(AtomStatus::Missing),
+            Err(e) => Err(anyhow::Error::from(e)
+                .context(format!("status: cannot stat {}", self.path.display()))),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -58,6 +72,39 @@ mod tests {
         let temp = temp_dir();
         let atom = Create { path: temp };
         assert_eq!(false, atom.plan().unwrap().should_run);
+    }
+
+    #[test]
+    fn status_missing_when_path_absent() {
+        let tmp = tempfile::tempdir().unwrap();
+        let atom = Create {
+            path: tmp.path().join("nonexistent"),
+        };
+        assert_eq!(atom.status().unwrap(), AtomStatus::Missing);
+    }
+
+    #[test]
+    fn status_ok_when_dir_exists() {
+        let tmp = tempfile::tempdir().unwrap();
+        let atom = Create {
+            path: tmp.path().to_path_buf(),
+        };
+        assert_eq!(atom.status().unwrap(), AtomStatus::Ok);
+    }
+
+    #[test]
+    fn status_drifted_when_path_is_file() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("file_not_dir");
+        std::fs::write(&path, "x").unwrap();
+        let atom = Create { path };
+        match atom.status().unwrap() {
+            AtomStatus::Drifted { expected, actual } => {
+                assert_eq!(expected, "directory");
+                assert_eq!(actual, "file");
+            }
+            other => panic!("expected Drifted, got {:?}", other),
+        }
     }
 
     #[test]
