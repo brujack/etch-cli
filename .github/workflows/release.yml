@@ -52,7 +52,7 @@ jobs:
         run: cargo build --release
 
       - name: Generate CHANGELOG
-        uses: orhun/git-cliff-action@v4
+        uses: orhun/git-cliff-action@f50e11560dce63f7c33227798f90b924471a88b5  # v4
         with:
           config: cliff.toml
           args: --verbose
@@ -61,9 +61,13 @@ jobs:
           GITHUB_REPO: ${{ github.repository }}
 
       - name: Generate release notes (latest only)
-        run: |
-          git-cliff --latest --strip all -o /tmp/release-notes.md 2>/dev/null \
-            || cp CHANGELOG.md /tmp/release-notes.md
+        uses: orhun/git-cliff-action@f50e11560dce63f7c33227798f90b924471a88b5  # v4
+        with:
+          config: cliff.toml
+          args: --latest --strip all
+        env:
+          OUTPUT: /tmp/release-notes.md
+          GITHUB_REPO: ${{ github.repository }}
 
       - name: Commit CHANGELOG
         continue-on-error: true
