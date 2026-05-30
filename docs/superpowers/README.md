@@ -73,10 +73,11 @@ Known defects to fix before implementing backlog features.
 
 ## Backlog
 
-| Feature                  | Notes                                                                                                                                                                                                                                                                                  |
-| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ntfy notification action | Matches existing notification infra                                                                                                                                                                                                                                                    |
-| powershell.module        | No action for installing PowerShell modules from PSGallery. Dotfiles install 10 modules (Az, AWSPowerShell.NetCore, Microsoft.Graph, oh-my-posh, etc.) via script. Needs `powershell.module` with `name:`, `scope: CurrentUser\|AllUsers`, idempotent via `Get-Module -ListAvailable`. |
+| Feature                         | Notes                                                                                                                                                                                                                                                                                  |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ntfy notification action        | Matches existing notification infra                                                                                                                                                                                                                                                    |
+| package.install progress output | `INFO Installing packages` gives no visibility into which packages are being installed or progress. Stream apt/brew output (package names + count) to the terminal during install so long runs don't appear hung.                                                                      |
+| powershell.module               | No action for installing PowerShell modules from PSGallery. Dotfiles install 10 modules (Az, AWSPowerShell.NetCore, Microsoft.Graph, oh-my-posh, etc.) via script. Needs `powershell.module` with `name:`, `scope: CurrentUser\|AllUsers`, idempotent via `Get-Module -ListAvailable`. |
 
 ---
 
