@@ -41,14 +41,38 @@ impl Atom for GitConfigUnset {
         let mut args = self.config_args.clone();
         args.push("--unset".into());
         args.push(self.key.clone());
-        let mut exec = Exec {
-            command: "git".into(),
-            arguments: args,
-            privileged: self.privileged,
-            privilege_provider: self.privilege_provider.clone(),
-            ..Default::default()
-        };
-        exec.execute()
+
+        if self.privileged {
+            // Privileged path (system scope) — GIT_DIR does not affect /etc/gitconfig.
+            // Delegate to Exec so sudo/doas/run0 wrapping is handled correctly.
+            let mut exec = Exec {
+                command: "git".into(),
+                arguments: args,
+                privileged: true,
+                privilege_provider: self.privilege_provider.clone(),
+                ..Default::default()
+            };
+            exec.execute()
+        } else {
+            // Non-privileged path (global/local scope) — clear git hook env vars so
+            // that `git -C <dir> config --local --unset` targets the intended repo,
+            // not the repo that launched the hook (GIT_DIR override takes precedence
+            // over -C when both are present).
+            let status = std::process::Command::new("git")
+                .args(&args)
+                .env_remove("GIT_DIR")
+                .env_remove("GIT_WORK_TREE")
+                .env_remove("GIT_INDEX_FILE")
+                .status()?;
+            if status.success() {
+                Ok(())
+            } else {
+                Err(anyhow::anyhow!(
+                    "git config --unset failed: exit code {}",
+                    status.code().unwrap_or(1)
+                ))
+            }
+        }
     }
 }
 
@@ -102,6 +126,9 @@ mod tests {
                 "user.email",
                 "test@example.com",
             ])
+            .env_remove("GIT_DIR")
+            .env_remove("GIT_WORK_TREE")
+            .env_remove("GIT_INDEX_FILE")
             .status()
             .unwrap();
         let atom = GitConfigUnset {
@@ -121,11 +148,17 @@ mod tests {
         // Set the key first
         Command::new("git")
             .args(["-C", path, "config", "--local", "user.name", "Test User"])
+            .env_remove("GIT_DIR")
+            .env_remove("GIT_WORK_TREE")
+            .env_remove("GIT_INDEX_FILE")
             .status()
             .unwrap();
         // Verify it exists
         let before = Command::new("git")
             .args(["-C", path, "config", "--local", "--get", "user.name"])
+            .env_remove("GIT_DIR")
+            .env_remove("GIT_WORK_TREE")
+            .env_remove("GIT_INDEX_FILE")
             .status()
             .unwrap();
         assert!(before.success());
@@ -141,9 +174,69 @@ mod tests {
         // Key should be gone
         let after = Command::new("git")
             .args(["-C", path, "config", "--local", "--get", "user.name"])
+            .env_remove("GIT_DIR")
+            .env_remove("GIT_WORK_TREE")
+            .env_remove("GIT_INDEX_FILE")
             .status()
             .unwrap();
         assert!(!after.success());
+    }
+
+    // Regression test: execute() must target the correct repo even when GIT_DIR
+    // is set (as it is inside a git pre-push hook). Without env_remove in execute(),
+    // `git -C <tmp> config --local --unset key` would silently target the hook's
+    // repo instead of <tmp>, potentially corrupting its gitconfig or failing if
+    // the key does not exist there.
+    #[test]
+    #[serial]
+    fn execute_targets_correct_repo_when_git_dir_is_set() {
+        let tmp = setup_repo();
+        let path = tmp.path().to_str().unwrap();
+
+        // Set the key in the temp repo (env_remove so it goes to the right place)
+        Command::new("git")
+            .args(["-C", path, "config", "--local", "user.name", "Hook Test"])
+            .env_remove("GIT_DIR")
+            .env_remove("GIT_WORK_TREE")
+            .env_remove("GIT_INDEX_FILE")
+            .status()
+            .unwrap();
+
+        let mut atom = GitConfigUnset {
+            config_args: local_config_args(path),
+            key: "user.name".into(),
+            privileged: false,
+            privilege_provider: String::new(),
+        };
+
+        // Simulate a git hook environment by setting GIT_DIR to a non-existent path.
+        // execute() must still target `path`, not whatever GIT_DIR points to.
+        let result = {
+            // Safety: std::env is process-global; serial_test ensures no concurrent tests.
+            unsafe {
+                std::env::set_var("GIT_DIR", "/nonexistent/.git");
+            }
+            let r = atom.execute();
+            unsafe {
+                std::env::remove_var("GIT_DIR");
+            }
+            r
+        };
+
+        assert!(result.is_ok(), "execute() failed: {:?}", result.err());
+
+        // Confirm the key is gone from the temp repo
+        let after = Command::new("git")
+            .args(["-C", path, "config", "--local", "--get", "user.name"])
+            .env_remove("GIT_DIR")
+            .env_remove("GIT_WORK_TREE")
+            .env_remove("GIT_INDEX_FILE")
+            .status()
+            .unwrap();
+        assert!(
+            !after.success(),
+            "key should have been removed from the temp repo"
+        );
     }
 
     #[test]
