@@ -204,8 +204,14 @@ impl Action for FileLink {
         }
         format!(
             "Linking file {} to {}",
-            self.from.clone().unwrap_or(String::from("unknown")),
-            self.to.clone().unwrap_or(String::from("unknown"))
+            self.source
+                .clone()
+                .or_else(|| self.from.clone())
+                .unwrap_or_else(|| "unknown".to_string()),
+            self.target
+                .clone()
+                .or_else(|| self.to.clone())
+                .unwrap_or_else(|| "unknown".to_string())
         )
     }
 
@@ -584,6 +590,28 @@ mod tests {
         assert!(
             summary.contains("~/.claude"),
             "summary should include target"
+        );
+    }
+
+    #[test]
+    fn summarize_uses_source_and_target_fields() {
+        let action = FileLink {
+            source: Some("/opt/dotfiles/config".to_string()),
+            target: Some("~/.config".to_string()),
+            ..Default::default()
+        };
+        let summary = action.summarize();
+        assert!(
+            summary.contains("/opt/dotfiles/config"),
+            "summary should include source, got: {summary}"
+        );
+        assert!(
+            summary.contains("~/.config"),
+            "summary should include target, got: {summary}"
+        );
+        assert!(
+            !summary.contains("unknown"),
+            "summary should not contain 'unknown', got: {summary}"
         );
     }
 

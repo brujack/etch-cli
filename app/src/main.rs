@@ -1,17 +1,13 @@
 use crate::commands::EtchCommand;
 use crate::config::{Commands, GlobalArgs};
 
-use std::io;
-
 use etch_lib::contexts::build_contexts;
 use etch_lib::contexts::Contexts;
 use etch_lib::manifests;
 
 use clap::Parser;
-use tracing::{error, Level};
-
-#[allow(unused_imports)]
-use tracing_subscriber::{fmt::writer::MakeWriterExt, layer::SubscriberExt, FmtSubscriber};
+use tracing::error;
+use tracing_subscriber::{filter::LevelFilter, layer::SubscriberExt, Layer, Registry};
 
 mod commands;
 mod config;
@@ -35,27 +31,31 @@ pub(crate) fn execute(runtime: Runtime) -> anyhow::Result<()> {
 }
 
 fn configure_tracing(args: &GlobalArgs) {
-    let stdout_writer = match args.verbose {
-        0 => io::stdout.with_max_level(tracing::Level::INFO),
-        1 => io::stdout.with_max_level(tracing::Level::DEBUG),
-        _ => io::stdout.with_max_level(tracing::Level::TRACE),
+    let stdout_level = match args.verbose {
+        0 => LevelFilter::INFO,
+        1 => LevelFilter::DEBUG,
+        _ => LevelFilter::TRACE,
     };
 
-    let builder = FmtSubscriber::builder()
-        .with_max_level(Level::TRACE)
+    // Per-layer filter on fmt keeps stdout at the requested verbosity without
+    // propagating that filter globally. journald receives all levels (TRACE+)
+    // independently via PLF (per-layer filtering) in tracing-subscriber 0.3.
+    let fmt_layer = tracing_subscriber::fmt::layer()
         .with_ansi(!args.no_color)
         .with_target(false)
-        .with_writer(stdout_writer)
-        .without_time();
+        .without_time()
+        .with_filter(stdout_level);
 
     #[cfg(target_os = "linux")]
-    if let Ok(layer) = tracing_journald::layer() {
-        tracing::subscriber::set_global_default(builder.finish().with(layer))
-            .expect("Unable to set a global subscriber");
+    if let Ok(journald_layer) = tracing_journald::layer() {
+        tracing::subscriber::set_global_default(
+            Registry::default().with(fmt_layer).with(journald_layer),
+        )
+        .expect("Unable to set a global subscriber");
         return;
     }
 
-    tracing::subscriber::set_global_default(builder.finish())
+    tracing::subscriber::set_global_default(Registry::default().with(fmt_layer))
         .expect("Unable to set a global subscriber");
 }
 

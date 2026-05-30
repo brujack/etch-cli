@@ -14,7 +14,16 @@ pub type PackageInstall = Package;
 
 impl Action for PackageInstall {
     fn summarize(&self) -> String {
-        "Installing packages".to_string()
+        let pkgs: Vec<&str> = if let Some(ref name) = self.name {
+            vec![name.as_str()]
+        } else {
+            self.list.iter().map(|s| s.as_str()).collect()
+        };
+        if pkgs.is_empty() {
+            "Installing packages".to_string()
+        } else {
+            format!("Installing: {}", pkgs.join(", "))
+        }
     }
 
     fn plan(&self, _manifest: &Manifest, context: &Contexts) -> anyhow::Result<Vec<Step>> {
@@ -140,6 +149,43 @@ mod tests {
             .unwrap();
         // bootstrap (1 step) + install (1 step) = 2 steps
         assert!(steps.len() >= 2);
+    }
+
+    #[test]
+    fn summarize_with_name() {
+        use super::PackageInstall;
+        use crate::actions::Action;
+        let pkg = PackageInstall {
+            name: Some(String::from("vim")),
+            ..Default::default()
+        };
+        let s = pkg.summarize();
+        assert!(s.contains("vim"), "summary: {s}");
+    }
+
+    #[test]
+    fn summarize_with_list() {
+        use super::PackageInstall;
+        use crate::actions::Action;
+        let pkg = PackageInstall {
+            list: vec![String::from("curl"), String::from("git")],
+            ..Default::default()
+        };
+        let s = pkg.summarize();
+        assert!(s.contains("curl"), "summary: {s}");
+        assert!(s.contains("git"), "summary: {s}");
+    }
+
+    #[test]
+    fn summarize_empty_falls_back() {
+        use super::PackageInstall;
+        use crate::actions::Action;
+        let pkg = PackageInstall {
+            ..Default::default()
+        };
+        // no packages set — should not panic
+        let s = pkg.summarize();
+        assert!(!s.is_empty());
     }
 
     #[cfg(target_os = "macos")]
