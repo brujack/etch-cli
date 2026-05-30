@@ -65,10 +65,10 @@ Master status index for all specs and implementation plans in this directory.
 
 Known defects to fix before implementing backlog features.
 
-| Bug                                     | Notes                                                                                                                                                                                                                                                |
-| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| file.link log message                   | `INFO Linking file unknown to unknown` logged when source/target render via `{{ variables.* }}`. Symlinks are created correctly; display uses wrong fallback strings. Fix: use rendered source/target in the log message, not the raw struct fields. |
-| package.install missing DEBIAN_FRONTEND | `apt install` without `DEBIAN_FRONTEND=noninteractive` hangs on debconf prompts (e.g. grub-pc device selection during kernel installs). Fix: set `DEBIAN_FRONTEND=noninteractive` in the environment when invoking apt.                              |
+| Bug                                     | Notes                                                                                                                                                                                                                                                                                                                                                                    |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| file.link log message                   | `INFO Linking file unknown to unknown` logged when source/target render via `{{ variables.* }}`. Symlinks are created correctly; display uses wrong fallback strings. Fix: use rendered source/target in the log message, not the raw struct fields.                                                                                                                     |
+| package.install missing DEBIAN_FRONTEND | `apt install` without `DEBIAN_FRONTEND=noninteractive` hangs on debconf prompts and `needrestart` service-restart dialogs on subsequent apt runs after `needrestart` is installed. Known triggers: grub-pc device selection, ttf-mscorefonts-installer EULA, needrestart restart dialog. Fix: set `DEBIAN_FRONTEND=noninteractive` in the environment when invoking apt. |
 
 ---
 
