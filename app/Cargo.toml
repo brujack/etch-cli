@@ -1,6 +1,6 @@
 [package]
 name = "etch-cli"
-version = "0.10.0"
+version = "0.10.1"
 authors = ["David McKay <david@rawkode.dev>", "Bruce Jackson <bjackson@pobox.com>"]
 edition = "2021"
 license = "MIT"
@@ -17,7 +17,7 @@ clap = { version = "4.5.60", features = ["derive"] }
 clap_complete = "4.5.66"
 colored = "3.1"
 comfy-table = "7"
-etch-lib = { path = "../lib", version = "0.10.0" }
+etch-lib = { path = "../lib", version = "0.10.1" }
 indexmap = "2"
 petgraph = "0.8"
 rhai = { version = "1.24", features = ["serde"] }
