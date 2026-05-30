@@ -58,6 +58,7 @@ Master status index for all specs and implementation plans in this directory.
 | 2026-05-29 | —                                                                                        | [file-rollback](specs/2026-05-29-file-rollback-design.md)                                                                 | Pending |
 | 2026-05-29 | —                                                                                        | [package-upgrade](specs/2026-05-29-package-upgrade-design.md)                                                             | Pending |
 | 2026-05-29 | —                                                                                        | [etch-update-command](specs/2026-05-29-etch-update-command-design.md)                                                     | Pending |
+| 2026-05-30 | —                                                                                        | [etch-update-workflow](specs/2026-05-30-etch-update-workflow-design.md)                                                   | Pending |
 
 ---
 
