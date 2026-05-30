@@ -1,5 +1,5 @@
 depends:
-  - ./core
+  - core
 
 actions:
   # Primary gitconfig — platform-aware.
