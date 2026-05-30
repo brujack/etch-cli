@@ -61,13 +61,22 @@ Master status index for all specs and implementation plans in this directory.
 
 ---
 
+## Bugs
+
+Known defects to fix before implementing backlog features.
+
+| Bug                   | Notes                                                                                                                                                                                                                                                |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| file.link log message | `INFO Linking file unknown to unknown` logged when source/target render via `{{ variables.* }}`. Symlinks are created correctly; display uses wrong fallback strings. Fix: use rendered source/target in the log message, not the raw struct fields. |
+
+---
+
 ## Backlog
 
-| Feature                   | Notes                                                                                                                                                                                                                                                                                  |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ntfy notification action  | Matches existing notification infra                                                                                                                                                                                                                                                    |
-| file.link log message bug | `INFO Linking file unknown to unknown` logged when source/target render via `{{ variables.* }}`. Symlinks are created correctly; display uses wrong fallback strings. Fix: use rendered source/target in the log message, not the raw struct fields.                                   |
-| powershell.module         | No action for installing PowerShell modules from PSGallery. Dotfiles install 10 modules (Az, AWSPowerShell.NetCore, Microsoft.Graph, oh-my-posh, etc.) via script. Needs `powershell.module` with `name:`, `scope: CurrentUser\|AllUsers`, idempotent via `Get-Module -ListAvailable`. |
+| Feature                  | Notes                                                                                                                                                                                                                                                                                  |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ntfy notification action | Matches existing notification infra                                                                                                                                                                                                                                                    |
+| powershell.module        | No action for installing PowerShell modules from PSGallery. Dotfiles install 10 modules (Az, AWSPowerShell.NetCore, Microsoft.Graph, oh-my-posh, etc.) via script. Needs `powershell.module` with `name:`, `scope: CurrentUser\|AllUsers`, idempotent via `Get-Module -ListAvailable`. |
 
 ---
 
