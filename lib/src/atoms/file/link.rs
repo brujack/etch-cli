@@ -1,7 +1,8 @@
-use crate::atoms::Outcome;
+use crate::atoms::{AtomStatus, Outcome};
 
 use super::super::Atom;
 use super::FileAtom;
+use std::io;
 use std::path::PathBuf;
 use tracing::{error, warn};
 
@@ -82,6 +83,21 @@ impl Atom for Link {
 
         Ok(())
     }
+
+    fn status(&self) -> anyhow::Result<AtomStatus> {
+        match std::fs::read_link(&self.target) {
+            Ok(actual) if actual == self.source => Ok(AtomStatus::Ok),
+            Ok(actual) => Ok(AtomStatus::Drifted {
+                expected: self.source.display().to_string(),
+                actual: actual.display().to_string(),
+            }),
+            Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(AtomStatus::Missing),
+            Err(e) => Err(anyhow::Error::from(e).context(format!(
+                "status: cannot read symlink {}",
+                self.target.display()
+            ))),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -160,6 +176,51 @@ mod tests {
         let display = format!("{atom}");
         assert!(display.contains("src"));
         assert!(display.contains("tgt"));
+    }
+
+    #[test]
+    fn status_missing_when_target_absent() {
+        let tmp = tempfile::tempdir().unwrap();
+        let source = tmp.path().join("source");
+        std::fs::write(&source, "x").unwrap();
+        let atom = Link {
+            source,
+            target: tmp.path().join("nonexistent"),
+        };
+        assert_eq!(atom.status().unwrap(), AtomStatus::Missing);
+    }
+
+    #[test]
+    fn status_ok_when_symlink_correct() {
+        let tmp = tempfile::tempdir().unwrap();
+        let source = tmp.path().join("source");
+        let target = tmp.path().join("link");
+        std::fs::write(&source, "x").unwrap();
+        std::os::unix::fs::symlink(&source, &target).unwrap();
+        let atom = Link { source, target };
+        assert_eq!(atom.status().unwrap(), AtomStatus::Ok);
+    }
+
+    #[test]
+    fn status_drifted_when_symlink_points_elsewhere() {
+        let tmp = tempfile::tempdir().unwrap();
+        let source = tmp.path().join("source");
+        let other = tmp.path().join("other");
+        let target = tmp.path().join("link");
+        std::fs::write(&source, "x").unwrap();
+        std::fs::write(&other, "y").unwrap();
+        std::os::unix::fs::symlink(&other, &target).unwrap();
+        let atom = Link {
+            source: source.clone(),
+            target,
+        };
+        match atom.status().unwrap() {
+            AtomStatus::Drifted { expected, actual } => {
+                assert_eq!(expected, source.display().to_string());
+                assert_eq!(actual, other.display().to_string());
+            }
+            other => panic!("expected Drifted, got {:?}", other),
+        }
     }
 
     #[test]

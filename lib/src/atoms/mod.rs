@@ -6,7 +6,10 @@ pub mod git;
 pub mod http;
 pub mod macos;
 pub mod plugin;
+pub mod status;
 pub mod systemd;
+
+pub use status::AtomStatus;
 
 pub enum SideEffect {}
 
@@ -21,6 +24,12 @@ pub trait Atom: std::fmt::Display {
 
     // Apply new to old
     fn execute(&mut self) -> anyhow::Result<()>;
+
+    /// Check whether this atom's declared state matches the current machine state.
+    /// Default: Unchecked (used for atoms whose state cannot be read, e.g. command.run).
+    fn status(&self) -> anyhow::Result<AtomStatus> {
+        Ok(AtomStatus::Unchecked)
+    }
 
     // These methods allow for finalizers to query the outcome of the Atom.
     // We'll provide default implementations to allow Atoms to opt in to
@@ -103,5 +112,11 @@ mod tests {
     fn echo_display_format() {
         let echo = Echo("stargate");
         assert_eq!(format!("{echo}"), "Echo: stargate");
+    }
+
+    #[test]
+    fn echo_status_returns_unchecked() {
+        let echo = Echo("test");
+        assert_eq!(echo.status().unwrap(), AtomStatus::Unchecked);
     }
 }

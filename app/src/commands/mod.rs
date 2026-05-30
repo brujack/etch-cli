@@ -1,6 +1,8 @@
 mod apply;
 pub(crate) use apply::Apply;
 
+pub(crate) mod status;
+
 mod version;
 pub(crate) use version::Version;
 

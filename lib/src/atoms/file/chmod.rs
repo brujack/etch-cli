@@ -1,7 +1,8 @@
-use crate::atoms::Outcome;
+use crate::atoms::{AtomStatus, Outcome};
 
 use super::super::Atom;
 use super::FileAtom;
+use std::io;
 use std::path::PathBuf;
 
 pub struct Chmod {
@@ -74,6 +75,25 @@ impl Atom for Chmod {
         )?;
 
         Ok(())
+    }
+
+    fn status(&self) -> anyhow::Result<AtomStatus> {
+        match std::fs::metadata(&self.path) {
+            Ok(meta) => {
+                let actual = meta.permissions().mode() & 0o7777;
+                if actual == self.mode {
+                    Ok(AtomStatus::Ok)
+                } else {
+                    Ok(AtomStatus::Drifted {
+                        expected: format!("{:04o}", self.mode),
+                        actual: format!("{:04o}", actual),
+                    })
+                }
+            }
+            Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(AtomStatus::Missing),
+            Err(e) => Err(anyhow::Error::from(e)
+                .context(format!("status: cannot stat {}", self.path.display()))),
+        }
     }
 }
 
@@ -187,6 +207,42 @@ mod tests {
         let display = format!("{atom}");
         assert!(display.contains("myfile.txt"));
         assert!(display.contains("755"));
+    }
+
+    #[test]
+    fn status_missing_when_path_absent() {
+        let tmp = tempfile::tempdir().unwrap();
+        let atom = Chmod {
+            path: tmp.path().join("nonexistent"),
+            mode: 0o644,
+        };
+        assert_eq!(atom.status().unwrap(), AtomStatus::Missing);
+    }
+
+    #[test]
+    fn status_ok_when_permissions_match() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("file.txt");
+        std::fs::write(&path, "x").unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o644)).unwrap();
+        let atom = Chmod { path, mode: 0o644 };
+        assert_eq!(atom.status().unwrap(), AtomStatus::Ok);
+    }
+
+    #[test]
+    fn status_drifted_when_permissions_differ() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("file.txt");
+        std::fs::write(&path, "x").unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o644)).unwrap();
+        let atom = Chmod { path, mode: 0o600 };
+        match atom.status().unwrap() {
+            AtomStatus::Drifted { expected, actual } => {
+                assert_eq!(expected, "0600");
+                assert_eq!(actual, "0644");
+            }
+            other => panic!("expected Drifted, got {:?}", other),
+        }
     }
 
     #[test]

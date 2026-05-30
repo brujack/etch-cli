@@ -10,4 +10,5 @@ Options:
   -m, --manifests <MANIFESTS>  Run a subset of your manifests, comma separated list. This should be a list of manifest names. No paths
       --dry-run                Performs a dry-run without changing the system
   -l, --label <LABEL>          Define label selector
+      --json                   Output status as JSON (status subcommand only)
   -h, --help                   Print help
