@@ -46,11 +46,21 @@ impl Exec {
             // Requested priviledged, but is already root
             (true, "root") => (self.command.clone(), self.arguments.clone()),
 
-            // Requested priviledged, but is not root
-            (true, _) => (
-                privilege_provider,
-                [vec![self.command.clone()], self.arguments.clone()].concat(),
-            ),
+            // Requested privileged, but is not root. sudo strips env vars by
+            // default, so inject them via `env KEY=VAL` before the command so
+            // they reach the child process regardless of sudoers configuration.
+            (true, _) => {
+                let mut args: Vec<String> = if !self.environment.is_empty() {
+                    let mut env_args = vec!["env".to_string()];
+                    env_args.extend(self.environment.iter().map(|(k, v)| format!("{k}={v}")));
+                    env_args
+                } else {
+                    vec![]
+                };
+                args.push(self.command.clone());
+                args.extend(self.arguments.clone());
+                (privilege_provider, args)
+            }
         }
     }
 
@@ -265,6 +275,44 @@ mod tests {
             vec![String::from("echo"), String::from("Hello, world!")],
             args
         );
+    }
+
+    #[test]
+    fn elevate_with_env_injects_env_prefix() {
+        let mut command_run = new_run_command(String::from("apt"));
+        command_run.arguments = vec![String::from("install"), String::from("--yes")];
+        command_run.privileged = true;
+        command_run.privilege_provider = Privilege::Sudo.to_string();
+        command_run.environment = vec![(
+            String::from("DEBIAN_FRONTEND"),
+            String::from("noninteractive"),
+        )];
+        let (command, args) = command_run.elevate_if_required();
+
+        assert_eq!("sudo", command);
+        assert_eq!(
+            vec![
+                "env",
+                "DEBIAN_FRONTEND=noninteractive",
+                "apt",
+                "install",
+                "--yes"
+            ],
+            args
+        );
+    }
+
+    #[test]
+    fn elevate_with_empty_env_unchanged() {
+        let mut command_run = new_run_command(String::from("apt"));
+        command_run.arguments = vec![String::from("install"), String::from("--yes")];
+        command_run.privileged = true;
+        command_run.privilege_provider = Privilege::Sudo.to_string();
+        // no environment set
+        let (command, args) = command_run.elevate_if_required();
+
+        assert_eq!("sudo", command);
+        assert_eq!(vec!["apt", "install", "--yes"], args);
     }
 
     #[test]
