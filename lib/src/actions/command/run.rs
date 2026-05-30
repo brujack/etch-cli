@@ -40,7 +40,11 @@ fn get_cwd() -> String {
 
 impl Action for RunCommand {
     fn summarize(&self) -> String {
-        format!("Running {} command", self.command)
+        if self.args.is_empty() {
+            format!("Running {}", self.command)
+        } else {
+            format!("Running {} {}", self.command, self.args.join(" "))
+        }
     }
 
     fn plan(&self, _: &Manifest, contexts: &Contexts) -> anyhow::Result<Vec<Step>> {
@@ -146,6 +150,31 @@ mod tests {
         assert_eq!(1, steps.len());
         assert_eq!(1, steps[0].initializers.len());
         assert_eq!(1, steps[0].finalizers.len());
+    }
+
+    #[test]
+    fn summarize_no_args() {
+        use crate::actions::Action;
+        let action = super::RunCommand {
+            command: String::from("bash"),
+            ..Default::default()
+        };
+        assert_eq!("Running bash", action.summarize());
+    }
+
+    #[test]
+    fn summarize_with_args() {
+        use crate::actions::Action;
+        let action = super::RunCommand {
+            command: String::from("bash"),
+            args: vec![String::from("-c"), String::from("apt-get update")],
+            ..Default::default()
+        };
+        let s = action.summarize();
+        assert!(s.contains("bash"), "summary: {s}");
+        assert!(s.contains("-c"), "summary: {s}");
+        assert!(s.contains("apt-get update"), "summary: {s}");
+        assert!(!s.contains("command"), "should not say 'command': {s}");
     }
 
     #[test]

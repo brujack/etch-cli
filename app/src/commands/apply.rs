@@ -259,7 +259,7 @@ impl EtchCommand for Apply {
                         .peekable();
 
                     if steps.peek().is_none() {
-                        info!("nothing to be done to reconcile action");
+                        info!("{}: nothing to be done", action.summarize());
                         span_action.exit();
                         continue;
                     }
