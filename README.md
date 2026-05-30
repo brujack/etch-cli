@@ -112,20 +112,59 @@ See `CLAUDE.md` for the full action catalog with all fields documented.
 
 ## Action catalog
 
-| Action                                   | Description                                |
-| ---------------------------------------- | ------------------------------------------ |
-| `command.run`                            | Run shell commands                         |
-| `directory.create` / `directory.copy`    | Manage directories                         |
+| Action                                                  | Description                                |
+| ------------------------------------------------------- | ------------------------------------------ |
+| `command.run`                                           | Run shell commands                         |
+| `directory.create` / `directory.copy`                   | Manage directories                         |
 | `file.copy` / `file.link` / `file.chmod` / `file.flags` | Manage files, permissions, and BSD flags   |
-| `git.clone` / `git.pull` / `git.config`  | Git repository and config management       |
-| `package.install` / `package.repository` | Install packages (Homebrew, apt, …)        |
-| `brew.bundle` / `brew.upgrade`           | Homebrew bundle and upgrades               |
-| `mas.install` / `mas.upgrade`            | Mac App Store apps (macOS)                 |
-| `macos.defaults`                         | Write macOS defaults                       |
-| `macos.service`                          | Load/unload LaunchDaemons and LaunchAgents |
-| `systemd.service`                        | Enable/disable/start/stop systemd units    |
-| `binary.github` / `binary.url`           | Install binaries from releases or URLs     |
-| `group` / `user`                         | Manage Unix groups and users               |
+| `git.clone` / `git.pull` / `git.config`                 | Git repository and config management       |
+| `package.install` / `package.repository`                | Install packages (Homebrew, apt, …)        |
+| `brew.bundle` / `brew.upgrade`                          | Homebrew bundle and upgrades               |
+| `mas.install` / `mas.upgrade`                           | Mac App Store apps (macOS)                 |
+| `macos.defaults`                                        | Write macOS defaults                       |
+| `macos.service`                                         | Load/unload LaunchDaemons and LaunchAgents |
+| `systemd.service`                                       | Enable/disable/start/stop systemd units    |
+| `binary.github` / `binary.url`                          | Install binaries from releases or URLs     |
+| `group` / `user`                                        | Manage Unix groups and users               |
+
+## Debugging
+
+### Verbose output
+
+`RUST_LOG` is not used. Verbosity is controlled by the `-v` flag:
+
+```bash
+etch apply -v    # DEBUG level — shows command exit codes and captured stdout/stderr
+etch apply -vv   # TRACE level
+```
+
+### Linux: logs go to journald
+
+On Linux with systemd, etch sends all log levels (including DEBUG) to journald in addition to stdout. When an action fails with no visible error, the captured subprocess output is in journald:
+
+```bash
+# Stream live while applying
+journalctl -f &
+etch apply
+
+# Read after failure
+journalctl -n 100 | grep -A5 "etch\|exit code\|stdout\|stderr"
+```
+
+### Diagnosing package.install failures
+
+When `package.install` fails silently, etch has captured apt's stdout/stderr but only emits them at DEBUG level. To see the actual apt error:
+
+```bash
+etch apply -v 2>&1 | tee /tmp/etch-debug.log
+grep -A5 "exit code\|stderr\|stdout" /tmp/etch-debug.log
+```
+
+Or run the apt command directly to reproduce outside etch:
+
+```bash
+sudo DEBIAN_FRONTEND=noninteractive apt install --yes <package-list>
+```
 
 ## Development
 
