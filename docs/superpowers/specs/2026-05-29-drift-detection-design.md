@@ -1,3 +1,5 @@
+> **Status: DONE** — merged in PR #56 (2026-05-30)
+
 # Drift Detection Design (`etch status`)
 
 ## Overview
