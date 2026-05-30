@@ -26,7 +26,7 @@ pub(crate) struct Apply {
     #[arg(short, long)]
     pub label: Option<String>,
 
-    /// Output status as JSON (status subcommand only)
+    /// Output results as JSON
     #[arg(long)]
     pub json: bool,
 }
