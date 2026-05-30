@@ -200,18 +200,136 @@ update:
 
 ## Summary output
 
-After all steps, print a one-line status per step:
+Mirrors the dotfiles `update_summary.sh` pattern: pre-snapshot before each step, post-snapshot + diff after, then a formatted table + log append.
+
+### Rust types
+
+```rust
+// app/src/commands/update.rs
+
+pub(crate) enum StepStatus {
+    Ok(String),    // detail: "3 formulae (vim, git, curl)"
+    Fail(String),  // detail: "exit 1 — see output above"
+    Skip(String),  // reason: "not applicable" / "not installed"
+    Warn(String),  // detail: for advisory findings (brew-drift future)
+}
+
+pub(crate) struct UpdateStepResult {
+    pub name:   &'static str,
+    pub status: StepStatus,
+    pub detail: Option<String>,  // multiline block for drift-style output
+}
+```
+
+Each step function returns `UpdateStepResult`. The orchestrator collects all results and calls `print_summary()` at the end.
+
+### Pre-snapshot logic per step
+
+Before running each step, capture the pre-state:
+
+| Step           | Pre-snapshot command                                               |
+| -------------- | ------------------------------------------------------------------ |
+| brew           | `brew list --formula --versions` + `--cask --versions` (two files) |
+| softwareupdate | `softwareupdate -l` → grep `^\* Label:` lines                      |
+| mas            | `mas list`                                                         |
+| claude         | `claude plugins list` → grep `Version:` lines                      |
+| npm            | `npm list -g --depth=0`                                            |
+| apt            | `dpkg-query -W -f='${Package} ${Version}\n'`                       |
+| snap           | `snap list --color=never` → `awk 'NR>1 {print $1, $2}'`            |
+| pip            | `pip list --outdated --format=columns` → package names             |
+| rust           | `rustup toolchain list`                                            |
+| ai-config      | `git -C <dir> rev-parse HEAD`                                      |
+| dotfiles       | `git -C <dir> rev-parse HEAD`                                      |
+| oh-my-zsh      | `git -C ~/.oh-my-zsh rev-parse HEAD`                               |
+| tpm            | `git -C ~/.tmux/plugins/tpm rev-parse HEAD`                        |
+| tfenv          | `git -C ~/.tfenv rev-parse HEAD`                                   |
+| gems           | `gem list`                                                         |
+| cheat.sh       | none (binary replace — record checksum or skip)                    |
+
+If the pre-snapshot command fails (tool not installed), record a `Skip` immediately and don't run the step.
+
+### Post-snapshot + diff to produce detail string
+
+After running each step (exit code captured):
+
+**Non-zero exit** → `Fail("exit N — see output above")`.
+
+**Zero exit** → diff pre vs post to build the detail string:
+
+| Step           | Detail string                                                                    |
+| -------------- | -------------------------------------------------------------------------------- |
+| brew           | `"3 formulae (vim, git, curl)"` / `"1 cask(s) (iterm2)"` / `"no changes"`        |
+| softwareupdate | `"2 update(s) (macOS 15.5, Safari)"` / `"no changes"`                            |
+| mas            | parse `==> Updated` lines from captured mas output                               |
+| claude         | diff pre/post plugin versions → `"N plugin(s) updated"` / `"no changes"`         |
+| npm            | diff pre/post `npm list -g` → `"N package(s) (name)"` / `"no changes"`           |
+| apt            | diff pre/post `dpkg-query` → `"N package(s) (name, ...)"` / `"no changes"`       |
+| snap           | diff pre/post `snap list` → `"N package(s) (name, ...)"` / `"no changes"`        |
+| pip            | count packages listed in pre-snapshot (outdated before run) → `"N package(s)"`   |
+| rust           | diff pre/post `rustup toolchain list` → `"1 toolchain updated"` / `"no changes"` |
+| git repos      | `git log OLD..HEAD --oneline` → `"N commit(s)"` / `"no changes"`                 |
+| gems           | diff pre/post `gem list` → `"N gem(s) (name, ...)"` / `"no changes"`             |
+| cheat.sh       | `"updated"` (binary replacement, no reliable diff)                               |
+
+### Section order (fixed)
+
+```rust
+const SECTION_ORDER: &[&str] = &[
+    "brew", "softwareupdate", "mas", "claude", "npm",
+    "apt", "snap", "pip", "rust",
+    "ai-config", "dotfiles", "oh-my-zsh", "tpm", "tfenv",
+    "gems", "cheat.sh",
+];
+```
+
+### Output format
 
 ```
-  brew          ✓
-  softwareupdate ✓
-  mas           ✓
-  claude        ✓
-  rust          ✓ (1 toolchain updated)
-  git-tools     ✓
-  gems          skipped (not installed)
-  pip           ✗ (exit 1)
+=== Update Summary — 2026-05-30 14:32:11 ===
+
+[OK]   brew             3 formulae (vim, git, curl)
+[OK]   softwareupdate   no changes
+[OK]   mas              2 app(s) (Xcode, 1Password)
+[OK]   claude           1 plugin(s) updated
+[SKIP] npm              not installed
+[OK]   apt              no changes
+[SKIP] snap             not applicable
+[OK]   pip              4 package(s)
+[OK]   rust             no changes
+[OK]   ai-config        3 commit(s)
+[OK]   dotfiles         1 commit(s)
+[OK]   oh-my-zsh        no changes
+[SKIP] tpm              directory not found
+[SKIP] tfenv            directory not found
+[OK]   gems             no changes
+[SKIP] cheat.sh         ~/bin/cht.sh not found
+
+16 sections: 9 OK, 0 failed, 0 warnings, 7 skipped
+Log appended: /Users/bruce/.etch-update.log
 ```
+
+Format: `printf "[%-4s] %-16s %s\n", status, name, detail`
+
+Section name column is 16 chars (pad right). Status prefix is always 4 chars: `OK  `, `FAIL`, `SKIP`, `WARN`.
+
+### Log file
+
+Append each run (separator + timestamp block + same table content) to `~/.etch-update.log`. Configurable via `etch.yaml`:
+
+```yaml
+update:
+    log_path: "~/.etch-update.log" # optional, this is the default
+```
+
+`~` is expanded at runtime via `shellexpand` (already a dependency). File is created if absent. Write errors are non-fatal (warn to stderr, continue).
+
+### `print_summary` function signature
+
+```rust
+fn print_summary(results: &[UpdateStepResult], log_path: &Path) -> anyhow::Result<()>
+```
+
+Iterates `SECTION_ORDER`, looks up each result by name (results may be sparse if some steps never ran due to platform gates), prints the table, then appends to the log file.
 
 ## Out of scope
 
@@ -224,7 +342,7 @@ After all steps, print a one-line status per step:
 
 1. `Config` struct: add `update: UpdateConfig` + parse from etch.yaml
 2. `Commands` enum: add `Update` variant + dispatch in `execute()`
-3. `app/src/commands/update.rs`: skeleton + `any_flag_set()` logic
+3. `app/src/commands/update.rs`: skeleton + `StepStatus`/`UpdateStepResult` types + `any_flag_set()` logic
 4. Steps (in order of safety): git-tools → brew → mas → claude → rust → packages → system → pip → gems → cheatsh
-5. Summary output
+5. `print_summary()` + log append
 6. Add `skip_if_not_exists` to `git.pull` (needed for optional tool pulls)
