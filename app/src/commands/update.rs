@@ -189,6 +189,51 @@ fn home_dir() -> PathBuf {
     dirs_next::home_dir().unwrap_or_else(|| PathBuf::from("/tmp"))
 }
 
+// Pure helper — testable without I/O. Takes pre-resolved booleans from has_cmd().
+fn select_python_cmd(
+    pyenv_shim: &Path,
+    has_python3: bool,
+    has_python: bool,
+) -> Option<(String, Vec<&'static str>)> {
+    if pyenv_shim.exists() {
+        Some((pyenv_shim.to_string_lossy().into_owned(), vec![]))
+    } else if has_python3 {
+        Some((
+            "python3".to_string(),
+            vec!["--user", "--break-system-packages"],
+        ))
+    } else if has_python {
+        Some((
+            "python".to_string(),
+            vec!["--user", "--break-system-packages"],
+        ))
+    } else {
+        None
+    }
+}
+
+// Pure helper — testable without I/O.
+fn select_gem_cmd(rbenv_shim: &Path, has_gem: bool) -> Option<(String, Vec<&'static str>)> {
+    if rbenv_shim.exists() {
+        Some((rbenv_shim.to_string_lossy().into_owned(), vec![]))
+    } else if has_gem {
+        Some(("gem".to_string(), vec!["--user-install"]))
+    } else {
+        None
+    }
+}
+
+// When using system Python (non-empty pip_extra), also scope the outdated list to
+// user packages — otherwise pip reports system-managed packages as outdated and we
+// attempt to user-install them, producing version conflicts.
+fn pip_outdated_args(pip_extra: &[&str]) -> Vec<&'static str> {
+    let mut args = vec!["-m", "pip", "list", "--outdated", "--format=columns"];
+    if !pip_extra.is_empty() {
+        args.push("--user");
+    }
+    args
+}
+
 fn expand_tilde(p: &str) -> PathBuf {
     if p == "~" {
         home_dir()
@@ -552,27 +597,15 @@ fn update_snap(has_snap: bool) -> UpdateStepResult {
 
 #[cfg(not(tarpaulin_include))]
 fn update_pip() -> UpdateStepResult {
-    // Prefer pyenv shim — works without `pyenv init`, respects user version selection.
-    // Fall back to system Python with --user --break-system-packages (Ubuntu 24.04+).
-    let pyenv_python = home_dir().join(".pyenv/shims/python3");
-    let (python_cmd, pip_extra): (String, Vec<&str>) = if pyenv_python.exists() {
-        (pyenv_python.to_string_lossy().to_string(), vec![])
-    } else if has_cmd("python3") {
-        (
-            "python3".to_string(),
-            vec!["--user", "--break-system-packages"],
-        )
-    } else if has_cmd("python") {
-        (
-            "python".to_string(),
-            vec!["--user", "--break-system-packages"],
-        )
-    } else {
-        return skip_result("pip", "python not installed");
-    };
+    let pyenv_shim = home_dir().join(".pyenv/shims/python3");
+    let (python_cmd, pip_extra) =
+        match select_python_cmd(&pyenv_shim, has_cmd("python3"), has_cmd("python")) {
+            Some(r) => r,
+            None => return skip_result("pip", "python not installed"),
+        };
 
     let outdated: Vec<String> = Command::new(&python_cmd)
-        .args(["-m", "pip", "list", "--outdated", "--format=columns"])
+        .args(pip_outdated_args(&pip_extra))
         .output()
         .ok()
         .filter(|o| o.status.success())
@@ -688,15 +721,10 @@ fn update_git_repo(name: &'static str, dir: &Path) -> UpdateStepResult {
 
 #[cfg(not(tarpaulin_include))]
 fn update_gems() -> UpdateStepResult {
-    // Prefer rbenv shim — works without `rbenv init`, uses user-managed Ruby.
-    // Fall back to system gem with --user-install to avoid permission errors.
-    let rbenv_gem = home_dir().join(".rbenv/shims/gem");
-    let (gem_cmd, gem_extra): (String, Vec<&str>) = if rbenv_gem.exists() {
-        (rbenv_gem.to_string_lossy().to_string(), vec![])
-    } else if has_cmd("gem") {
-        ("gem".to_string(), vec!["--user-install"])
-    } else {
-        return skip_result("gems", "gem not installed");
+    let rbenv_shim = home_dir().join(".rbenv/shims/gem");
+    let (gem_cmd, gem_extra) = match select_gem_cmd(&rbenv_shim, has_cmd("gem")) {
+        Some(r) => r,
+        None => return skip_result("gems", "gem not installed"),
     };
 
     let pre = capture(&gem_cmd, &["list"]);
@@ -1180,5 +1208,133 @@ mod tests {
     fn expand_tilde_leaves_absolute_paths() {
         let path = expand_tilde("/tmp/test.log");
         assert_eq!(path, PathBuf::from("/tmp/test.log"));
+    }
+
+    // ── select_python_cmd ──────────────────────────────────────────────────────
+
+    fn make_shim(dir: &tempfile::TempDir, rel: &str) -> PathBuf {
+        let p = dir.path().join(rel);
+        std::fs::create_dir_all(p.parent().unwrap()).unwrap();
+        std::fs::write(&p, "").unwrap();
+        p
+    }
+
+    #[test]
+    fn select_python_prefers_pyenv_when_shim_exists() {
+        let tmp = tempfile::tempdir().unwrap();
+        let shim = make_shim(&tmp, ".pyenv/shims/python3");
+        let (cmd, extra) = select_python_cmd(&shim, true, true).unwrap();
+        assert_eq!(cmd, shim.to_string_lossy().as_ref());
+        assert!(
+            extra.is_empty(),
+            "pyenv shim should require no extra pip flags"
+        );
+    }
+
+    #[test]
+    fn select_python_falls_back_to_python3_with_system_flags() {
+        let absent = PathBuf::from("/nonexistent/shims/python3");
+        let (cmd, extra) = select_python_cmd(&absent, true, false).unwrap();
+        assert_eq!(cmd, "python3");
+        assert!(extra.contains(&"--user"), "system python3 needs --user");
+        assert!(
+            extra.contains(&"--break-system-packages"),
+            "system python3 needs --break-system-packages"
+        );
+    }
+
+    #[test]
+    fn select_python_falls_back_to_python_when_python3_absent() {
+        let absent = PathBuf::from("/nonexistent/shims/python3");
+        let (cmd, extra) = select_python_cmd(&absent, false, true).unwrap();
+        assert_eq!(cmd, "python");
+        assert!(extra.contains(&"--user"));
+        assert!(extra.contains(&"--break-system-packages"));
+    }
+
+    #[test]
+    fn select_python_returns_none_when_nothing_installed() {
+        let absent = PathBuf::from("/nonexistent/shims/python3");
+        assert!(select_python_cmd(&absent, false, false).is_none());
+    }
+
+    #[test]
+    fn select_python_ignores_system_fallbacks_when_pyenv_shim_exists() {
+        let tmp = tempfile::tempdir().unwrap();
+        let shim = make_shim(&tmp, ".pyenv/shims/python3");
+        // has_python3=false, has_python=false — shim takes priority anyway
+        let result = select_python_cmd(&shim, false, false);
+        assert!(result.is_some(), "shim existence is sufficient");
+        assert!(result.unwrap().1.is_empty());
+    }
+
+    // ── select_gem_cmd ────────────────────────────────────────────────────────
+
+    #[test]
+    fn select_gem_prefers_rbenv_when_shim_exists() {
+        let tmp = tempfile::tempdir().unwrap();
+        let shim = make_shim(&tmp, ".rbenv/shims/gem");
+        let (cmd, extra) = select_gem_cmd(&shim, true).unwrap();
+        assert_eq!(cmd, shim.to_string_lossy().as_ref());
+        assert!(
+            extra.is_empty(),
+            "rbenv shim should require no extra gem flags"
+        );
+    }
+
+    #[test]
+    fn select_gem_falls_back_to_system_gem_with_user_install() {
+        let absent = PathBuf::from("/nonexistent/rbenv/shims/gem");
+        let (cmd, extra) = select_gem_cmd(&absent, true).unwrap();
+        assert_eq!(cmd, "gem");
+        assert!(
+            extra.contains(&"--user-install"),
+            "system gem needs --user-install to avoid permission errors"
+        );
+    }
+
+    #[test]
+    fn select_gem_returns_none_when_no_gem() {
+        let absent = PathBuf::from("/nonexistent/rbenv/shims/gem");
+        assert!(select_gem_cmd(&absent, false).is_none());
+    }
+
+    #[test]
+    fn select_gem_ignores_system_fallback_when_rbenv_shim_exists() {
+        let tmp = tempfile::tempdir().unwrap();
+        let shim = make_shim(&tmp, ".rbenv/shims/gem");
+        let result = select_gem_cmd(&shim, false);
+        assert!(result.is_some(), "shim existence is sufficient");
+        assert!(result.unwrap().1.is_empty());
+    }
+
+    // ── pip_outdated_args ─────────────────────────────────────────────────────
+
+    #[test]
+    fn pip_outdated_args_adds_user_flag_for_system_python() {
+        let extra = vec!["--user", "--break-system-packages"];
+        let args = pip_outdated_args(&extra);
+        assert!(
+            args.contains(&"--user"),
+            "system Python list must be scoped to user packages to avoid system-managed conflicts"
+        );
+        assert!(args.contains(&"--outdated"));
+    }
+
+    #[test]
+    fn pip_outdated_args_no_user_flag_for_pyenv_python() {
+        let extra: Vec<&str> = vec![];
+        let args = pip_outdated_args(&extra);
+        assert!(
+            !args.contains(&"--user"),
+            "pyenv Python should list all packages, not just user-installed"
+        );
+        assert!(args.contains(&"--outdated"));
+    }
+
+    #[test]
+    fn pip_outdated_args_always_includes_format_columns() {
+        assert!(pip_outdated_args(&[]).contains(&"--format=columns"));
+        assert!(pip_outdated_args(&["--user"]).contains(&"--format=columns"));
     }
 }
