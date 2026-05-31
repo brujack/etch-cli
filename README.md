@@ -273,10 +273,17 @@ Prerequisites:
 Release binaries are signed with [cosign](https://docs.sigstore.dev/cosign/overview/) using keyless Sigstore signing. Each release includes:
 
 - `etch` — compiled binary
+- `etch.sha256` — SHA256 checksum
 - `etch.bundle` — cosign bundle (signature + certificate)
 - `etch.sbom.spdx.json` — SPDX bill of materials
 
-To verify a release binary:
+Verify the checksum:
+
+```bash
+sha256sum -c etch.sha256
+```
+
+Verify the cosign signature:
 
 ```bash
 cosign verify-blob etch \

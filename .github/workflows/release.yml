@@ -87,13 +87,20 @@ jobs:
           git tag "v${VERSION}"
           git push origin "v${VERSION}"
 
+      - name: Generate SHA256 checksum
+        run: |
+          sha256sum target/release/etch > target/release/etch.sha256
+          cat target/release/etch.sha256
+
       - name: Create GitHub release
         uses: softprops/action-gh-release@v3
         with:
           tag_name: "v${{ env.VERSION }}"
           name: "v${{ env.VERSION }}"
           body_path: /tmp/release-notes.md
-          files: target/release/etch
+          files: |
+            target/release/etch
+            target/release/etch.sha256
 
   sign:
     needs: [release]
