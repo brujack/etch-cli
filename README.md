@@ -190,8 +190,8 @@ Add an `update:` section to `~/.config/etch/etch.yaml` to configure git repos an
 update:
     log_path: ~/.etch-update.log # default; omit to use this path
     git_tools:
-        ai_config: true # pulls ~/git-repos/personal/ai-config
-        dotfiles: true # pulls dotfiles_dir variable path
+        ai_config: "enabled" # any non-null string enables; pulls sibling of dotfiles_dir
+        dotfiles: "enabled" # any non-null string enables; pulls dotfiles_dir path
         oh_my_zsh: true # pulls ~/.oh-my-zsh
         tpm: true # pulls ~/.tmux/plugins/tpm
         tfenv: true # pulls ~/.tfenv
@@ -203,13 +203,13 @@ update:
             - "@anthropic-ai/claude-code"
 
 variables:
-    dotfiles_dir: ~/git-repos/personal/dotfiles # required for ai-config + dotfiles git_tools
+    dotfiles_dir: ~/git-repos/personal/dotfiles # required for ai_config + dotfiles git_tools
     has_snap: "true" # enable snap updates (Linux)
     has_rust: "true" # enable rustup updates
     has_devtools: "true" # enable pip updates
 ```
 
-`git_tools.ai_config` and `git_tools.dotfiles` require `variables.dotfiles_dir` to be set — ai-config is assumed to be a sibling directory of dotfiles.
+`git_tools.ai_config` and `git_tools.dotfiles` accept any non-null string (the value is unused; only presence is checked). Both require `variables.dotfiles_dir` — ai-config is assumed at `<dotfiles_dir>/../ai-config`.
 
 ## Debugging
 
