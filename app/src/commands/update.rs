@@ -440,6 +440,19 @@ fn update_apt() -> UpdateStepResult {
 
     let pre = capture("dpkg-query", &["-W", "-f=${Package} ${Version}\n"]);
 
+    let update_exit = Command::new("sudo")
+        .args(["--non-interactive", "apt-get", "update", "-y"])
+        .envs([
+            ("DEBIAN_FRONTEND", "noninteractive"),
+            ("NEEDRESTART_MODE", "a"),
+        ])
+        .status()
+        .map(|s| s.code().unwrap_or(1))
+        .unwrap_or(1);
+    if update_exit != 0 {
+        return fail_result("apt", update_exit);
+    }
+
     let exit = Command::new("sudo")
         .args(["--non-interactive", "apt-get", "upgrade", "-y"])
         .envs([

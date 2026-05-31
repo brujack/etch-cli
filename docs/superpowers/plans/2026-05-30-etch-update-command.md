@@ -105,10 +105,10 @@ Core types and helpers:
 - Modify: `app/src/config/mod.rs`
 - Modify: `app/src/main.rs`
 
-- [ ] `mod update; pub(crate) use update::Update;` in commands/mod.rs
-- [ ] Add `Update(commands::Update)` variant to `Commands` enum
-- [ ] Add dispatch arm `Commands::Update(cmd) => cmd.execute(&runtime)` in main.rs
-- [ ] Verify `etch update --help` renders correctly
+- [x] `mod update; pub(crate) use update::Update;` in commands/mod.rs
+- [x] Add `Update(commands::Update)` variant to `Commands` enum
+- [x] Add dispatch arm `Commands::Update(cmd) => cmd.execute(&runtime)` in main.rs
+- [x] Verify `etch update --help` renders correctly
 
 ---
 
@@ -118,19 +118,19 @@ Core types and helpers:
 
 - Modify: `lib/src/actions/git/pull.rs`
 
-- [ ] Add `pub skip_if_not_exists: Option<String>` field to `GitPull`
-- [ ] In `plan()`: if `skip_if_not_exists` path is set and does not exist → return `[Step::skip()]`
-- [ ] Test: skip when path absent
-- [ ] Test: run when path present
+- [x] Add `pub skip_if_not_exists: Option<String>` field to `GitPull`
+- [x] In `plan()`: if `skip_if_not_exists` path is set and does not exist → return empty Vec (skip)
+- [x] Test: skip when path absent
+- [x] Test: run when path present
 
 ---
 
 ### Task 7: Compile, test, snapshot update
 
-- [ ] `make test` passes
-- [ ] Update `app/tests/snapshots.rs` if `etch --help` or `etch update --help` snapshot changes
-- [ ] Run `INSTA_UPDATE=new cargo test --test snapshots && cargo insta accept` if needed
-- [ ] Coverage ≥70% on Linux CI
+- [x] `make test` passes (666 tests)
+- [x] Update `app/tests/snapshots.rs` if `etch --help` or `etch update --help` snapshot changes
+- [x] Run `INSTA_UPDATE=new cargo test --test snapshots && cargo insta accept` if needed
+- [ ] Coverage ≥70% on Linux CI (verified by CI post-merge)
 
 ---
 
