@@ -466,7 +466,7 @@ fn update_apt() -> UpdateStepResult {
     }
 
     let exit = Command::new("sudo")
-        .args(["--non-interactive", "apt-get", "upgrade", "-y"])
+        .args(["--non-interactive", "apt-get", "dist-upgrade", "-y"])
         .envs([
             ("DEBIAN_FRONTEND", "noninteractive"),
             ("NEEDRESTART_MODE", "a"),
@@ -478,6 +478,14 @@ fn update_apt() -> UpdateStepResult {
     if exit != 0 {
         return fail_result("apt", exit);
     }
+
+    let _ = Command::new("sudo")
+        .args(["--non-interactive", "apt-get", "autoremove", "-y"])
+        .envs([
+            ("DEBIAN_FRONTEND", "noninteractive"),
+            ("NEEDRESTART_MODE", "a"),
+        ])
+        .status();
 
     let post = capture("dpkg-query", &["-W", "-f=${Package} ${Version}\n"]);
     let apt_diff = diff_lines(&pre, &post);
@@ -544,15 +552,26 @@ fn update_snap(has_snap: bool) -> UpdateStepResult {
 
 #[cfg(not(tarpaulin_include))]
 fn update_pip() -> UpdateStepResult {
-    let python = if has_cmd("python3") {
-        "python3"
+    // Prefer pyenv shim — works without `pyenv init`, respects user version selection.
+    // Fall back to system Python with --user --break-system-packages (Ubuntu 24.04+).
+    let pyenv_python = home_dir().join(".pyenv/shims/python3");
+    let (python_cmd, pip_extra): (String, Vec<&str>) = if pyenv_python.exists() {
+        (pyenv_python.to_string_lossy().to_string(), vec![])
+    } else if has_cmd("python3") {
+        (
+            "python3".to_string(),
+            vec!["--user", "--break-system-packages"],
+        )
     } else if has_cmd("python") {
-        "python"
+        (
+            "python".to_string(),
+            vec!["--user", "--break-system-packages"],
+        )
     } else {
         return skip_result("pip", "python not installed");
     };
 
-    let outdated: Vec<String> = Command::new(python)
+    let outdated: Vec<String> = Command::new(&python_cmd)
         .args(["-m", "pip", "list", "--outdated", "--format=columns"])
         .output()
         .ok()
@@ -576,9 +595,10 @@ fn update_pip() -> UpdateStepResult {
     }
 
     let mut upgrade_args = vec!["-m", "pip", "install", "--upgrade"];
+    upgrade_args.extend_from_slice(&pip_extra);
     let pkg_refs: Vec<&str> = outdated.iter().map(String::as_str).collect();
     upgrade_args.extend_from_slice(&pkg_refs);
-    let exit = run_cmd(python, &upgrade_args);
+    let exit = run_cmd(&python_cmd, &upgrade_args);
 
     let detail = format!("{} package(s) ({})", outdated.len(), outdated.join(", "));
     UpdateStepResult {
@@ -668,16 +688,25 @@ fn update_git_repo(name: &'static str, dir: &Path) -> UpdateStepResult {
 
 #[cfg(not(tarpaulin_include))]
 fn update_gems() -> UpdateStepResult {
-    if !has_cmd("gem") {
+    // Prefer rbenv shim — works without `rbenv init`, uses user-managed Ruby.
+    // Fall back to system gem with --user-install to avoid permission errors.
+    let rbenv_gem = home_dir().join(".rbenv/shims/gem");
+    let (gem_cmd, gem_extra): (String, Vec<&str>) = if rbenv_gem.exists() {
+        (rbenv_gem.to_string_lossy().to_string(), vec![])
+    } else if has_cmd("gem") {
+        ("gem".to_string(), vec!["--user-install"])
+    } else {
         return skip_result("gems", "gem not installed");
-    }
+    };
 
-    let pre = capture("gem", &["list"]);
-    let exit = run_cmd("gem", &["update"]);
+    let pre = capture(&gem_cmd, &["list"]);
+    let mut update_args = vec!["update"];
+    update_args.extend_from_slice(&gem_extra);
+    let exit = run_cmd(&gem_cmd, &update_args);
     if exit != 0 {
         return fail_result("gems", exit);
     }
-    let post = capture("gem", &["list"]);
+    let post = capture(&gem_cmd, &["list"]);
     let gem_diff = diff_lines(&pre, &post);
     let detail = if gem_diff.is_empty() {
         "no changes".to_string()
