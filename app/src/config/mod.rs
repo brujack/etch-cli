@@ -58,6 +58,9 @@ pub enum Commands {
     ///  - fish: ```etch gen-completions fish | source```
     #[command(long_about, verbatim_doc_comment)]
     GenCompletions(commands::GenCompletions),
+
+    /// Update installed tools and packages
+    Update(commands::Update),
 }
 
 impl Default for Commands {

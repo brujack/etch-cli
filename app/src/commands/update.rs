@@ -6,7 +6,7 @@ use std::process::{Command, Stdio};
 use clap::Parser;
 use tracing::{info, warn};
 
-use etch_lib::config::{ClaudeUpdateConfig, GitToolsConfig};
+use etch_lib::config::ClaudeUpdateConfig;
 
 use super::EtchCommand;
 use crate::Runtime;
@@ -37,6 +37,7 @@ pub(crate) enum StepStatus {
     Ok(String),
     Fail(String),
     Skip(String),
+    #[allow(dead_code)]
     Warn(String),
 }
 
@@ -60,7 +61,6 @@ impl StepStatus {
 pub(crate) struct UpdateStepResult {
     pub name: &'static str,
     pub status: StepStatus,
-    pub detail: Option<String>,
 }
 
 // ── CLI struct ────────────────────────────────────────────────────────────────
@@ -210,7 +210,6 @@ fn skip_result(name: &'static str, reason: &str) -> UpdateStepResult {
     UpdateStepResult {
         name,
         status: StepStatus::Skip(reason.to_string()),
-        detail: None,
     }
 }
 
@@ -218,7 +217,6 @@ fn fail_result(name: &'static str, exit: i32) -> UpdateStepResult {
     UpdateStepResult {
         name,
         status: StepStatus::Fail(format!("exit {exit}")),
-        detail: None,
     }
 }
 
@@ -266,7 +264,6 @@ fn update_brew() -> UpdateStepResult {
     UpdateStepResult {
         name: "brew",
         status: StepStatus::Ok(detail),
-        detail: None,
     }
 }
 
@@ -283,13 +280,7 @@ fn update_softwareupdate() -> UpdateStepResult {
             String::from_utf8_lossy(&o.stdout)
                 .lines()
                 .filter(|l| l.contains("* Label:"))
-                .map(|l| {
-                    l.split("* Label:")
-                        .nth(1)
-                        .unwrap_or("")
-                        .trim()
-                        .to_string()
-                })
+                .map(|l| l.split("* Label:").nth(1).unwrap_or("").trim().to_string())
                 .collect()
         })
         .unwrap_or_default();
@@ -298,7 +289,6 @@ fn update_softwareupdate() -> UpdateStepResult {
         return UpdateStepResult {
             name: "softwareupdate",
             status: StepStatus::Ok("no changes".to_string()),
-            detail: None,
         };
     }
 
@@ -311,7 +301,6 @@ fn update_softwareupdate() -> UpdateStepResult {
         } else {
             StepStatus::Fail(format!("exit {exit}"))
         },
-        detail: None,
     }
 }
 
@@ -339,14 +328,12 @@ fn update_mas() -> UpdateStepResult {
             UpdateStepResult {
                 name: "mas",
                 status: StepStatus::Ok(detail),
-                detail: None,
             }
         }
         Ok(o) => fail_result("mas", o.status.code().unwrap_or(1)),
         Err(e) => UpdateStepResult {
             name: "mas",
             status: StepStatus::Fail(e.to_string()),
-            detail: None,
         },
     }
 }
@@ -380,7 +367,6 @@ fn update_claude(config: &ClaudeUpdateConfig) -> UpdateStepResult {
         return UpdateStepResult {
             name: "claude",
             status: StepStatus::Fail(format!("{fail_count} plugin(s) failed")),
-            detail: None,
         };
     }
 
@@ -392,7 +378,6 @@ fn update_claude(config: &ClaudeUpdateConfig) -> UpdateStepResult {
     UpdateStepResult {
         name: "claude",
         status: StepStatus::Ok(detail),
-        detail: None,
     }
 }
 
@@ -420,7 +405,6 @@ fn update_npm(config: &ClaudeUpdateConfig) -> UpdateStepResult {
         return UpdateStepResult {
             name: "npm",
             status: StepStatus::Fail(format!("{fail_count} package(s) failed")),
-            detail: None,
         };
     }
 
@@ -439,7 +423,6 @@ fn update_npm(config: &ClaudeUpdateConfig) -> UpdateStepResult {
     UpdateStepResult {
         name: "npm",
         status: StepStatus::Ok(detail),
-        detail: None,
     }
 }
 
@@ -459,7 +442,10 @@ fn update_apt() -> UpdateStepResult {
 
     let exit = Command::new("sudo")
         .args(["--non-interactive", "apt-get", "upgrade", "-y"])
-        .envs([("DEBIAN_FRONTEND", "noninteractive"), ("NEEDRESTART_MODE", "a")])
+        .envs([
+            ("DEBIAN_FRONTEND", "noninteractive"),
+            ("NEEDRESTART_MODE", "a"),
+        ])
         .status()
         .map(|s| s.code().unwrap_or(1))
         .unwrap_or(1);
@@ -485,7 +471,6 @@ fn update_apt() -> UpdateStepResult {
     UpdateStepResult {
         name: "apt",
         status: StepStatus::Ok(detail),
-        detail: None,
     }
 }
 
@@ -500,12 +485,7 @@ fn update_snap(has_snap: bool) -> UpdateStepResult {
     let pre: Vec<String> = capture("snap", &["list", "--color=never"])
         .into_iter()
         .skip(1)
-        .map(|l| {
-            l.split_whitespace()
-                .take(2)
-                .collect::<Vec<_>>()
-                .join(" ")
-        })
+        .map(|l| l.split_whitespace().take(2).collect::<Vec<_>>().join(" "))
         .collect();
 
     let exit = Command::new("sudo")
@@ -521,12 +501,7 @@ fn update_snap(has_snap: bool) -> UpdateStepResult {
     let post: Vec<String> = capture("snap", &["list", "--color=never"])
         .into_iter()
         .skip(1)
-        .map(|l| {
-            l.split_whitespace()
-                .take(2)
-                .collect::<Vec<_>>()
-                .join(" ")
-        })
+        .map(|l| l.split_whitespace().take(2).collect::<Vec<_>>().join(" "))
         .collect();
 
     let snap_diff = diff_lines(&pre, &post);
@@ -538,7 +513,6 @@ fn update_snap(has_snap: bool) -> UpdateStepResult {
     UpdateStepResult {
         name: "snap",
         status: StepStatus::Ok(detail),
-        detail: None,
     }
 }
 
@@ -571,7 +545,6 @@ fn update_pip() -> UpdateStepResult {
         return UpdateStepResult {
             name: "pip",
             status: StepStatus::Ok("no changes".to_string()),
-            detail: None,
         };
     }
 
@@ -588,7 +561,6 @@ fn update_pip() -> UpdateStepResult {
         } else {
             StepStatus::Fail(format!("exit {exit}"))
         },
-        detail: None,
     }
 }
 
@@ -629,7 +601,6 @@ fn update_rust() -> UpdateStepResult {
     UpdateStepResult {
         name: "rust",
         status: StepStatus::Ok(detail),
-        detail: None,
     }
 }
 
@@ -663,7 +634,6 @@ fn update_git_repo(name: &'static str, dir: &Path) -> UpdateStepResult {
     UpdateStepResult {
         name,
         status: StepStatus::Ok(detail),
-        detail: None,
     }
 }
 
@@ -687,7 +657,6 @@ fn update_gems() -> UpdateStepResult {
     UpdateStepResult {
         name: "gems",
         status: StepStatus::Ok(detail),
-        detail: None,
     }
 }
 
@@ -718,7 +687,6 @@ fn update_cheatsh() -> UpdateStepResult {
     UpdateStepResult {
         name: "cheat.sh",
         status: StepStatus::Ok("updated".to_string()),
-        detail: None,
     }
 }
 
@@ -729,8 +697,7 @@ fn print_summary<W: Write>(
     results: &[UpdateStepResult],
     log_path: Option<&Path>,
 ) -> anyhow::Result<()> {
-    let by_name: HashMap<&str, &UpdateStepResult> =
-        results.iter().map(|r| (r.name, r)).collect();
+    let by_name: HashMap<&str, &UpdateStepResult> = results.iter().map(|r| (r.name, r)).collect();
 
     let timestamp = format_timestamp();
     let header = format!("=== Update Summary — {timestamp} ===\n\n");
@@ -883,7 +850,11 @@ impl EtchCommand for Update {
 
         // pip
         if step_should_run(self.pip, run_all) {
-            if vars.get("has_devtools").map(|v| v == "true").unwrap_or(true) {
+            if vars
+                .get("has_devtools")
+                .map(|v| v == "true")
+                .unwrap_or(true)
+            {
                 results.push(update_pip());
             } else {
                 results.push(skip_result("pip", "has_devtools=false"));
@@ -997,7 +968,6 @@ mod tests {
         let results = vec![UpdateStepResult {
             name: "brew",
             status: StepStatus::Ok("3 formulae".to_string()),
-            detail: None,
         }];
         let mut buf = Vec::<u8>::new();
         print_summary(&mut buf, &results, None).unwrap();
@@ -1012,7 +982,6 @@ mod tests {
         let results = vec![UpdateStepResult {
             name: "apt",
             status: StepStatus::Fail("exit 1".to_string()),
-            detail: None,
         }];
         let mut buf = Vec::<u8>::new();
         print_summary(&mut buf, &results, None).unwrap();
@@ -1026,7 +995,6 @@ mod tests {
         let results = vec![UpdateStepResult {
             name: "mas",
             status: StepStatus::Skip("not applicable".to_string()),
-            detail: None,
         }];
         let mut buf = Vec::<u8>::new();
         print_summary(&mut buf, &results, None).unwrap();
@@ -1040,28 +1008,27 @@ mod tests {
             UpdateStepResult {
                 name: "brew",
                 status: StepStatus::Ok("no changes".to_string()),
-                detail: None,
             },
             UpdateStepResult {
                 name: "apt",
                 status: StepStatus::Fail("exit 1".to_string()),
-                detail: None,
             },
             UpdateStepResult {
                 name: "pip",
                 status: StepStatus::Skip("not installed".to_string()),
-                detail: None,
             },
             UpdateStepResult {
                 name: "rust",
                 status: StepStatus::Warn("advisory".to_string()),
-                detail: None,
             },
         ];
         let mut buf = Vec::<u8>::new();
         print_summary(&mut buf, &results, None).unwrap();
         let out = String::from_utf8(buf).unwrap();
-        assert!(out.contains("4 sections"), "expected section count in: {out}");
+        assert!(
+            out.contains("4 sections"),
+            "expected section count in: {out}"
+        );
         assert!(out.contains("1 OK"), "expected 1 OK in: {out}");
         assert!(out.contains("1 failed"), "expected 1 failed in: {out}");
         assert!(out.contains("1 warnings"), "expected 1 warnings in: {out}");
@@ -1075,12 +1042,10 @@ mod tests {
             UpdateStepResult {
                 name: "rust",
                 status: StepStatus::Ok("no changes".to_string()),
-                detail: None,
             },
             UpdateStepResult {
                 name: "brew",
                 status: StepStatus::Ok("1 formula".to_string()),
-                detail: None,
             },
         ];
         let mut buf = Vec::<u8>::new();
@@ -1096,7 +1061,6 @@ mod tests {
         let results = vec![UpdateStepResult {
             name: "brew",
             status: StepStatus::Ok("no changes".to_string()),
-            detail: None,
         }];
         let mut buf = Vec::<u8>::new();
         print_summary(&mut buf, &results, None).unwrap();
@@ -1112,14 +1076,16 @@ mod tests {
         let results = vec![UpdateStepResult {
             name: "brew",
             status: StepStatus::Ok("no changes".to_string()),
-            detail: None,
         }];
         let mut buf = Vec::<u8>::new();
         print_summary(&mut buf, &results, Some(&log_path)).unwrap();
         // Log file must exist and contain summary
         let log_content = std::fs::read_to_string(&log_path).unwrap();
         assert!(log_content.contains("[OK]"), "log should contain summary");
-        assert!(log_content.contains("brew"), "log should contain section name");
+        assert!(
+            log_content.contains("brew"),
+            "log should contain section name"
+        );
         // Second call appends
         let mut buf2 = Vec::<u8>::new();
         print_summary(&mut buf2, &results, Some(&log_path)).unwrap();
