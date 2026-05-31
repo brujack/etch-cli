@@ -34,3 +34,7 @@ target/
 fuzz/artifacts/
 # cargo-fuzz build output
 fuzz/target/
+
+# cargo-mutants output
+mutants.out/
+mutants.out.old/
