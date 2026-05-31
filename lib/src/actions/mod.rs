@@ -5,6 +5,7 @@ mod directory;
 mod file;
 pub use file::link::FileLink;
 pub use file::FileAction;
+mod gem;
 mod git;
 mod group;
 mod macos;
@@ -31,6 +32,7 @@ use file::download::FileDownload;
 use file::flags::FileFlags;
 use file::remove::FileRemove;
 use file::unarchive::FileUnarchive;
+use gem::GemInstall;
 use git::{GitClone, GitConfig, GitPull};
 use group::add::GroupAdd;
 use package::{PackageInstall, PackageRepository};
@@ -226,6 +228,9 @@ pub enum Actions {
 
     #[serde(rename = "ruby.install")]
     RubyInstall(ConditionalVariantAction<RubyInstall>),
+
+    #[serde(rename = "gem.install")]
+    GemInstall(ConditionalVariantAction<GemInstall>),
 }
 
 impl Actions {
@@ -263,6 +268,7 @@ impl Actions {
             Actions::DirectoryRemove(a) => a,
             Actions::Plugin(a) => a,
             Actions::RubyInstall(a) => a,
+            Actions::GemInstall(a) => a,
         }
     }
 
@@ -300,6 +306,7 @@ impl Actions {
             Actions::UserAddGroup(a) => &a.notify,
             Actions::Plugin(a) => &a.notify,
             Actions::RubyInstall(a) => &a.notify,
+            Actions::GemInstall(a) => &a.notify,
         }
     }
 }
@@ -340,6 +347,7 @@ impl Deref for Actions {
             Actions::DirectoryRemove(a) => a,
             Actions::Plugin(a) => a,
             Actions::RubyInstall(a) => a,
+            Actions::GemInstall(a) => a,
         }
     }
 }
@@ -379,6 +387,7 @@ impl Display for Actions {
             Actions::UserAddGroup(_) => "user.group",
             Actions::Plugin(_) => "plugin",
             Actions::RubyInstall(_) => "ruby.install",
+            Actions::GemInstall(_) => "gem.install",
         };
 
         write!(f, "{name}")
@@ -554,9 +563,11 @@ actions:
   - action: file.flags
     path: /tmp/f
     flags: [hidden]
+  - action: gem.install
+    name: bundler
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(24, manifest.actions.len());
+        assert_eq!(25, manifest.actions.len());
     }
 
     #[test]
@@ -627,6 +638,8 @@ actions:
   - action: systemd.service
     unit: sshd.service
     enabled: true
+  - action: gem.install
+    name: bundler
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
 
@@ -657,6 +670,7 @@ actions:
             "brew.cleanup",
             "mas.upgrade",
             "systemd.service",
+            "gem.install",
         ];
 
         for (action, expected) in manifest.actions.iter().zip(expected_names.iter()) {
@@ -871,9 +885,11 @@ actions:
     scope: global
     key: user.email
     value: test@example.com
+  - action: gem.install
+    name: bundler
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(27, manifest.actions.len());
+        assert_eq!(28, manifest.actions.len());
 
         for action in &manifest.actions {
             // Exercise inner_ref() for every variant
