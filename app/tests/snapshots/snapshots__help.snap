@@ -12,6 +12,7 @@ Commands:
   version          Print version information
   contexts         List available contexts
   gen-completions  Auto generate completions
+  update           Update installed tools and packages
   help             Print this message or the help of the given subcommand(s)
 
 Options:

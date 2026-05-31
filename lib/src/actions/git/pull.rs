@@ -10,6 +10,8 @@ use std::path::PathBuf;
 pub struct GitPull {
     pub repo_url: String,
     pub directory: String,
+    /// Skip this action entirely if the given path does not exist.
+    pub skip_if_not_exists: Option<String>,
 }
 
 impl Action for GitPull {
@@ -21,6 +23,11 @@ impl Action for GitPull {
     }
 
     fn plan(&self, _: &Manifest, _: &Contexts) -> anyhow::Result<Vec<Step>> {
+        if let Some(path) = &self.skip_if_not_exists {
+            if !PathBuf::from(path).exists() {
+                return Ok(vec![]);
+            }
+        }
         let _ = gix::url::parse(self.repo_url.as_str().into())?;
         Ok(vec![Step {
             atom: Box::new(crate::atoms::git::Pull {
@@ -44,6 +51,7 @@ mod tests {
         let action = GitPull {
             repo_url: String::from("https://github.com/example/repo.git"),
             directory: String::from("/tmp/repo"),
+            skip_if_not_exists: None,
         };
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
@@ -56,9 +64,37 @@ mod tests {
         let action = GitPull {
             repo_url: String::from("not a url ://"),
             directory: String::from("/tmp/repo"),
+            skip_if_not_exists: None,
         };
         assert!(action
             .plan(&Manifest::default(), &Contexts::default())
             .is_err());
+    }
+
+    #[test]
+    fn plan_skips_when_skip_if_not_exists_path_absent() {
+        let action = GitPull {
+            repo_url: String::from("https://github.com/example/repo.git"),
+            directory: String::from("/tmp/repo"),
+            skip_if_not_exists: Some(String::from("/tmp/this-path-does-not-exist-etch-test")),
+        };
+        let steps = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+        assert!(steps.is_empty());
+    }
+
+    #[test]
+    fn plan_runs_when_skip_if_not_exists_path_present() {
+        let tmp = tempfile::tempdir().unwrap();
+        let action = GitPull {
+            repo_url: String::from("https://github.com/example/repo.git"),
+            directory: String::from("/tmp/repo"),
+            skip_if_not_exists: Some(tmp.path().to_string_lossy().to_string()),
+        };
+        let steps = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+        assert_eq!(1, steps.len());
     }
 }
