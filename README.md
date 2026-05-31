@@ -127,6 +127,90 @@ See `CLAUDE.md` for the full action catalog with all fields documented.
 | `binary.github` / `binary.url`                          | Install binaries from releases or URLs     |
 | `group` / `user`                                        | Manage Unix groups and users               |
 
+## etch update
+
+`etch update` runs an ordered sequence of tool update steps. With no flags it runs all applicable steps; any flag limits the run to only that step.
+
+```shell
+etch update            # run all steps
+etch update --brew     # Homebrew only
+etch update --rust     # Rust toolchain only
+```
+
+### Flags
+
+| Flag          | What it updates                                          | Platform    |
+| ------------- | -------------------------------------------------------- | ----------- |
+| `--brew`      | `brew upgrade` + `brew cleanup`                          | macOS/Linux |
+| `--system`    | `softwareupdate -ia`                                     | macOS only  |
+| `--mas`       | Mac App Store apps via `mas upgrade`                     | macOS only  |
+| `--claude`    | Claude plugins + npm globals (from config)               | any         |
+| `--packages`  | `apt-get upgrade` + `snap refresh`                       | Linux only  |
+| `--pip`       | `pip install --upgrade` outdated packages                | any         |
+| `--rust`      | `rustup update` + `cargo-nextest`                        | any         |
+| `--git-tools` | `git pull` on ai-config, dotfiles, oh-my-zsh, tpm, tfenv | any         |
+| `--gems`      | `gem update`                                             | any         |
+| `--cheatsh`   | Re-downloads `~/bin/cht.sh` via curl                     | any         |
+
+Steps that require a tool not present on the machine are automatically skipped. Platform-specific steps (softwareupdate, mas, apt, snap) are silently skipped on the wrong OS.
+
+### Summary output
+
+After all steps run, etch prints a fixed-order summary table and appends the same to a log file:
+
+```
+=== Update Summary — 2026-05-31 09:00:00 ===
+
+[OK]   brew             3 formulae (git 2.45.0, ripgrep 14.1.0, fzf 0.53.0)
+[SKIP] softwareupdate   not applicable
+[SKIP] mas              not applicable
+[OK]   claude           2 plugin(s) updated
+[SKIP] npm              npm not installed
+[SKIP] apt              not applicable
+[SKIP] snap             not applicable
+[OK]   pip              no changes
+[OK]   rust             no changes
+[OK]   ai-config        1 commit(s)
+[OK]   dotfiles         no changes
+[OK]   oh-my-zsh        no changes
+[SKIP] tpm              directory not found
+[SKIP] tfenv            directory not found
+[SKIP] gems             gem not installed
+[SKIP] cheat.sh         ~/bin/cht.sh not found
+
+15 sections: 6 OK, 0 failed, 0 warnings, 9 skipped
+Log appended: /Users/you/.etch-update.log
+```
+
+### Configuration
+
+Add an `update:` section to `~/.config/etch/etch.yaml` to configure git repos and Claude plugins:
+
+```yaml
+update:
+    log_path: ~/.etch-update.log # default; omit to use this path
+    git_tools:
+        ai_config: true # pulls ~/git-repos/personal/ai-config
+        dotfiles: true # pulls dotfiles_dir variable path
+        oh_my_zsh: true # pulls ~/.oh-my-zsh
+        tpm: true # pulls ~/.tmux/plugins/tpm
+        tfenv: true # pulls ~/.tfenv
+    claude:
+        plugins:
+            - superpowers
+        npm_globals:
+            - typescript
+            - "@anthropic-ai/claude-code"
+
+variables:
+    dotfiles_dir: ~/git-repos/personal/dotfiles # required for ai-config + dotfiles git_tools
+    has_snap: "true" # enable snap updates (Linux)
+    has_rust: "true" # enable rustup updates
+    has_devtools: "true" # enable pip updates
+```
+
+`git_tools.ai_config` and `git_tools.dotfiles` require `variables.dotfiles_dir` to be set — ai-config is assumed to be a sibling directory of dotfiles.
+
 ## Debugging
 
 ### Verbose output
@@ -189,19 +273,17 @@ Prerequisites:
 Release binaries are signed with [cosign](https://docs.sigstore.dev/cosign/overview/) using keyless Sigstore signing. Each release includes:
 
 - `etch` — compiled binary
-- `etch.sig` — detached signature
-- `etch.pem` — signing certificate
+- `etch.bundle` — cosign bundle (signature + certificate)
 - `etch.sbom.spdx.json` — SPDX bill of materials
 
 To verify a release binary:
 
 ```bash
 cosign verify-blob etch \
-  --signature etch.sig \
-  --certificate etch.pem \
+  --bundle etch.bundle \
   --certificate-identity \
     "https://github.com/brujack/etch-cli/.github/workflows/release-sign.yml@refs/tags/TAG" \
   --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
 ```
 
-Replace `TAG` with the release tag (e.g. `v1.2.0`).
+Replace `TAG` with the release tag (e.g. `v0.10.4`).
