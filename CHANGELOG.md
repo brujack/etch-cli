@@ -3,6 +3,28 @@
 
 ## Bug Fixes
 
+- dist-upgrade, autoremove, scope pip/gems to user envs
+
+- scope pip list to user packages; extract testable helpers (#60)
+
+
+
+## Documentation
+
+- document etch update command and fix cosign verify command
+
+- fix etch update config example types and add missing fields
+
+
+
+## Features
+
+- generate and publish SHA256 checksum
+
+
+
+## Bug Fixes
+
 - exit nonzero on manifest parse errors and step failures (#38)
 
 - pin cosign-installer to v4.1.2
