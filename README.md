@@ -126,6 +126,7 @@ See `CLAUDE.md` for the full action catalog with all fields documented.
 | `systemd.service`                                       | Enable/disable/start/stop systemd units    |
 | `binary.github` / `binary.url`                          | Install binaries from releases or URLs     |
 | `group` / `user`                                        | Manage Unix groups and users               |
+| `ruby.install`                                          | Install Ruby versions via ruby-install     |
 
 ## etch update
 

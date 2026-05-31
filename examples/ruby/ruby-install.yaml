@@ -1,0 +1,15 @@
+actions:
+    # Install default Ruby implementation. Idempotent: skips if ~/.rubies/ruby-3.3.0 exists.
+    # Requires ruby-install to be on PATH (e.g. installed via brew).
+    - action: ruby.install
+      version: "3.3.0"
+
+    # Install a specific implementation (jruby, truffleruby, etc.)
+    - action: ruby.install
+      version: "9.4.0.0"
+      implementation: jruby
+
+    # Install to a custom rubies directory (passes --rubies-dir to ruby-install)
+    - action: ruby.install
+      version: "3.3.0"
+      rubies_dir: /opt/rubies
