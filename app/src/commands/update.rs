@@ -1,0 +1,1150 @@
+use std::collections::HashMap;
+use std::io::Write;
+use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
+
+use clap::Parser;
+use tracing::{info, warn};
+
+use etch_lib::config::{ClaudeUpdateConfig, GitToolsConfig};
+
+use super::EtchCommand;
+use crate::Runtime;
+
+// ── Section order (fixed for summary display) ─────────────────────────────────
+const SECTION_ORDER: &[&str] = &[
+    "brew",
+    "softwareupdate",
+    "mas",
+    "claude",
+    "npm",
+    "apt",
+    "snap",
+    "pip",
+    "rust",
+    "ai-config",
+    "dotfiles",
+    "oh-my-zsh",
+    "tpm",
+    "tfenv",
+    "gems",
+    "cheat.sh",
+];
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+pub(crate) enum StepStatus {
+    Ok(String),
+    Fail(String),
+    Skip(String),
+    Warn(String),
+}
+
+impl StepStatus {
+    fn tag(&self) -> &'static str {
+        match self {
+            Self::Ok(_) => "[OK]  ",
+            Self::Fail(_) => "[FAIL]",
+            Self::Skip(_) => "[SKIP]",
+            Self::Warn(_) => "[WARN]",
+        }
+    }
+
+    fn detail(&self) -> &str {
+        match self {
+            Self::Ok(s) | Self::Fail(s) | Self::Skip(s) | Self::Warn(s) => s,
+        }
+    }
+}
+
+pub(crate) struct UpdateStepResult {
+    pub name: &'static str,
+    pub status: StepStatus,
+    pub detail: Option<String>,
+}
+
+// ── CLI struct ────────────────────────────────────────────────────────────────
+
+#[derive(Parser, Debug, Default)]
+pub(crate) struct Update {
+    /// Update brew formulae and casks
+    #[arg(long)]
+    pub brew: bool,
+    /// Run softwareupdate (macOS)
+    #[arg(long)]
+    pub system: bool,
+    /// Upgrade Mac App Store apps
+    #[arg(long)]
+    pub mas: bool,
+    /// Update Claude plugins and npm globals
+    #[arg(long)]
+    pub claude: bool,
+    /// Upgrade apt/snap packages (Linux)
+    #[arg(long)]
+    pub packages: bool,
+    /// Upgrade pip packages
+    #[arg(long)]
+    pub pip: bool,
+    /// Update rustup toolchain and cargo-nextest
+    #[arg(long)]
+    pub rust: bool,
+    /// Pull ai-config, dotfiles, oh-my-zsh, tpm, tfenv
+    #[arg(long)]
+    pub git_tools: bool,
+    /// Update Ruby gems
+    #[arg(long)]
+    pub gems: bool,
+    /// Update cheat.sh binary
+    #[arg(long)]
+    pub cheatsh: bool,
+}
+
+impl Update {
+    fn any_flag_set(&self) -> bool {
+        self.brew
+            || self.system
+            || self.mas
+            || self.claude
+            || self.packages
+            || self.pip
+            || self.rust
+            || self.git_tools
+            || self.gems
+            || self.cheatsh
+    }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+fn step_should_run(flag: bool, run_all: bool) -> bool {
+    flag || run_all
+}
+
+fn format_timestamp() -> String {
+    Command::new("date")
+        .arg("+%Y-%m-%d %H:%M:%S")
+        .output()
+        .ok()
+        .filter(|o| o.status.success())
+        .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
+        .unwrap_or_else(|| "unknown time".to_string())
+}
+
+fn run_cmd(cmd: &str, args: &[&str]) -> i32 {
+    Command::new(cmd)
+        .args(args)
+        .status()
+        .map(|s| s.code().unwrap_or(1))
+        .unwrap_or(1)
+}
+
+fn capture(cmd: &str, args: &[&str]) -> Vec<String> {
+    Command::new(cmd)
+        .args(args)
+        .output()
+        .ok()
+        .filter(|o| o.status.success())
+        .map(|o| {
+            String::from_utf8_lossy(&o.stdout)
+                .lines()
+                .filter(|l| !l.is_empty())
+                .map(String::from)
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn diff_lines(pre: &[String], post: &[String]) -> Vec<String> {
+    let pre_set: std::collections::HashSet<&str> = pre.iter().map(String::as_str).collect();
+    post.iter()
+        .filter(|l| !pre_set.contains(l.as_str()))
+        .cloned()
+        .collect()
+}
+
+fn git_commit_count(dir: &Path, old_sha: &str) -> usize {
+    Command::new("git")
+        .args([
+            "-C",
+            &dir.to_string_lossy(),
+            "log",
+            &format!("{old_sha}..HEAD"),
+            "--oneline",
+        ])
+        .output()
+        .ok()
+        .map(|o| {
+            String::from_utf8_lossy(&o.stdout)
+                .lines()
+                .filter(|l| !l.is_empty())
+                .count()
+        })
+        .unwrap_or(0)
+}
+
+fn home_dir() -> PathBuf {
+    dirs_next::home_dir().unwrap_or_else(|| PathBuf::from("/tmp"))
+}
+
+fn expand_tilde(p: &str) -> PathBuf {
+    if p == "~" {
+        home_dir()
+    } else if let Some(rest) = p.strip_prefix("~/") {
+        home_dir().join(rest)
+    } else {
+        PathBuf::from(p)
+    }
+}
+
+fn has_cmd(cmd: &str) -> bool {
+    Command::new("which")
+        .arg(cmd)
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false)
+}
+
+fn skip_result(name: &'static str, reason: &str) -> UpdateStepResult {
+    UpdateStepResult {
+        name,
+        status: StepStatus::Skip(reason.to_string()),
+        detail: None,
+    }
+}
+
+fn fail_result(name: &'static str, exit: i32) -> UpdateStepResult {
+    UpdateStepResult {
+        name,
+        status: StepStatus::Fail(format!("exit {exit}")),
+        detail: None,
+    }
+}
+
+// ── Step functions ────────────────────────────────────────────────────────────
+
+fn update_brew() -> UpdateStepResult {
+    if !has_cmd("brew") {
+        return skip_result("brew", "brew not installed");
+    }
+
+    let pre_formula = capture("brew", &["list", "--formula", "--versions"]);
+    let pre_cask = if std::env::consts::OS == "macos" {
+        capture("brew", &["list", "--cask", "--versions"])
+    } else {
+        vec![]
+    };
+
+    let exit = run_cmd("brew", &["upgrade"]);
+    if exit != 0 {
+        return fail_result("brew", exit);
+    }
+    let _ = run_cmd("brew", &["cleanup"]);
+
+    let post_formula = capture("brew", &["list", "--formula", "--versions"]);
+    let post_cask = if std::env::consts::OS == "macos" {
+        capture("brew", &["list", "--cask", "--versions"])
+    } else {
+        vec![]
+    };
+
+    let formula_diff = diff_lines(&pre_formula, &post_formula);
+    let cask_diff = diff_lines(&pre_cask, &post_cask);
+
+    let detail = match (formula_diff.len(), cask_diff.len()) {
+        (0, 0) => "no changes".to_string(),
+        (f, 0) => format!("{f} formulae ({})", formula_diff.join(", ")),
+        (0, c) => format!("{c} cask(s) ({})", cask_diff.join(", ")),
+        (f, c) => format!(
+            "{f} formulae ({}) + {c} cask(s) ({})",
+            formula_diff.join(", "),
+            cask_diff.join(", ")
+        ),
+    };
+
+    UpdateStepResult {
+        name: "brew",
+        status: StepStatus::Ok(detail),
+        detail: None,
+    }
+}
+
+fn update_softwareupdate() -> UpdateStepResult {
+    if std::env::consts::OS != "macos" {
+        return skip_result("softwareupdate", "not applicable");
+    }
+
+    let pending: Vec<String> = Command::new("softwareupdate")
+        .arg("-l")
+        .output()
+        .ok()
+        .map(|o| {
+            String::from_utf8_lossy(&o.stdout)
+                .lines()
+                .filter(|l| l.contains("* Label:"))
+                .map(|l| {
+                    l.split("* Label:")
+                        .nth(1)
+                        .unwrap_or("")
+                        .trim()
+                        .to_string()
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+
+    if pending.is_empty() {
+        return UpdateStepResult {
+            name: "softwareupdate",
+            status: StepStatus::Ok("no changes".to_string()),
+            detail: None,
+        };
+    }
+
+    let exit = run_cmd("softwareupdate", &["-ia"]);
+    let detail = format!("{} update(s) ({})", pending.len(), pending.join(", "));
+    UpdateStepResult {
+        name: "softwareupdate",
+        status: if exit == 0 {
+            StepStatus::Ok(detail)
+        } else {
+            StepStatus::Fail(format!("exit {exit}"))
+        },
+        detail: None,
+    }
+}
+
+fn update_mas() -> UpdateStepResult {
+    if std::env::consts::OS != "macos" {
+        return skip_result("mas", "not applicable");
+    }
+    if !has_cmd("mas") {
+        return skip_result("mas", "mas not installed");
+    }
+
+    match Command::new("mas").arg("upgrade").output() {
+        Ok(o) if o.status.success() => {
+            let text = String::from_utf8_lossy(&o.stdout);
+            let updated: Vec<&str> = text
+                .lines()
+                .filter(|l| l.contains("==> Updated"))
+                .map(|l| l.split("==> Updated").nth(1).unwrap_or("").trim())
+                .collect();
+            let detail = if updated.is_empty() {
+                "no changes".to_string()
+            } else {
+                format!("{} app(s) ({})", updated.len(), updated.join(", "))
+            };
+            UpdateStepResult {
+                name: "mas",
+                status: StepStatus::Ok(detail),
+                detail: None,
+            }
+        }
+        Ok(o) => fail_result("mas", o.status.code().unwrap_or(1)),
+        Err(e) => UpdateStepResult {
+            name: "mas",
+            status: StepStatus::Fail(e.to_string()),
+            detail: None,
+        },
+    }
+}
+
+fn update_claude(config: &ClaudeUpdateConfig) -> UpdateStepResult {
+    if !has_cmd("claude") {
+        return skip_result("claude", "claude not installed");
+    }
+
+    let pre_versions: Vec<String> = capture("claude", &["plugins", "list"])
+        .into_iter()
+        .filter(|l| l.contains("Version:"))
+        .collect();
+
+    let mut fail_count = 0usize;
+    for plugin in &config.plugins {
+        let exit = run_cmd("claude", &["plugins", "update", plugin.as_str()]);
+        if exit != 0 {
+            warn!("claude plugin update failed for {plugin}");
+            fail_count += 1;
+        }
+    }
+
+    let post_versions: Vec<String> = capture("claude", &["plugins", "list"])
+        .into_iter()
+        .filter(|l| l.contains("Version:"))
+        .collect();
+    let updated_count = diff_lines(&pre_versions, &post_versions).len();
+
+    if fail_count > 0 && updated_count == 0 {
+        return UpdateStepResult {
+            name: "claude",
+            status: StepStatus::Fail(format!("{fail_count} plugin(s) failed")),
+            detail: None,
+        };
+    }
+
+    let detail = if updated_count > 0 {
+        format!("{updated_count} plugin(s) updated")
+    } else {
+        "no changes".to_string()
+    };
+    UpdateStepResult {
+        name: "claude",
+        status: StepStatus::Ok(detail),
+        detail: None,
+    }
+}
+
+fn update_npm(config: &ClaudeUpdateConfig) -> UpdateStepResult {
+    if !has_cmd("npm") {
+        return skip_result("npm", "npm not installed");
+    }
+
+    let pre = capture("npm", &["list", "-g", "--depth=0"]);
+
+    let mut fail_count = 0usize;
+    for pkg in &config.npm_globals {
+        let exit = run_cmd("npm", &["install", "-g", pkg.as_str()]);
+        if exit != 0 {
+            warn!("npm global install failed for {pkg}");
+            fail_count += 1;
+        }
+    }
+
+    let post = capture("npm", &["list", "-g", "--depth=0"]);
+    let npm_diff = diff_lines(&pre, &post);
+    let count = npm_diff.len();
+
+    if fail_count > 0 && count == 0 {
+        return UpdateStepResult {
+            name: "npm",
+            status: StepStatus::Fail(format!("{fail_count} package(s) failed")),
+            detail: None,
+        };
+    }
+
+    let detail = if count > 0 {
+        let names: Vec<String> = npm_diff
+            .iter()
+            .map(|l| {
+                l.trim_start_matches(|c: char| "├└─ ".contains(c))
+                    .to_string()
+            })
+            .collect();
+        format!("{count} package(s) ({})", names.join(", "))
+    } else {
+        "no changes".to_string()
+    };
+    UpdateStepResult {
+        name: "npm",
+        status: StepStatus::Ok(detail),
+        detail: None,
+    }
+}
+
+fn update_apt() -> UpdateStepResult {
+    if !has_cmd("apt-get") {
+        return skip_result(
+            "apt",
+            if std::env::consts::OS == "linux" {
+                "apt not available"
+            } else {
+                "not applicable"
+            },
+        );
+    }
+
+    let pre = capture("dpkg-query", &["-W", "-f=${Package} ${Version}\n"]);
+
+    let exit = Command::new("sudo")
+        .args(["--non-interactive", "apt-get", "upgrade", "-y"])
+        .envs([("DEBIAN_FRONTEND", "noninteractive"), ("NEEDRESTART_MODE", "a")])
+        .status()
+        .map(|s| s.code().unwrap_or(1))
+        .unwrap_or(1);
+
+    if exit != 0 {
+        return fail_result("apt", exit);
+    }
+
+    let post = capture("dpkg-query", &["-W", "-f=${Package} ${Version}\n"]);
+    let apt_diff = diff_lines(&pre, &post);
+    let count = apt_diff.len();
+
+    let mut detail = if count > 0 {
+        format!("{count} package(s) ({})", apt_diff.join(", "))
+    } else {
+        "no changes".to_string()
+    };
+
+    if Path::new("/var/run/reboot-required").exists() {
+        detail.push_str(" — reboot required");
+    }
+
+    UpdateStepResult {
+        name: "apt",
+        status: StepStatus::Ok(detail),
+        detail: None,
+    }
+}
+
+fn update_snap(has_snap: bool) -> UpdateStepResult {
+    if !has_snap || std::env::consts::OS != "linux" {
+        return skip_result("snap", "not applicable");
+    }
+    if !has_cmd("snap") {
+        return skip_result("snap", "snap not installed");
+    }
+
+    let pre: Vec<String> = capture("snap", &["list", "--color=never"])
+        .into_iter()
+        .skip(1)
+        .map(|l| {
+            l.split_whitespace()
+                .take(2)
+                .collect::<Vec<_>>()
+                .join(" ")
+        })
+        .collect();
+
+    let exit = Command::new("sudo")
+        .args(["--non-interactive", "snap", "refresh"])
+        .status()
+        .map(|s| s.code().unwrap_or(1))
+        .unwrap_or(1);
+
+    if exit != 0 {
+        return fail_result("snap", exit);
+    }
+
+    let post: Vec<String> = capture("snap", &["list", "--color=never"])
+        .into_iter()
+        .skip(1)
+        .map(|l| {
+            l.split_whitespace()
+                .take(2)
+                .collect::<Vec<_>>()
+                .join(" ")
+        })
+        .collect();
+
+    let snap_diff = diff_lines(&pre, &post);
+    let detail = if snap_diff.is_empty() {
+        "no changes".to_string()
+    } else {
+        format!("{} package(s) ({})", snap_diff.len(), snap_diff.join(", "))
+    };
+    UpdateStepResult {
+        name: "snap",
+        status: StepStatus::Ok(detail),
+        detail: None,
+    }
+}
+
+fn update_pip() -> UpdateStepResult {
+    let python = if has_cmd("python3") {
+        "python3"
+    } else if has_cmd("python") {
+        "python"
+    } else {
+        return skip_result("pip", "python not installed");
+    };
+
+    let outdated: Vec<String> = Command::new(python)
+        .args(["-m", "pip", "list", "--outdated", "--format=columns"])
+        .output()
+        .ok()
+        .filter(|o| o.status.success())
+        .map(|o| {
+            String::from_utf8_lossy(&o.stdout)
+                .lines()
+                .skip(2)
+                .filter(|l| !l.is_empty())
+                .map(|l| l.split_whitespace().next().unwrap_or("").to_string())
+                .filter(|s| !s.is_empty())
+                .collect()
+        })
+        .unwrap_or_default();
+
+    if outdated.is_empty() {
+        return UpdateStepResult {
+            name: "pip",
+            status: StepStatus::Ok("no changes".to_string()),
+            detail: None,
+        };
+    }
+
+    let mut upgrade_args = vec!["-m", "pip", "install", "--upgrade"];
+    let pkg_refs: Vec<&str> = outdated.iter().map(String::as_str).collect();
+    upgrade_args.extend_from_slice(&pkg_refs);
+    let exit = run_cmd(python, &upgrade_args);
+
+    let detail = format!("{} package(s) ({})", outdated.len(), outdated.join(", "));
+    UpdateStepResult {
+        name: "pip",
+        status: if exit == 0 {
+            StepStatus::Ok(detail)
+        } else {
+            StepStatus::Fail(format!("exit {exit}"))
+        },
+        detail: None,
+    }
+}
+
+fn update_rust() -> UpdateStepResult {
+    let rustup_in_cargo = home_dir().join(".cargo/bin/rustup");
+    let rustup_cmd = if rustup_in_cargo.exists() {
+        rustup_in_cargo.to_string_lossy().to_string()
+    } else if has_cmd("rustup") {
+        "rustup".to_string()
+    } else {
+        return skip_result("rust", "rustup not installed");
+    };
+
+    let pre = capture(&rustup_cmd, &["toolchain", "list"]);
+    let exit = run_cmd(&rustup_cmd, &["update"]);
+    if exit != 0 {
+        return fail_result("rust", exit);
+    }
+    let post = capture(&rustup_cmd, &["toolchain", "list"]);
+    let changed = diff_lines(&pre, &post);
+
+    let cargo_bin = home_dir().join(".cargo/bin/cargo");
+    let cargo_cmd = if cargo_bin.exists() {
+        cargo_bin.to_string_lossy().to_string()
+    } else {
+        "cargo".to_string()
+    };
+    let nextest_bin = home_dir().join(".cargo/bin/cargo-nextest");
+    if nextest_bin.exists() || has_cmd("cargo-nextest") {
+        let _ = run_cmd(&cargo_cmd, &["install", "cargo-nextest", "--locked"]);
+    }
+
+    let detail = if changed.is_empty() {
+        "no changes".to_string()
+    } else {
+        format!("{} toolchain(s) updated", changed.len())
+    };
+    UpdateStepResult {
+        name: "rust",
+        status: StepStatus::Ok(detail),
+        detail: None,
+    }
+}
+
+fn update_git_repo(name: &'static str, dir: &Path) -> UpdateStepResult {
+    if !dir.exists() {
+        return skip_result(name, "directory not found");
+    }
+
+    let old_sha = Command::new("git")
+        .args(["-C", &dir.to_string_lossy(), "rev-parse", "HEAD"])
+        .output()
+        .ok()
+        .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
+        .unwrap_or_default();
+
+    let exit = run_cmd("git", &["-C", &dir.to_string_lossy(), "pull"]);
+    if exit != 0 {
+        return fail_result(name, exit);
+    }
+
+    let count = if old_sha.is_empty() {
+        0
+    } else {
+        git_commit_count(dir, &old_sha)
+    };
+    let detail = if count > 0 {
+        format!("{count} commit(s)")
+    } else {
+        "no changes".to_string()
+    };
+    UpdateStepResult {
+        name,
+        status: StepStatus::Ok(detail),
+        detail: None,
+    }
+}
+
+fn update_gems() -> UpdateStepResult {
+    if !has_cmd("gem") {
+        return skip_result("gems", "gem not installed");
+    }
+
+    let pre = capture("gem", &["list"]);
+    let exit = run_cmd("gem", &["update"]);
+    if exit != 0 {
+        return fail_result("gems", exit);
+    }
+    let post = capture("gem", &["list"]);
+    let gem_diff = diff_lines(&pre, &post);
+    let detail = if gem_diff.is_empty() {
+        "no changes".to_string()
+    } else {
+        format!("{} gem(s) ({})", gem_diff.len(), gem_diff.join(", "))
+    };
+    UpdateStepResult {
+        name: "gems",
+        status: StepStatus::Ok(detail),
+        detail: None,
+    }
+}
+
+fn update_cheatsh() -> UpdateStepResult {
+    let cht = home_dir().join("bin/cht.sh");
+    if !cht.exists() {
+        return skip_result("cheat.sh", "~/bin/cht.sh not found");
+    }
+    if !has_cmd("curl") {
+        return skip_result("cheat.sh", "curl not installed");
+    }
+
+    let exit = Command::new("curl")
+        .args([
+            "-fsSL",
+            "https://cht.sh/:cht.sh",
+            "-o",
+            &cht.to_string_lossy(),
+        ])
+        .status()
+        .map(|s| s.code().unwrap_or(1))
+        .unwrap_or(1);
+
+    if exit != 0 {
+        return fail_result("cheat.sh", exit);
+    }
+    let _ = run_cmd("chmod", &["+x", &cht.to_string_lossy()]);
+    UpdateStepResult {
+        name: "cheat.sh",
+        status: StepStatus::Ok("updated".to_string()),
+        detail: None,
+    }
+}
+
+// ── Summary ───────────────────────────────────────────────────────────────────
+
+fn print_summary<W: Write>(
+    w: &mut W,
+    results: &[UpdateStepResult],
+    log_path: Option<&Path>,
+) -> anyhow::Result<()> {
+    let by_name: HashMap<&str, &UpdateStepResult> =
+        results.iter().map(|r| (r.name, r)).collect();
+
+    let timestamp = format_timestamp();
+    let header = format!("=== Update Summary — {timestamp} ===\n\n");
+
+    let mut body = String::new();
+    let (mut ok, mut fail, mut skip, mut warn_count) = (0u32, 0u32, 0u32, 0u32);
+
+    for &section in SECTION_ORDER {
+        if let Some(result) = by_name.get(section) {
+            match &result.status {
+                StepStatus::Ok(_) => ok += 1,
+                StepStatus::Fail(_) => fail += 1,
+                StepStatus::Skip(_) => skip += 1,
+                StepStatus::Warn(_) => warn_count += 1,
+            }
+            body.push_str(&format!(
+                "{} {:<16} {}\n",
+                result.status.tag(),
+                section,
+                result.status.detail()
+            ));
+        }
+    }
+
+    let total = ok + fail + skip + warn_count;
+    let count_line = format!(
+        "\n{total} sections: {ok} OK, {fail} failed, {warn_count} warnings, {skip} skipped\n"
+    );
+
+    write!(w, "{header}{body}{count_line}")?;
+
+    if let Some(path) = log_path {
+        let log_entry = format!(
+            "────────────────────────────────────────────────────────\n{header}{body}{count_line}"
+        );
+        match std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(path)
+            .and_then(|mut f| f.write_all(log_entry.as_bytes()))
+        {
+            Ok(()) => writeln!(w, "Log appended: {}", path.display())?,
+            Err(e) => warn!("Could not write to {}: {e}", path.display()),
+        }
+    }
+
+    Ok(())
+}
+
+// ── EtchCommand impl ──────────────────────────────────────────────────────────
+
+impl EtchCommand for Update {
+    fn execute(&self, runtime: &Runtime) -> anyhow::Result<()> {
+        let run_all = !self.any_flag_set();
+        let update_cfg = &runtime.config.update;
+        let vars = &runtime.config.variables;
+        let home = home_dir();
+
+        let log_path = update_cfg
+            .log_path
+            .as_deref()
+            .map(expand_tilde)
+            .unwrap_or_else(|| home.join(".etch-update.log"));
+
+        let has_snap = vars.get("has_snap").map(|v| v == "true").unwrap_or(false);
+        let dotfiles_dir = vars.get("dotfiles_dir").map(|s| expand_tilde(s));
+
+        let mut results: Vec<UpdateStepResult> = Vec::new();
+
+        // git-tools (pull repos before package updates)
+        if step_should_run(self.git_tools, run_all) {
+            if let Some(ref gt) = update_cfg.git_tools {
+                info!("Pulling git repos...");
+                if gt.ai_config.is_some() {
+                    let ai_dir = dotfiles_dir
+                        .as_ref()
+                        .and_then(|d| d.parent().map(|p| p.join("ai-config")));
+                    results.push(match ai_dir {
+                        Some(dir) => update_git_repo("ai-config", &dir),
+                        None => skip_result("ai-config", "dotfiles_dir not set in variables"),
+                    });
+                }
+                if gt.dotfiles.is_some() {
+                    results.push(match &dotfiles_dir {
+                        Some(dir) => update_git_repo("dotfiles", dir),
+                        None => skip_result("dotfiles", "dotfiles_dir not set in variables"),
+                    });
+                }
+                if gt.oh_my_zsh.unwrap_or(false) {
+                    results.push(update_git_repo("oh-my-zsh", &home.join(".oh-my-zsh")));
+                }
+                if gt.tpm.unwrap_or(false) {
+                    results.push(update_git_repo("tpm", &home.join(".tmux/plugins/tpm")));
+                }
+                if gt.tfenv.unwrap_or(false) {
+                    results.push(update_git_repo("tfenv", &home.join(".tfenv")));
+                }
+            } else {
+                info!("No git_tools config in etch.yaml — skipping");
+            }
+        }
+
+        // brew
+        if step_should_run(self.brew, run_all) {
+            info!("Updating Homebrew...");
+            results.push(update_brew());
+        }
+
+        // mas (macOS only — skips on Linux automatically)
+        if step_should_run(self.mas, run_all) {
+            results.push(update_mas());
+        }
+
+        // claude plugins + npm globals
+        if step_should_run(self.claude, run_all) {
+            match &update_cfg.claude {
+                Some(claude_cfg) => {
+                    info!("Updating Claude plugins...");
+                    results.push(update_claude(claude_cfg));
+                    if !claude_cfg.npm_globals.is_empty() {
+                        results.push(update_npm(claude_cfg));
+                    }
+                }
+                None => {
+                    results.push(skip_result("claude", "no claude config in etch.yaml"));
+                }
+            }
+        }
+
+        // rust
+        if step_should_run(self.rust, run_all) {
+            if vars.get("has_rust").map(|v| v == "true").unwrap_or(true) {
+                info!("Updating Rust toolchain...");
+                results.push(update_rust());
+            } else {
+                results.push(skip_result("rust", "has_rust=false"));
+            }
+        }
+
+        // packages: apt + snap (Linux)
+        if step_should_run(self.packages, run_all) {
+            results.push(update_apt());
+            results.push(update_snap(has_snap));
+        }
+
+        // softwareupdate (macOS — skips on Linux automatically)
+        if step_should_run(self.system, run_all) {
+            results.push(update_softwareupdate());
+        }
+
+        // pip
+        if step_should_run(self.pip, run_all) {
+            if vars.get("has_devtools").map(|v| v == "true").unwrap_or(true) {
+                results.push(update_pip());
+            } else {
+                results.push(skip_result("pip", "has_devtools=false"));
+            }
+        }
+
+        // gems
+        if step_should_run(self.gems, run_all) {
+            results.push(update_gems());
+        }
+
+        // cheat.sh
+        if step_should_run(self.cheatsh, run_all) {
+            results.push(update_cheatsh());
+        }
+
+        let mut stdout = std::io::stdout();
+        print_summary(&mut stdout, &results, Some(&log_path))?;
+
+        Ok(())
+    }
+}
+
+// ── Tests ─────────────────────────────────────────────────────────────────────
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn any_flag_set_false_when_all_default() {
+        assert!(!Update::default().any_flag_set());
+    }
+
+    #[test]
+    fn any_flag_set_true_with_brew() {
+        assert!(Update {
+            brew: true,
+            ..Default::default()
+        }
+        .any_flag_set());
+    }
+
+    #[test]
+    fn any_flag_set_true_with_cheatsh() {
+        assert!(Update {
+            cheatsh: true,
+            ..Default::default()
+        }
+        .any_flag_set());
+    }
+
+    #[test]
+    fn any_flag_set_true_with_git_tools() {
+        assert!(Update {
+            git_tools: true,
+            ..Default::default()
+        }
+        .any_flag_set());
+    }
+
+    #[test]
+    fn step_should_run_when_run_all() {
+        assert!(step_should_run(false, true));
+    }
+
+    #[test]
+    fn step_should_run_when_flag_set() {
+        assert!(step_should_run(true, false));
+    }
+
+    #[test]
+    fn step_should_not_run_when_neither() {
+        assert!(!step_should_run(false, false));
+    }
+
+    #[test]
+    fn diff_lines_returns_new_and_changed_entries() {
+        let pre = vec!["a 1.0".to_string(), "b 2.0".to_string()];
+        let post = vec![
+            "a 1.1".to_string(),
+            "b 2.0".to_string(),
+            "c 3.0".to_string(),
+        ];
+        let diff = diff_lines(&pre, &post);
+        assert!(diff.contains(&"a 1.1".to_string()), "expected updated a");
+        assert!(diff.contains(&"c 3.0".to_string()), "expected new c");
+        assert!(
+            !diff.contains(&"b 2.0".to_string()),
+            "unchanged b should not be in diff"
+        );
+    }
+
+    #[test]
+    fn diff_lines_empty_when_no_changes() {
+        let pre = vec!["a 1.0".to_string()];
+        let post = vec!["a 1.0".to_string()];
+        assert!(diff_lines(&pre, &post).is_empty());
+    }
+
+    #[test]
+    fn diff_lines_empty_input_produces_all_post() {
+        let pre: Vec<String> = vec![];
+        let post = vec!["a 1.0".to_string(), "b 2.0".to_string()];
+        let diff = diff_lines(&pre, &post);
+        assert_eq!(diff.len(), 2);
+    }
+
+    #[test]
+    fn print_summary_formats_ok_result() {
+        let results = vec![UpdateStepResult {
+            name: "brew",
+            status: StepStatus::Ok("3 formulae".to_string()),
+            detail: None,
+        }];
+        let mut buf = Vec::<u8>::new();
+        print_summary(&mut buf, &results, None).unwrap();
+        let out = String::from_utf8(buf).unwrap();
+        assert!(out.contains("[OK]"), "expected [OK] in: {out}");
+        assert!(out.contains("brew"), "expected 'brew' in: {out}");
+        assert!(out.contains("3 formulae"), "expected detail in: {out}");
+    }
+
+    #[test]
+    fn print_summary_formats_fail_result() {
+        let results = vec![UpdateStepResult {
+            name: "apt",
+            status: StepStatus::Fail("exit 1".to_string()),
+            detail: None,
+        }];
+        let mut buf = Vec::<u8>::new();
+        print_summary(&mut buf, &results, None).unwrap();
+        let out = String::from_utf8(buf).unwrap();
+        assert!(out.contains("[FAIL]"), "expected [FAIL] in: {out}");
+        assert!(out.contains("exit 1"), "expected detail in: {out}");
+    }
+
+    #[test]
+    fn print_summary_formats_skip_result() {
+        let results = vec![UpdateStepResult {
+            name: "mas",
+            status: StepStatus::Skip("not applicable".to_string()),
+            detail: None,
+        }];
+        let mut buf = Vec::<u8>::new();
+        print_summary(&mut buf, &results, None).unwrap();
+        let out = String::from_utf8(buf).unwrap();
+        assert!(out.contains("[SKIP]"), "expected [SKIP] in: {out}");
+    }
+
+    #[test]
+    fn print_summary_counts_correctly() {
+        let results = vec![
+            UpdateStepResult {
+                name: "brew",
+                status: StepStatus::Ok("no changes".to_string()),
+                detail: None,
+            },
+            UpdateStepResult {
+                name: "apt",
+                status: StepStatus::Fail("exit 1".to_string()),
+                detail: None,
+            },
+            UpdateStepResult {
+                name: "pip",
+                status: StepStatus::Skip("not installed".to_string()),
+                detail: None,
+            },
+            UpdateStepResult {
+                name: "rust",
+                status: StepStatus::Warn("advisory".to_string()),
+                detail: None,
+            },
+        ];
+        let mut buf = Vec::<u8>::new();
+        print_summary(&mut buf, &results, None).unwrap();
+        let out = String::from_utf8(buf).unwrap();
+        assert!(out.contains("4 sections"), "expected section count in: {out}");
+        assert!(out.contains("1 OK"), "expected 1 OK in: {out}");
+        assert!(out.contains("1 failed"), "expected 1 failed in: {out}");
+        assert!(out.contains("1 warnings"), "expected 1 warnings in: {out}");
+        assert!(out.contains("1 skipped"), "expected 1 skipped in: {out}");
+    }
+
+    #[test]
+    fn print_summary_follows_section_order() {
+        // rust appears before brew in input — brew should still come first in output
+        let results = vec![
+            UpdateStepResult {
+                name: "rust",
+                status: StepStatus::Ok("no changes".to_string()),
+                detail: None,
+            },
+            UpdateStepResult {
+                name: "brew",
+                status: StepStatus::Ok("1 formula".to_string()),
+                detail: None,
+            },
+        ];
+        let mut buf = Vec::<u8>::new();
+        print_summary(&mut buf, &results, None).unwrap();
+        let out = String::from_utf8(buf).unwrap();
+        let brew_pos = out.find("brew").expect("brew not found");
+        let rust_pos = out.find("rust").expect("rust not found");
+        assert!(brew_pos < rust_pos, "brew should appear before rust");
+    }
+
+    #[test]
+    fn print_summary_omits_unreported_sections() {
+        let results = vec![UpdateStepResult {
+            name: "brew",
+            status: StepStatus::Ok("no changes".to_string()),
+            detail: None,
+        }];
+        let mut buf = Vec::<u8>::new();
+        print_summary(&mut buf, &results, None).unwrap();
+        let out = String::from_utf8(buf).unwrap();
+        assert!(!out.contains("apt"), "absent sections should not appear");
+        assert!(!out.contains("rust"), "absent sections should not appear");
+    }
+
+    #[test]
+    fn print_summary_appends_to_log_file() {
+        let tmp = tempfile::tempdir().unwrap();
+        let log_path = tmp.path().join("test.log");
+        let results = vec![UpdateStepResult {
+            name: "brew",
+            status: StepStatus::Ok("no changes".to_string()),
+            detail: None,
+        }];
+        let mut buf = Vec::<u8>::new();
+        print_summary(&mut buf, &results, Some(&log_path)).unwrap();
+        // Log file must exist and contain summary
+        let log_content = std::fs::read_to_string(&log_path).unwrap();
+        assert!(log_content.contains("[OK]"), "log should contain summary");
+        assert!(log_content.contains("brew"), "log should contain section name");
+        // Second call appends
+        let mut buf2 = Vec::<u8>::new();
+        print_summary(&mut buf2, &results, Some(&log_path)).unwrap();
+        let log_content2 = std::fs::read_to_string(&log_path).unwrap();
+        let occurrences = log_content2.matches("[OK]").count();
+        assert!(occurrences >= 2, "log should have two appended entries");
+    }
+
+    #[test]
+    fn expand_tilde_replaces_home() {
+        let home = home_dir();
+        let expanded = expand_tilde("~/.etch-update.log");
+        assert!(
+            expanded.starts_with(&home),
+            "expected home prefix in: {expanded:?}"
+        );
+        assert!(
+            expanded.to_string_lossy().ends_with(".etch-update.log"),
+            "expected filename preserved"
+        );
+    }
+
+    #[test]
+    fn expand_tilde_leaves_absolute_paths() {
+        let path = expand_tilde("/tmp/test.log");
+        assert_eq!(path, PathBuf::from("/tmp/test.log"));
+    }
+}
