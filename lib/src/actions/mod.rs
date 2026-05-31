@@ -11,6 +11,7 @@ mod macos;
 mod mas;
 mod package;
 mod plugin;
+mod ruby;
 mod systemd;
 mod user;
 
@@ -35,6 +36,7 @@ use group::add::GroupAdd;
 use package::{PackageInstall, PackageRepository};
 use plugin::Plugin;
 use rhai::Engine;
+use ruby::RubyInstall;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
@@ -221,6 +223,9 @@ pub enum Actions {
 
     #[serde(rename = "plugin")]
     Plugin(ConditionalVariantAction<Plugin>),
+
+    #[serde(rename = "ruby.install")]
+    RubyInstall(ConditionalVariantAction<RubyInstall>),
 }
 
 impl Actions {
@@ -257,6 +262,7 @@ impl Actions {
             Actions::FileRemove(a) => a,
             Actions::DirectoryRemove(a) => a,
             Actions::Plugin(a) => a,
+            Actions::RubyInstall(a) => a,
         }
     }
 
@@ -293,6 +299,7 @@ impl Actions {
             Actions::UserAdd(a) => &a.notify,
             Actions::UserAddGroup(a) => &a.notify,
             Actions::Plugin(a) => &a.notify,
+            Actions::RubyInstall(a) => &a.notify,
         }
     }
 }
@@ -332,6 +339,7 @@ impl Deref for Actions {
             Actions::FileRemove(a) => a,
             Actions::DirectoryRemove(a) => a,
             Actions::Plugin(a) => a,
+            Actions::RubyInstall(a) => a,
         }
     }
 }
@@ -370,6 +378,7 @@ impl Display for Actions {
             Actions::UserAdd(_) => "user.add",
             Actions::UserAddGroup(_) => "user.group",
             Actions::Plugin(_) => "plugin",
+            Actions::RubyInstall(_) => "ruby.install",
         };
 
         write!(f, "{name}")
