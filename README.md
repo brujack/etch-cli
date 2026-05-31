@@ -127,6 +127,7 @@ See `CLAUDE.md` for the full action catalog with all fields documented.
 | `binary.github` / `binary.url`                          | Install binaries from releases or URLs     |
 | `group` / `user`                                        | Manage Unix groups and users               |
 | `ruby.install`                                          | Install Ruby versions via ruby-install     |
+| `gem.install`                                           | Install Ruby gems (idempotent)             |
 
 ## etch update
 

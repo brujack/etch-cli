@@ -1,0 +1,18 @@
+actions:
+    # Install a single gem
+    - action: gem.install
+      name: bundler
+
+    # Install a single gem at a specific version
+    - action: gem.install
+      name: bundler
+      version: "2.4.0"
+
+    # Install multiple gems in one action
+    - action: gem.install
+      list:
+          - bundler
+          - rake
+          - test-kitchen
+          - kitchen-vagrant
+          - kitchen-ansible
