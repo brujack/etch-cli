@@ -128,6 +128,7 @@ See `CLAUDE.md` for the full action catalog with all fields documented.
 | `group` / `user`                                        | Manage Unix groups and users               |
 | `ruby.install`                                          | Install Ruby versions via ruby-install     |
 | `gem.install`                                           | Install Ruby gems (idempotent)             |
+| `pip.install`                                           | Install Python packages (idempotent)       |
 
 ## etch update
 

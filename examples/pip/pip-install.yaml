@@ -1,0 +1,22 @@
+actions:
+    # Install a single package
+    - action: pip.install
+      name: requests
+
+    # Install a single package at a specific version
+    - action: pip.install
+      name: requests
+      version: "2.28.0"
+
+    # Install multiple packages in one action
+    - action: pip.install
+      list:
+          - requests
+          - flask
+          - pytest
+          - boto3
+
+    # Install into a specific virtualenv
+    - action: pip.install
+      name: requests
+      virtualenv: /opt/myapp/venv

@@ -11,6 +11,7 @@ mod group;
 mod macos;
 mod mas;
 mod package;
+mod pip;
 mod plugin;
 mod ruby;
 mod systemd;
@@ -36,6 +37,7 @@ use gem::GemInstall;
 use git::{GitClone, GitConfig, GitPull};
 use group::add::GroupAdd;
 use package::{PackageInstall, PackageRepository};
+use pip::PipInstall;
 use plugin::Plugin;
 use rhai::Engine;
 use ruby::RubyInstall;
@@ -231,6 +233,9 @@ pub enum Actions {
 
     #[serde(rename = "gem.install")]
     GemInstall(ConditionalVariantAction<GemInstall>),
+
+    #[serde(rename = "pip.install")]
+    PipInstall(ConditionalVariantAction<PipInstall>),
 }
 
 impl Actions {
@@ -269,6 +274,7 @@ impl Actions {
             Actions::Plugin(a) => a,
             Actions::RubyInstall(a) => a,
             Actions::GemInstall(a) => a,
+            Actions::PipInstall(a) => a,
         }
     }
 
@@ -307,6 +313,7 @@ impl Actions {
             Actions::Plugin(a) => &a.notify,
             Actions::RubyInstall(a) => &a.notify,
             Actions::GemInstall(a) => &a.notify,
+            Actions::PipInstall(a) => &a.notify,
         }
     }
 }
@@ -348,6 +355,7 @@ impl Deref for Actions {
             Actions::Plugin(a) => a,
             Actions::RubyInstall(a) => a,
             Actions::GemInstall(a) => a,
+            Actions::PipInstall(a) => a,
         }
     }
 }
@@ -388,6 +396,7 @@ impl Display for Actions {
             Actions::Plugin(_) => "plugin",
             Actions::RubyInstall(_) => "ruby.install",
             Actions::GemInstall(_) => "gem.install",
+            Actions::PipInstall(_) => "pip.install",
         };
 
         write!(f, "{name}")
@@ -565,9 +574,11 @@ actions:
     flags: [hidden]
   - action: gem.install
     name: bundler
+  - action: pip.install
+    name: requests
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(25, manifest.actions.len());
+        assert_eq!(26, manifest.actions.len());
     }
 
     #[test]
@@ -671,6 +682,7 @@ actions:
             "mas.upgrade",
             "systemd.service",
             "gem.install",
+            "pip.install",
         ];
 
         for (action, expected) in manifest.actions.iter().zip(expected_names.iter()) {
@@ -887,9 +899,11 @@ actions:
     value: test@example.com
   - action: gem.install
     name: bundler
+  - action: pip.install
+    name: requests
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(28, manifest.actions.len());
+        assert_eq!(29, manifest.actions.len());
 
         for action in &manifest.actions {
             // Exercise inner_ref() for every variant
