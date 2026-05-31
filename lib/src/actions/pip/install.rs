@@ -225,6 +225,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn plan_returns_exec_for_uninstalled_package() {
         let action = PipInstall {
             name: Some(String::from(FAKE_PKG)),
@@ -252,6 +253,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn plan_returns_exec_for_uninstalled_list() {
         let action = PipInstall {
             name: None,
@@ -271,6 +273,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn plan_includes_version_in_package_specifier() {
         let action = PipInstall {
             name: Some(String::from(FAKE_PKG)),

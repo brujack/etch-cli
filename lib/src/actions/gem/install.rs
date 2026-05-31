@@ -188,6 +188,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn plan_returns_exec_for_uninstalled_gem() {
         let action = GemInstall {
             name: Some(String::from(FAKE_GEM)),
@@ -214,6 +215,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn plan_returns_exec_for_uninstalled_list() {
         let action = GemInstall {
             name: None,
@@ -232,6 +234,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn plan_includes_version_flag_when_set() {
         let action = GemInstall {
             name: Some(String::from(FAKE_GEM)),
