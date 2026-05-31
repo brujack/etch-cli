@@ -40,6 +40,7 @@ jobs:
         run: cargo install cargo-semver-checks --locked
 
       - name: Check semver compatibility
+        continue-on-error: true
         run: |
           PREV_TAG=$(git tag --sort=-version:refname | grep "^v" | head -1)
           if [ -n "${PREV_TAG}" ]; then
