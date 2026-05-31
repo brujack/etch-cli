@@ -100,6 +100,26 @@ Manifest actions map to `lib/src/actions/<name>/`:
 
 Template engine is [Tera](https://keats.github.io/tera/). Available context variables: `user.username`, `user.home_dir`, `user.name`, `os.hostname`, `os.name`, `os.family`, `os.distribution`, `manifest_dir`.
 
+## Adding a New Action
+
+Every new action requires changes in exactly these places:
+
+1. **Create `lib/src/actions/<name>/install.rs`** — the action struct + `impl Action`
+2. **Create `lib/src/actions/<name>/mod.rs`** — re-export: `mod install; pub use install::ActionType;`
+3. **Register in `lib/src/actions/mod.rs`** (6 edits):
+    - `mod <name>;` — module declaration
+    - `use <name>::ActionType;` — import
+    - Enum variant with serde rename: `ActionType(ConditionalVariantAction<ActionType>)` + `#[serde(rename = "name.action")]`
+    - Match arm in `inner_ref()` impl
+    - Match arm in `notify` accessor
+    - Match arm in `Deref` impl
+    - Match arm in `Display` impl (`=> "name.action"`)
+4. **Update the two test YAML lists** in `all_major_action_variants_can_be_deserialized` and `all_action_variants_inner_ref_and_deref` — add a YAML entry for the new action to each
+5. **Add `examples/<name>/<name>-install.yaml`** with one entry per option combination
+6. **Update the Action Catalog table** in this file and in `README.md`
+
+Missing any step produces a compile error (missing match arm) or test failure (incorrect variant count). The `semver-check` CI job will always produce an advisory failure (`enum_variant_added`) — this is expected and non-blocking.
+
 ## Homebrew macOS Workflow
 
 All four Homebrew install mechanisms are supported. **Recommended approach for dotfiles migration: use `brew.bundle` with the existing Brewfile** — it handles taps, formulae, casks, and MAS apps in one action.
