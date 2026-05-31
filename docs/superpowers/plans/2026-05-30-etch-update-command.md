@@ -1,5 +1,7 @@
 # etch update Implementation Plan
 
+> **Status: DONE**
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add `etch update` as a built-in subcommand that replicates `dotfiles/setup_env.sh run_update()` — brew, mas, softwareupdate, claude plugins, npm globals, apt, snap, pip, rustup, git-based tools (oh-my-zsh, tpm, tfenv, ai-config, dotfiles), gems, and cheat.sh.
