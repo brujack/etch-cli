@@ -682,6 +682,8 @@ fn update_cheatsh() -> UpdateStepResult {
         return skip_result("cheat.sh", "curl not installed");
     }
 
+    // cht.sh does not publish checksums for its self-updating script; HTTPS is the
+    // only available verification. Mirrors the dotfiles shell script approach.
     let exit = Command::new("curl")
         .args([
             "-fsSL",
