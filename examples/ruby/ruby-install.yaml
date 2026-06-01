@@ -13,3 +13,13 @@ actions:
     - action: ruby.install
       version: "3.3.0"
       rubies_dir: /opt/rubies
+
+    # Install with rbenv: after ruby-install, runs `rbenv global <version>` and `rbenv rehash`
+    - action: ruby.install
+      version: "3.3.0"
+      version_manager: rbenv
+
+    # chruby: no post-install steps needed (auto-discovers from ~/.rubies)
+    - action: ruby.install
+      version: "3.3.0"
+      version_manager: chruby

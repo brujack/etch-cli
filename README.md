@@ -112,23 +112,23 @@ See `CLAUDE.md` for the full action catalog with all fields documented.
 
 ## Action catalog
 
-| Action                                                  | Description                                |
-| ------------------------------------------------------- | ------------------------------------------ |
-| `command.run`                                           | Run shell commands                         |
-| `directory.create` / `directory.copy`                   | Manage directories                         |
-| `file.copy` / `file.link` / `file.chmod` / `file.flags` | Manage files, permissions, and BSD flags   |
-| `git.clone` / `git.pull` / `git.config`                 | Git repository and config management       |
-| `package.install` / `package.repository`                | Install packages (Homebrew, apt, …)        |
-| `brew.bundle` / `brew.upgrade`                          | Homebrew bundle and upgrades               |
-| `mas.install` / `mas.upgrade`                           | Mac App Store apps (macOS)                 |
-| `macos.defaults`                                        | Write macOS defaults                       |
-| `macos.service`                                         | Load/unload LaunchDaemons and LaunchAgents |
-| `systemd.service`                                       | Enable/disable/start/stop systemd units    |
-| `binary.github` / `binary.url`                          | Install binaries from releases or URLs     |
-| `group` / `user`                                        | Manage Unix groups and users               |
-| `ruby.install`                                          | Install Ruby versions via ruby-install     |
-| `gem.install`                                           | Install Ruby gems (idempotent)             |
-| `pip.install`                                           | Install Python packages (idempotent)       |
+| Action                                                  | Description                                                                                                                |
+| ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `command.run`                                           | Run shell commands                                                                                                         |
+| `directory.create` / `directory.copy`                   | Manage directories                                                                                                         |
+| `file.copy` / `file.link` / `file.chmod` / `file.flags` | Manage files, permissions, and BSD flags                                                                                   |
+| `git.clone` / `git.pull` / `git.config`                 | Git repository and config management                                                                                       |
+| `package.install` / `package.repository`                | Install packages (Homebrew, apt, …)                                                                                        |
+| `brew.bundle` / `brew.upgrade`                          | Homebrew bundle and upgrades                                                                                               |
+| `mas.install` / `mas.upgrade`                           | Mac App Store apps (macOS)                                                                                                 |
+| `macos.defaults`                                        | Write macOS defaults                                                                                                       |
+| `macos.service`                                         | Load/unload LaunchDaemons and LaunchAgents                                                                                 |
+| `systemd.service`                                       | Enable/disable/start/stop systemd units                                                                                    |
+| `binary.github` / `binary.url`                          | Install binaries from releases or URLs                                                                                     |
+| `group` / `user`                                        | Manage Unix groups and users                                                                                               |
+| `ruby.install`                                          | Install Ruby versions via ruby-install; optional `version_manager` field (`"rbenv"` \| `"chruby"`) runs post-install steps |
+| `gem.install`                                           | Install Ruby gems (idempotent)                                                                                             |
+| `pip.install`                                           | Install Python packages (idempotent)                                                                                       |
 
 ## etch update
 
