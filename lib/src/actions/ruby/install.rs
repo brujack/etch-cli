@@ -374,6 +374,25 @@ mod tests {
     }
 
     #[test]
+    fn plan_skips_if_installed_with_chruby() {
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(tmp.path().join("ruby-3.3.0")).unwrap();
+        let action = RubyInstall {
+            version: String::from("3.3.0"),
+            implementation: None,
+            rubies_dir: Some(tmp.path().to_string_lossy().to_string()),
+            version_manager: Some(VersionManager::Chruby),
+        };
+        let steps = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+        assert!(
+            steps.is_empty(),
+            "expected no steps when ruby already installed with chruby set"
+        );
+    }
+
+    #[test]
     fn plan_skips_all_if_installed_with_rbenv() {
         let tmp = tempfile::tempdir().unwrap();
         std::fs::create_dir_all(tmp.path().join("ruby-3.3.0")).unwrap();
