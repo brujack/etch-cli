@@ -1,4 +1,6 @@
 actions:
-  - action: directory.copy
-    from: mydir
-    to: /tmp/dircopy
+    # Copy a directory recursively. `from` is relative to the manifest directory.
+    # `to` is an absolute destination path (tilde expanded).
+    - action: directory.copy
+      from: mydir
+      to: /tmp/dircopy

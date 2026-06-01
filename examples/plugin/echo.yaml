@@ -1,10 +1,10 @@
 actions:
-  # FIXME: Please add "plugin" to yaml schema
-  - action: plugin
-    # FIXME: Please host this repo using etch org
-    # so it's not referencing my outside repo
-    repo: JustinBacher/etch-example-plugin
-    version:
-    opts:
-      echo:
-        output: hello world
+    # Run an etch plugin. `repo` is a GitHub "owner/repo" of the plugin.
+    # `version` pins to a git tag or SHA; omit for latest.
+    # `opts` is a nested map passed to the plugin — structure is plugin-defined.
+    - action: plugin
+      repo: JustinBacher/etch-example-plugin
+      version:
+      opts:
+          echo:
+              output: hello world

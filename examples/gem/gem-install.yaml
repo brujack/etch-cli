@@ -1,14 +1,15 @@
 actions:
-    # Install a single gem
+    # Install a single gem. Idempotent: skips if `gem list --installed <name>`
+    # returns true. Requires `gem` on PATH (provided by the active Ruby).
     - action: gem.install
       name: bundler
 
-    # Install a single gem at a specific version
+    # version: install a specific version.
     - action: gem.install
       name: bundler
       version: "2.4.0"
 
-    # Install multiple gems in one action
+    # list: install multiple gems in one action.
     - action: gem.install
       list:
           - bundler

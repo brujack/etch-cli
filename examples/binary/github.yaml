@@ -1,5 +1,17 @@
 actions:
-  - action: binary.github
-    name: etch
-    directory: /tmp
-    repository: brujack/etch-cli
+    # Download a binary from a GitHub release. Auto-detects platform (macOS/Linux)
+    # and architecture from the release asset names. Idempotent: skips if
+    # `{directory}/{name}` already exists.
+    # repository: "owner/repo" — fetches the latest release.
+    - action: binary.github
+      name: etch
+      repository: brujack/etch-cli
+      directory: /usr/local/bin
+
+    # version: pin to a specific release tag (without leading "v").
+    # Use when you need reproducible installs rather than always-latest.
+    - action: binary.github
+      name: etch
+      repository: brujack/etch-cli
+      version: "0.9.3"
+      directory: "{{ user.home_dir }}/.local/bin"

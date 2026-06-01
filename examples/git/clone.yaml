@@ -1,4 +1,7 @@
 actions:
-  - action: git.clone
-    repo_url: https://github.com/brujack/etch-cli
-    directory: /Users/toddmartin/Testing/etch/
+    # Clone a git repository. Not idempotent in the network sense — always checks
+    # the remote. If `directory` already exists, clone is skipped; the repo is not
+    # pulled or updated. Use git.pull when you need clone-or-pull semantics.
+    - action: git.clone
+      repo_url: https://github.com/brujack/etch-cli
+      directory: "{{ user.home_dir }}/src/etch-cli"

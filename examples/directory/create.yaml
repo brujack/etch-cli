@@ -1,3 +1,8 @@
 actions:
-  - action: directory.create
-    path: /some-directory
+    # Create a directory. Idempotent: no-op if it already exists.
+    - action: directory.create
+      path: /some-directory
+
+    # Tilde and context variable expansion supported in path.
+    - action: directory.create
+      path: "{{ user.home_dir }}/.config/myapp"

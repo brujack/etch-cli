@@ -1,7 +1,13 @@
-where: variables.fkbr == "sxoe" && variables.kuci == "xhpv"
+# where: a Rhai expression that gates the entire manifest. If it evaluates to
+# false the manifest is skipped entirely. Common patterns:
+#   os.name == "macos"         — macOS only
+#   os.family == "linux"       — any Linux
+#   variables.has_devtools     — custom variable defined in etch.yaml
+#   os.name == "macos" && variables.has_gui  — compound condition
+where: 'os.name == "macos"'
 
 actions:
-  - action: command.run
-    command: echo
-    args:
-      - hello, world!
+    - action: command.run
+      command: echo
+      args:
+          - "Running on macOS"

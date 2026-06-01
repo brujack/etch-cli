@@ -1,6 +1,8 @@
 actions:
-  - action: directory.remove
-    target: "{{user.home_dir}}/some/path/to/dir"
+    # Remove a directory. target supports Tera context variable expansion.
+    - action: directory.remove
+      target: "{{ user.home_dir }}/some/path/to/dir"
 
-  - action: directory.remove
-    target: home/user/some/path/to/dir
+    # Plain absolute path (no templating).
+    - action: directory.remove
+      target: /home/user/some/path/to/dir

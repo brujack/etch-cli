@@ -1,13 +1,15 @@
-# Can define variables in the etch.yaml
-# See etch.yaml in the examples directory for an example
-# Or define variables in the command line 
+# Variables are defined in ~/.config/etch/etch.yaml under a `variables:` key,
+# or passed via `etch apply --variable key=value` on the CLI.
+# Reference them in manifests with {{ variables.<name> }}.
+# See examples/Etch.yaml for how to declare variables in config.
 
 actions:
-  - action: command.run
-    command: echo
-    args:
-      - "{{ variables.hello }}"
-  - action: command.run
-    command: echo
-    args:
-      - "{{ variables.foo }}"
+    - action: command.run
+      command: echo
+      args:
+          - "{{ variables.hello }}"
+
+    - action: command.run
+      command: echo
+      args:
+          - "{{ variables.foo }}"

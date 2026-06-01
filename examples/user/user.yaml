@@ -1,10 +1,17 @@
 actions:
-  - action: user.add
-    fullname: testuser
-    home_dir: /home/test
-    username: test
-    shell: sh
-  - action: user.group
-    username: test
-    group:
-      - wheel
+    # Create a system user. Idempotent: skips if username already exists.
+    # Linux: uses `useradd`. macOS: uses `dscl`.
+    # shell: path to the login shell (e.g. /bin/bash, /bin/zsh, sh).
+    - action: user.add
+      fullname: testuser
+      home_dir: /home/test
+      username: test
+      shell: /bin/bash
+
+    # Add an existing user to one or more groups (without recreating the user).
+    # group: list of groups the user should be a member of.
+    - action: user.group
+      username: test
+      group:
+          - wheel
+          - docker

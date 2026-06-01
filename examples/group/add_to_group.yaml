@@ -1,11 +1,15 @@
+# depends: ensures the group manifest runs first so testgroup exists before
+# this manifest tries to assign a user to it.
 depends:
-  - ./group
+    - ./group
 
 actions:
-  - action: user.add
-    fullname: testuser
-    home_dir: /home/test
-    username: test
-    shell: sh
-    group:
-      - testgroup
+    # Create a user and add them to groups in one action.
+    # group: list of existing groups to add the user to.
+    - action: user.add
+      fullname: testuser
+      home_dir: /home/test
+      username: test
+      shell: sh
+      group:
+          - testgroup

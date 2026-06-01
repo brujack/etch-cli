@@ -1,5 +1,15 @@
 actions:
-  # This will be rendered with contexts
-  - action: file.download
-    from: https://google.com/robots.txt
-    to: /tmp/google-robots.txt
+    # Download a file from a URL to a local path. Parent directories are created
+    # automatically. chmod defaults to 644.
+    - action: file.download
+      from: https://example.com/config.yaml
+      to: /tmp/config.yaml
+
+    # chmod: set permissions on the downloaded file (octal integer).
+    # owned_by_user / owned_by_group: set ownership after download.
+    - action: file.download
+      from: https://example.com/myscript.sh
+      to: "{{ user.home_dir }}/.local/bin/myscript"
+      chmod: 755
+      owned_by_user: myuser
+      owned_by_group: mygroup

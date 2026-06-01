@@ -1,8 +1,12 @@
 actions:
-  - action: file.download
-    from: https://github.com/brujack/etch-cli/archive/refs/tags/v0.9.0.tar.gz
-    to: /tmp/etch
-  
-  - action: file.unarchive
-    from: /tmp/etch
-    to: /tmp/
+    # Download an archive, then extract it. Typical two-step pattern.
+    - action: file.download
+      from: https://github.com/brujack/etch-cli/archive/refs/tags/v0.9.0.tar.gz
+      to: /tmp/etch.tar.gz
+
+    # Extract an archive to a directory. Format detected from the file extension
+    # (.tar.gz, .tar.bz2, .zip, etc.). `force` defaults to true — overwrites
+    # existing files. Use `from`/`to` or the aliases `source`/`target`.
+    - action: file.unarchive
+      from: /tmp/etch.tar.gz
+      to: /tmp/etch-extracted/

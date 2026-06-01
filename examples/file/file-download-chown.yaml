@@ -1,7 +1,8 @@
 actions:
-  # This will be rendered with contexts
-  - action: file.download
-    from: https://google.com/robots.txt
-    to: /tmp/google-robots.txt
-    owned_by_user: nobody
-    owned_by_group: nobody
+    # Download a file and set ownership in a single action.
+    # owned_by_user / owned_by_group applied after download.
+    - action: file.download
+      from: https://example.com/config.yaml
+      to: /tmp/config.yaml
+      owned_by_user: nobody
+      owned_by_group: nobody

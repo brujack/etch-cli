@@ -1,6 +1,15 @@
 actions:
-  - action: file.chown
-    path: ./files/some-file
-    user: test
-    group: test
+    # Change file or directory ownership. path is relative to the manifest
+    # directory or absolute. Requires the user/group to already exist on the
+    # system. Use `privileged: true` when the target is owned by root.
+    - action: file.chown
+      path: ./files/some-file
+      user: myuser
+      group: mygroup
 
+    # Change ownership of a system file (requires privilege escalation).
+    - action: file.chown
+      path: /etc/myapp/config
+      user: root
+      group: wheel
+      privileged: true

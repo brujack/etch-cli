@@ -1,4 +1,6 @@
 actions:
-  - action: file.download
-    from: https://google.com
-    to: /tmp/abc
+    # Alias example for file.download — same action, same fields.
+    # See examples/file/file-download.yaml for full field documentation.
+    - action: file.download
+      from: https://example.com/config.yaml
+      to: /tmp/config.yaml

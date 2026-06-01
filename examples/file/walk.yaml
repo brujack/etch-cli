@@ -1,5 +1,9 @@
 actions:
-  - action: file.link
-    source: walker
-    target: /tmp/walker-123
-    walk_dir: true
+    # walk_dir: true links every file inside the source directory recursively,
+    # preserving subdirectory structure under `target`. Useful for symlinking
+    # a dotfiles subtree into a target location without symlinking the directory
+    # itself. Equivalent to running file.link for each file matched by the glob.
+    - action: file.link
+      source: walker
+      target: /tmp/walker-123
+      walk_dir: true

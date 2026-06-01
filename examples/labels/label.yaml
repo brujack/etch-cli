@@ -1,8 +1,11 @@
+# labels: tags on a manifest. Use `etch apply --label <name>` to run only
+# manifests that carry that label. Useful for grouping optional or role-specific
+# manifests (e.g. "work", "gaming", "server").
 labels:
-  - labelled
+    - labelled
 
 actions:
-  - action: command.run
-    command: echo
-    args:
-      - "Hello"
+    - action: command.run
+      command: echo
+      args:
+          - "Hello from a labelled manifest"
