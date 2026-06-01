@@ -99,7 +99,7 @@ impl UserProvider for MacOSUserProvider {
         let mut steps: Vec<Step> = vec![];
 
         for group in user.group.iter() {
-            if Self::user_in_group(&user.username, group) {
+            if super::user_in_group(&user.username, group) {
                 continue;
             }
 
@@ -128,21 +128,6 @@ impl UserProvider for MacOSUserProvider {
         }
 
         Ok(steps)
-    }
-}
-
-impl MacOSUserProvider {
-    fn user_in_group(username: &str, group: &str) -> bool {
-        std::process::Command::new("id")
-            .args(["-nG", username])
-            .output()
-            .map(|o| {
-                o.status.success()
-                    && String::from_utf8_lossy(&o.stdout)
-                        .split_whitespace()
-                        .any(|g| g == group)
-            })
-            .unwrap_or(false)
     }
 }
 
