@@ -6,6 +6,13 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
+#[derive(JsonSchema, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum VersionManager {
+    Rbenv,
+    Chruby,
+}
+
 #[derive(JsonSchema, Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RubyInstall {
     pub version: String,
@@ -13,6 +20,8 @@ pub struct RubyInstall {
     pub implementation: Option<String>,
     /// Directory where rubies are installed. Defaults to ~/.rubies. Passed as --rubies-dir to ruby-install when set.
     pub rubies_dir: Option<String>,
+    /// Version manager that owns the Ruby installation. When set, delegates install to rbenv or chruby instead of ruby-install.
+    pub version_manager: Option<VersionManager>,
 }
 
 impl RubyInstall {
@@ -111,6 +120,7 @@ mod tests {
             version: String::from("3.3.0"),
             implementation: None,
             rubies_dir: None,
+            version_manager: None,
         };
         let s = action.summarize();
         assert!(s.contains("ruby"), "expected 'ruby' in: {s}");
@@ -123,6 +133,7 @@ mod tests {
             version: String::from("9.4.0.0"),
             implementation: Some(String::from("jruby")),
             rubies_dir: None,
+            version_manager: None,
         };
         let s = action.summarize();
         assert!(s.contains("jruby"), "expected 'jruby' in: {s}");
@@ -136,6 +147,7 @@ mod tests {
             version: String::from("3.3.0"),
             implementation: None,
             rubies_dir: Some(tmp.path().to_string_lossy().to_string()),
+            version_manager: None,
         };
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
@@ -157,6 +169,7 @@ mod tests {
             version: String::from("3.3.0"),
             implementation: None,
             rubies_dir: Some(tmp.path().to_string_lossy().to_string()),
+            version_manager: None,
         };
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
@@ -175,6 +188,7 @@ mod tests {
             version: String::from("9.4.0.0"),
             implementation: Some(String::from("jruby")),
             rubies_dir: Some(tmp.path().to_string_lossy().to_string()),
+            version_manager: None,
         };
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
@@ -193,6 +207,7 @@ mod tests {
             version: String::from("3.3.0"),
             implementation: None,
             rubies_dir: Some(dir_str.clone()),
+            version_manager: None,
         };
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
@@ -211,6 +226,7 @@ mod tests {
             version: String::from("99.99.99"),
             implementation: None,
             rubies_dir: None,
+            version_manager: None,
         };
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
@@ -230,6 +246,7 @@ mod tests {
             version: String::from("3.3.0"),
             implementation: None,
             rubies_dir: None,
+            version_manager: None,
         };
         assert_eq!("ruby", action.impl_name());
     }
@@ -240,7 +257,25 @@ mod tests {
             version: String::from("9.4.0.0"),
             implementation: Some(String::from("jruby")),
             rubies_dir: None,
+            version_manager: None,
         };
         assert_eq!("jruby", action.impl_name());
+    }
+
+    #[test]
+    fn it_can_be_deserialized_with_version_manager() {
+        let yaml = r#"
+- action: ruby.install
+  version: "3.3.0"
+  version_manager: rbenv
+"#;
+        let mut actions: Vec<Actions> = serde_yaml_ng::from_str(yaml).unwrap();
+        match actions.pop() {
+            Some(Actions::RubyInstall(action)) => {
+                assert_eq!("3.3.0", action.action.version);
+                assert_eq!(Some(VersionManager::Rbenv), action.action.version_manager);
+            }
+            _ => panic!("RubyInstall didn't deserialize to the correct type"),
+        }
     }
 }
