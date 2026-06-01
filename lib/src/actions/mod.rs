@@ -36,7 +36,7 @@ use file::unarchive::FileUnarchive;
 use gem::GemInstall;
 use git::{GitClone, GitConfig, GitPull};
 use group::add::GroupAdd;
-use package::{PackageInstall, PackageRepository};
+use package::{PackageAutoremove, PackageInstall, PackageRepository};
 use pip::PipInstall;
 use plugin::Plugin;
 use rhai::Engine;
@@ -219,6 +219,9 @@ pub enum Actions {
     #[serde(rename = "package.repository", alias = "package.repo")]
     PackageRepository(ConditionalVariantAction<PackageRepository>),
 
+    #[serde(rename = "package.autoremove")]
+    PackageAutoremove(ConditionalVariantAction<PackageAutoremove>),
+
     #[serde(rename = "user.add")]
     UserAdd(ConditionalVariantAction<UserAdd>),
 
@@ -267,6 +270,7 @@ impl Actions {
             Actions::MasUpgrade(a) => a,
             Actions::PackageInstall(a) => a,
             Actions::PackageRepository(a) => a,
+            Actions::PackageAutoremove(a) => a,
             Actions::UserAdd(a) => a,
             Actions::UserAddGroup(a) => a,
             Actions::FileRemove(a) => a,
@@ -308,6 +312,7 @@ impl Actions {
             Actions::MasUpgrade(a) => &a.notify,
             Actions::PackageInstall(a) => &a.notify,
             Actions::PackageRepository(a) => &a.notify,
+            Actions::PackageAutoremove(a) => &a.notify,
             Actions::UserAdd(a) => &a.notify,
             Actions::UserAddGroup(a) => &a.notify,
             Actions::Plugin(a) => &a.notify,
@@ -348,6 +353,7 @@ impl Deref for Actions {
             Actions::MasUpgrade(a) => a,
             Actions::PackageInstall(a) => a,
             Actions::PackageRepository(a) => a,
+            Actions::PackageAutoremove(a) => a,
             Actions::UserAdd(a) => a,
             Actions::UserAddGroup(a) => a,
             Actions::FileRemove(a) => a,
@@ -391,6 +397,7 @@ impl Display for Actions {
             Actions::MasUpgrade(_) => "mas.upgrade",
             Actions::PackageInstall(_) => "package.install",
             Actions::PackageRepository(_) => "package.repository",
+            Actions::PackageAutoremove(_) => "package.autoremove",
             Actions::UserAdd(_) => "user.add",
             Actions::UserAddGroup(_) => "user.group",
             Actions::Plugin(_) => "plugin",
@@ -651,6 +658,9 @@ actions:
     enabled: true
   - action: gem.install
     name: bundler
+  - action: pip.install
+    name: requests
+  - action: package.autoremove
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
 
@@ -683,6 +693,7 @@ actions:
             "systemd.service",
             "gem.install",
             "pip.install",
+            "package.autoremove",
         ];
 
         for (action, expected) in manifest.actions.iter().zip(expected_names.iter()) {
@@ -901,9 +912,10 @@ actions:
     name: bundler
   - action: pip.install
     name: requests
+  - action: package.autoremove
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(29, manifest.actions.len());
+        assert_eq!(30, manifest.actions.len());
 
         for action in &manifest.actions {
             // Exercise inner_ref() for every variant

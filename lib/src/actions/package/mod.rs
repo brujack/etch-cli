@@ -1,7 +1,9 @@
+mod autoremove;
 mod install;
 mod providers;
 mod repository;
 
+pub(crate) use autoremove::PackageAutoremove;
 pub(crate) use install::PackageInstall;
 use providers::PackageProviders;
 pub(crate) use repository::PackageRepository;
