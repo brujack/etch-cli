@@ -42,7 +42,7 @@ use npm::NpmInstall;
 use package::{PackageAutoremove, PackageInstall, PackageRepository};
 use pip::PipInstall;
 use plugin::Plugin;
-use pyenv::PyenvInstall;
+use pyenv::{PyenvInstall, PyenvVirtualenv};
 use rhai::Engine;
 use ruby::RubyInstall;
 use schemars::JsonSchema;
@@ -249,6 +249,9 @@ pub enum Actions {
 
     #[serde(rename = "pyenv.install")]
     PyenvInstall(ConditionalVariantAction<PyenvInstall>),
+
+    #[serde(rename = "pyenv.virtualenv")]
+    PyenvVirtualenv(ConditionalVariantAction<PyenvVirtualenv>),
 }
 
 impl Actions {
@@ -291,6 +294,7 @@ impl Actions {
             Actions::PipInstall(a) => a,
             Actions::NpmInstall(a) => a,
             Actions::PyenvInstall(a) => a,
+            Actions::PyenvVirtualenv(a) => a,
         }
     }
 
@@ -333,6 +337,7 @@ impl Actions {
             Actions::PipInstall(a) => &a.notify,
             Actions::NpmInstall(a) => &a.notify,
             Actions::PyenvInstall(a) => &a.notify,
+            Actions::PyenvVirtualenv(a) => &a.notify,
         }
     }
 }
@@ -378,6 +383,7 @@ impl Deref for Actions {
             Actions::PipInstall(a) => a,
             Actions::NpmInstall(a) => a,
             Actions::PyenvInstall(a) => a,
+            Actions::PyenvVirtualenv(a) => a,
         }
     }
 }
@@ -422,6 +428,7 @@ impl Display for Actions {
             Actions::PipInstall(_) => "pip.install",
             Actions::NpmInstall(_) => "npm.install",
             Actions::PyenvInstall(_) => "pyenv.install",
+            Actions::PyenvVirtualenv(_) => "pyenv.virtualenv",
         };
 
         write!(f, "{name}")
@@ -683,6 +690,9 @@ actions:
     name: typescript
   - action: pyenv.install
     version: "3.12.0"
+  - action: pyenv.virtualenv
+    python_version: "3.12.0"
+    name: myproject
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
 
@@ -718,6 +728,7 @@ actions:
             "package.autoremove",
             "npm.install",
             "pyenv.install",
+            "pyenv.virtualenv",
         ];
 
         for (action, expected) in manifest.actions.iter().zip(expected_names.iter()) {
@@ -941,9 +952,12 @@ actions:
     name: typescript
   - action: pyenv.install
     version: "3.12.0"
+  - action: pyenv.virtualenv
+    python_version: "3.12.0"
+    name: myproject
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(32, manifest.actions.len());
+        assert_eq!(33, manifest.actions.len());
 
         for action in &manifest.actions {
             // Exercise inner_ref() for every variant
