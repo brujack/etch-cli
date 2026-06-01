@@ -3,6 +3,64 @@
 
 ## Bug Fixes
 
+- dist-upgrade, autoremove, scope pip/gems to user envs
+
+- scope pip list to user packages; extract testable helpers (#60)
+
+- make add_to_group idempotent via id -nG membership check (#64)
+
+
+
+## Documentation
+
+- document etch update command and fix cosign verify command
+
+- fix etch update config example types and add missing fields
+
+- document new-action checklist and restore lost backlog items
+
+- mark pip.install Done, remove from backlog
+
+- mark user.group idempotency Done, remove from backlog
+
+- mark package.autoremove Done, remove from backlog
+
+- mark npm.install Done, remove from backlog
+
+- mark pyenv.install Done, remove from backlog
+
+- add pyenv.install configure_opts for macOS Homebrew interference
+
+- mark pyenv configure_opts Done, remove from backlog
+
+- mark pyenv.virtualenv Done, remove from backlog
+
+
+
+## Features
+
+- generate and publish SHA256 checksum
+
+- add ruby.install action via ruby-install (#61)
+
+- add gem.install action (#62)
+
+- add pip.install action (#63)
+
+- add package.autoremove action for apt orphan cleanup (#65)
+
+- add npm.install action for global npm packages (#66)
+
+- add pyenv.install action (#67)
+
+- add configure_opts field to pyenv.install (#68)
+
+- add pyenv.virtualenv action (#70)
+
+
+
+## Bug Fixes
+
 - exit nonzero on manifest parse errors and step failures (#38)
 
 - pin cosign-installer to v4.1.2
