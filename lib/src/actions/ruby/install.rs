@@ -20,7 +20,8 @@ pub struct RubyInstall {
     pub implementation: Option<String>,
     /// Directory where rubies are installed. Defaults to ~/.rubies. Passed as --rubies-dir to ruby-install when set.
     pub rubies_dir: Option<String>,
-    /// Version manager that owns the Ruby installation. When set, delegates install to rbenv or chruby instead of ruby-install.
+    /// Version manager to notify after installation. When `rbenv`, appends
+    /// `rbenv global <version>` and `rbenv rehash` steps after ruby-install.
     pub version_manager: Option<VersionManager>,
 }
 
@@ -260,6 +261,23 @@ mod tests {
             version_manager: None,
         };
         assert_eq!("jruby", action.impl_name());
+    }
+
+    #[test]
+    fn it_can_be_deserialized_with_version_manager_chruby() {
+        let yaml = r#"
+- action: ruby.install
+  version: "3.3.0"
+  version_manager: chruby
+"#;
+        let mut actions: Vec<Actions> = serde_yaml_ng::from_str(yaml).unwrap();
+        match actions.pop() {
+            Some(Actions::RubyInstall(action)) => {
+                assert_eq!("3.3.0", action.action.version);
+                assert_eq!(Some(VersionManager::Chruby), action.action.version_manager);
+            }
+            _ => panic!("RubyInstall didn't deserialize to the correct type"),
+        }
     }
 
     #[test]
