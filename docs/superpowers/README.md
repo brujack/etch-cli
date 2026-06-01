@@ -67,6 +67,7 @@ Master status index for all specs and implementation plans in this directory.
 | 2026-06-01 | pyenv.install action                                                                     | —                                                                                                                         | Done    |
 | 2026-06-01 | pyenv.install configure_opts field                                                       | —                                                                                                                         | Done    |
 | 2026-06-01 | pyenv.virtualenv action                                                                  | —                                                                                                                         | Done    |
+| 2026-06-01 | [ruby-install-version-manager](plans/2026-06-01-ruby-install-version-manager.md)         | [ruby-install-version-manager](specs/2026-06-01-ruby-install-version-manager-design.md)                                   | Done    |
 
 ---
 
@@ -74,9 +75,9 @@ Master status index for all specs and implementation plans in this directory.
 
 Known defects to fix before implementing backlog features.
 
-| Bug                                                | Notes                                                                                                                                                                                                                                                                                   |
-| -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ruby.install` + rbenv: missing post-install steps | When `ruby-install` places a new Ruby under `~/.rbenv/versions/`, `rbenv global <version>` and `rbenv rehash` must be run afterward. `ruby.install` only calls `ruby-install` — it does not set the active version or regenerate shims. Workaround: follow with a `command.run` action. |
+| Bug    | Notes |
+| ------ | ----- |
+| (none) |       |
 
 ---
 
