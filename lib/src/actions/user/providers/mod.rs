@@ -54,3 +54,20 @@ pub trait UserProvider {
     fn add_user(&self, user: &UserVariant, contexts: &Contexts) -> anyhow::Result<Vec<Step>>;
     fn add_to_group(&self, user: &UserAddGroup, contexts: &Contexts) -> anyhow::Result<Vec<Step>>;
 }
+
+/// Returns true when `username` is already a member of `group`.
+/// Uses `id -nG <username>` — works on both Linux and macOS.
+/// Returns false on any error (user not found, id not in PATH) so callers
+/// fail-safe by generating the membership step rather than skipping it.
+pub(super) fn user_in_group(username: &str, group: &str) -> bool {
+    std::process::Command::new("id")
+        .args(["-nG", username])
+        .output()
+        .map(|o| {
+            o.status.success()
+                && String::from_utf8_lossy(&o.stdout)
+                    .split_whitespace()
+                    .any(|g| g == group)
+        })
+        .unwrap_or(false)
+}
