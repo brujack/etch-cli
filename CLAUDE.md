@@ -130,6 +130,8 @@ Every new action requires changes in exactly these places:
 5. **Add `examples/<name>/<name>-install.yaml`** with one entry per option combination
 6. **Update the Action Catalog table** in this file and in `README.md`
 
+**Auditing action names:** YAML action names come from `#[serde(rename = "...")]` in `lib/src/actions/mod.rs` — not from Rust struct names. When verifying that docs match implementation, always grep that file for the rename annotations; struct names and YAML names diverge (e.g. struct `GroupAdd` → YAML `group.add`).
+
 Missing any step produces a compile error (missing match arm) or test failure (incorrect variant count). The `semver-check` CI job will always produce an advisory failure (`enum_variant_added`) — this is expected and non-blocking.
 
 ## Homebrew macOS Workflow
