@@ -99,6 +99,10 @@ impl UserProvider for MacOSUserProvider {
         let mut steps: Vec<Step> = vec![];
 
         for group in user.group.iter() {
+            if Self::user_in_group(&user.username, group) {
+                continue;
+            }
+
             let mut group_string: String = String::from("/Groups/");
             group_string.push_str(&group.clone());
 
@@ -127,6 +131,21 @@ impl UserProvider for MacOSUserProvider {
     }
 }
 
+impl MacOSUserProvider {
+    fn user_in_group(username: &str, group: &str) -> bool {
+        std::process::Command::new("id")
+            .args(["-nG", username])
+            .output()
+            .map(|o| {
+                o.status.success()
+                    && String::from_utf8_lossy(&o.stdout)
+                        .split_whitespace()
+                        .any(|g| g == group)
+            })
+            .unwrap_or(false)
+    }
+}
+
 #[cfg(target_os = "macos")]
 #[cfg(test)]
 mod test {
@@ -134,6 +153,97 @@ mod test {
     use crate::actions::user::{add_group::UserAddGroup, UserVariant};
     use crate::contexts::Contexts;
     use serial_test::serial;
+    use std::os::unix::fs::PermissionsExt;
+
+    fn with_mock_id<F: FnOnce()>(output: &str, f: F) {
+        let tmp = tempfile::tempdir().unwrap();
+        let id_path = tmp.path().join("id");
+        std::fs::write(
+            &id_path,
+            format!("#!/bin/sh\nprintf '%s\\n' '{}'\nexit 0\n", output),
+        )
+        .unwrap();
+        std::fs::set_permissions(&id_path, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let old_path = std::env::var("PATH").unwrap_or_default();
+        std::env::set_var("PATH", format!("{}:{}", tmp.path().display(), old_path));
+        f();
+        std::env::set_var("PATH", old_path);
+    }
+
+    fn with_failing_id<F: FnOnce()>(f: F) {
+        let tmp = tempfile::tempdir().unwrap();
+        let id_path = tmp.path().join("id");
+        std::fs::write(&id_path, "#!/bin/sh\nexit 1\n").unwrap();
+        std::fs::set_permissions(&id_path, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let old_path = std::env::var("PATH").unwrap_or_default();
+        std::env::set_var("PATH", format!("{}:{}", tmp.path().display(), old_path));
+        f();
+        std::env::set_var("PATH", old_path);
+    }
+
+    #[test]
+    #[serial]
+    fn test_add_to_group_skips_already_member() {
+        with_mock_id("staff wheel testgroup", || {
+            let user_provider = MacOSUserProvider {};
+            let contexts = Contexts::default();
+            let steps = user_provider
+                .add_to_group(
+                    &UserAddGroup {
+                        username: String::from("test"),
+                        group: vec![String::from("testgroup")],
+                        ..Default::default()
+                    },
+                    &contexts,
+                )
+                .unwrap();
+            assert_eq!(0, steps.len(), "already a member — should skip");
+        });
+    }
+
+    #[test]
+    #[serial]
+    fn test_add_to_group_skips_already_member_in_list() {
+        with_mock_id("staff wheel testgroup", || {
+            let user_provider = MacOSUserProvider {};
+            let contexts = Contexts::default();
+            let steps = user_provider
+                .add_to_group(
+                    &UserAddGroup {
+                        username: String::from("test"),
+                        group: vec![
+                            String::from("testgroup"),
+                            String::from("wheel"),
+                            String::from("docker"),
+                        ],
+                        ..Default::default()
+                    },
+                    &contexts,
+                )
+                .unwrap();
+            assert_eq!(1, steps.len(), "only docker is not in the member list");
+        });
+    }
+
+    #[test]
+    #[serial]
+    fn test_add_to_group_generates_step_when_id_fails() {
+        with_failing_id(|| {
+            let user_provider = MacOSUserProvider {};
+            let contexts = Contexts::default();
+            let steps = user_provider
+                .add_to_group(
+                    &UserAddGroup {
+                        username: String::from("newuser"),
+                        group: vec![String::from("docker")],
+                        ..Default::default()
+                    },
+                    &contexts,
+                )
+                .unwrap();
+            assert_eq!(1, steps.len(), "id failure should not skip the step");
+        });
+    }
 
     #[test]
     #[serial]

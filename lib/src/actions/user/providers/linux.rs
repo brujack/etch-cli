@@ -101,6 +101,9 @@ impl UserProvider for LinuxUserProvider {
         let mut steps: Vec<Step> = vec![];
 
         for group in user.group.iter() {
+            if Self::user_in_group(&user.username, group) {
+                continue;
+            }
             steps.push(Step {
                 atom: Box::new(Exec {
                     command: cli.display().to_string(),
@@ -120,6 +123,21 @@ impl UserProvider for LinuxUserProvider {
         }
 
         Ok(steps)
+    }
+}
+
+impl LinuxUserProvider {
+    fn user_in_group(username: &str, group: &str) -> bool {
+        std::process::Command::new("id")
+            .args(["-nG", username])
+            .output()
+            .map(|o| {
+                o.status.success()
+                    && String::from_utf8_lossy(&o.stdout)
+                        .split_whitespace()
+                        .any(|g| g == group)
+            })
+            .unwrap_or(false)
     }
 }
 
@@ -194,10 +212,105 @@ mod test {
         });
     }
 
+    fn write_id_mock(dir: &std::path::Path, output: &str) {
+        let path = dir.join("id");
+        std::fs::write(
+            &path,
+            format!("#!/bin/sh\nprintf '%s\\n' '{}'\nexit 0\n", output),
+        )
+        .unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
+    }
+
+    #[test]
+    #[serial]
+    fn test_add_to_group_skips_already_member() {
+        let tmp = tempfile::tempdir().unwrap();
+        write_mock_bin(tmp.path(), "usermod");
+        write_id_mock(tmp.path(), "staff wheel testgroup");
+        let old_path = std::env::var("PATH").unwrap_or_default();
+        std::env::set_var("PATH", format!("{}:{}", tmp.path().display(), old_path));
+
+        let user_provider = LinuxUserProvider {};
+        let contexts = Contexts::default();
+        let steps = user_provider
+            .add_to_group(
+                &UserAddGroup {
+                    username: String::from("test"),
+                    group: vec![String::from("testgroup")],
+                    ..Default::default()
+                },
+                &contexts,
+            )
+            .unwrap();
+
+        std::env::set_var("PATH", old_path);
+        assert_eq!(0, steps.len(), "already a member — should skip");
+    }
+
+    #[test]
+    #[serial]
+    fn test_add_to_group_skips_already_member_in_list() {
+        let tmp = tempfile::tempdir().unwrap();
+        write_mock_bin(tmp.path(), "usermod");
+        write_id_mock(tmp.path(), "staff wheel testgroup");
+        let old_path = std::env::var("PATH").unwrap_or_default();
+        std::env::set_var("PATH", format!("{}:{}", tmp.path().display(), old_path));
+
+        let user_provider = LinuxUserProvider {};
+        let contexts = Contexts::default();
+        let steps = user_provider
+            .add_to_group(
+                &UserAddGroup {
+                    username: String::from("test"),
+                    group: vec![
+                        String::from("testgroup"),
+                        String::from("wheel"),
+                        String::from("docker"),
+                    ],
+                    ..Default::default()
+                },
+                &contexts,
+            )
+            .unwrap();
+
+        std::env::set_var("PATH", old_path);
+        assert_eq!(1, steps.len(), "only docker is not in the member list");
+    }
+
+    #[test]
+    #[serial]
+    fn test_add_to_group_generates_step_when_id_fails() {
+        let tmp = tempfile::tempdir().unwrap();
+        write_mock_bin(tmp.path(), "usermod");
+        // id exits 1 — user not found yet (new user being created)
+        let id_path = tmp.path().join("id");
+        std::fs::write(&id_path, "#!/bin/sh\nexit 1\n").unwrap();
+        std::fs::set_permissions(&id_path, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let old_path = std::env::var("PATH").unwrap_or_default();
+        std::env::set_var("PATH", format!("{}:{}", tmp.path().display(), old_path));
+
+        let user_provider = LinuxUserProvider {};
+        let contexts = Contexts::default();
+        let steps = user_provider
+            .add_to_group(
+                &UserAddGroup {
+                    username: String::from("newuser"),
+                    group: vec![String::from("docker")],
+                    ..Default::default()
+                },
+                &contexts,
+            )
+            .unwrap();
+
+        std::env::set_var("PATH", old_path);
+        assert_eq!(1, steps.len(), "id failure should not skip the step");
+    }
+
     #[test]
     #[serial]
     fn test_add_to_group() {
-        with_mock_bins(&["usermod"], || {
+        with_mock_bins(&["usermod", "id"], || {
             let user_provider = LinuxUserProvider {};
             let contexts = Contexts::default();
             let steps = user_provider
@@ -217,7 +330,7 @@ mod test {
     #[test]
     #[serial]
     fn test_create_user_add_to_group() {
-        with_mock_bins(&["useradd", "usermod"], || {
+        with_mock_bins(&["useradd", "usermod", "id"], || {
             let user_provider = LinuxUserProvider {};
             let contexts = Contexts::default();
             let steps = user_provider
