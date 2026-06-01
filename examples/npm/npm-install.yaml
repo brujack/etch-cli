@@ -1,0 +1,12 @@
+actions:
+    # Install a single npm package globally. Idempotent: skips if already
+    # listed in `npm list -g --depth=0`. Requires npm on PATH.
+    - action: npm.install
+      name: typescript
+
+    # Install multiple packages globally.
+    - action: npm.install
+      list:
+          - typescript
+          - prettier
+          - eslint

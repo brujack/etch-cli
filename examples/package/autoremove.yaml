@@ -1,0 +1,6 @@
+actions:
+    # Remove unused apt dependencies. No fields. Runs `apt autoremove --yes`
+    # with privilege escalation. Linux/apt only — use with a where condition
+    # or in a Linux-specific manifest.
+    - action: package.autoremove
+      where: 'os.family == "linux"'
