@@ -1,0 +1,12 @@
+actions:
+    # Install a Python version via pyenv. Idempotent: skips if already listed
+    # in `pyenv versions --bare`. Requires pyenv on PATH.
+    - action: pyenv.install
+      version: "3.12.0"
+
+    # Install with configure_opts. On macOS with Homebrew, libmpdec conflict
+    # between Homebrew's copy and CPython's bundled copy causes build failures.
+    # Passing --with-system-libmpdec=no forces CPython to use its bundled copy.
+    - action: pyenv.install
+      version: "3.12.0"
+      configure_opts: "--with-system-libmpdec=no"

@@ -129,6 +129,8 @@ See `CLAUDE.md` for the full action catalog with all fields documented.
 | `ruby.install`                                          | Install Ruby versions via ruby-install; optional `version_manager` field (`"rbenv"` \| `"chruby"`) runs post-install steps |
 | `gem.install`                                           | Install Ruby gems (idempotent)                                                                                             |
 | `pip.install`                                           | Install Python packages (idempotent)                                                                                       |
+| `pyenv.install`                                         | Install Python versions via pyenv; optional `configure_opts` field sets `PYTHON_CONFIGURE_OPTS` before install             |
+| `pyenv.virtualenv`                                      | Create a pyenv virtualenv (idempotent)                                                                                     |
 
 ## etch update
 

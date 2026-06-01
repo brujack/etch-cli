@@ -1,0 +1,6 @@
+actions:
+    # Create a pyenv virtualenv. Idempotent: skips if name already appears in
+    # `pyenv virtualenvs --bare`. Requires pyenv-virtualenv plugin on PATH.
+    - action: pyenv.virtualenv
+      python_version: "3.12.0"
+      name: myproject
