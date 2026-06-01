@@ -14,6 +14,7 @@ mod npm;
 mod package;
 mod pip;
 mod plugin;
+mod pyenv;
 mod ruby;
 mod systemd;
 mod user;
@@ -41,6 +42,7 @@ use npm::NpmInstall;
 use package::{PackageAutoremove, PackageInstall, PackageRepository};
 use pip::PipInstall;
 use plugin::Plugin;
+use pyenv::PyenvInstall;
 use rhai::Engine;
 use ruby::RubyInstall;
 use schemars::JsonSchema;
@@ -244,6 +246,9 @@ pub enum Actions {
 
     #[serde(rename = "npm.install")]
     NpmInstall(ConditionalVariantAction<NpmInstall>),
+
+    #[serde(rename = "pyenv.install")]
+    PyenvInstall(ConditionalVariantAction<PyenvInstall>),
 }
 
 impl Actions {
@@ -285,6 +290,7 @@ impl Actions {
             Actions::GemInstall(a) => a,
             Actions::PipInstall(a) => a,
             Actions::NpmInstall(a) => a,
+            Actions::PyenvInstall(a) => a,
         }
     }
 
@@ -326,6 +332,7 @@ impl Actions {
             Actions::GemInstall(a) => &a.notify,
             Actions::PipInstall(a) => &a.notify,
             Actions::NpmInstall(a) => &a.notify,
+            Actions::PyenvInstall(a) => &a.notify,
         }
     }
 }
@@ -370,6 +377,7 @@ impl Deref for Actions {
             Actions::GemInstall(a) => a,
             Actions::PipInstall(a) => a,
             Actions::NpmInstall(a) => a,
+            Actions::PyenvInstall(a) => a,
         }
     }
 }
@@ -413,6 +421,7 @@ impl Display for Actions {
             Actions::GemInstall(_) => "gem.install",
             Actions::PipInstall(_) => "pip.install",
             Actions::NpmInstall(_) => "npm.install",
+            Actions::PyenvInstall(_) => "pyenv.install",
         };
 
         write!(f, "{name}")
@@ -672,6 +681,8 @@ actions:
   - action: package.autoremove
   - action: npm.install
     name: typescript
+  - action: pyenv.install
+    version: "3.12.0"
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
 
@@ -706,6 +717,7 @@ actions:
             "pip.install",
             "package.autoremove",
             "npm.install",
+            "pyenv.install",
         ];
 
         for (action, expected) in manifest.actions.iter().zip(expected_names.iter()) {
@@ -927,9 +939,11 @@ actions:
   - action: package.autoremove
   - action: npm.install
     name: typescript
+  - action: pyenv.install
+    version: "3.12.0"
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(31, manifest.actions.len());
+        assert_eq!(32, manifest.actions.len());
 
         for action in &manifest.actions {
             // Exercise inner_ref() for every variant
