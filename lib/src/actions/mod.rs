@@ -10,6 +10,7 @@ mod git;
 mod group;
 mod macos;
 mod mas;
+mod npm;
 mod package;
 mod pip;
 mod plugin;
@@ -36,6 +37,7 @@ use file::unarchive::FileUnarchive;
 use gem::GemInstall;
 use git::{GitClone, GitConfig, GitPull};
 use group::add::GroupAdd;
+use npm::NpmInstall;
 use package::{PackageAutoremove, PackageInstall, PackageRepository};
 use pip::PipInstall;
 use plugin::Plugin;
@@ -239,6 +241,9 @@ pub enum Actions {
 
     #[serde(rename = "pip.install")]
     PipInstall(ConditionalVariantAction<PipInstall>),
+
+    #[serde(rename = "npm.install")]
+    NpmInstall(ConditionalVariantAction<NpmInstall>),
 }
 
 impl Actions {
@@ -279,6 +284,7 @@ impl Actions {
             Actions::RubyInstall(a) => a,
             Actions::GemInstall(a) => a,
             Actions::PipInstall(a) => a,
+            Actions::NpmInstall(a) => a,
         }
     }
 
@@ -319,6 +325,7 @@ impl Actions {
             Actions::RubyInstall(a) => &a.notify,
             Actions::GemInstall(a) => &a.notify,
             Actions::PipInstall(a) => &a.notify,
+            Actions::NpmInstall(a) => &a.notify,
         }
     }
 }
@@ -362,6 +369,7 @@ impl Deref for Actions {
             Actions::RubyInstall(a) => a,
             Actions::GemInstall(a) => a,
             Actions::PipInstall(a) => a,
+            Actions::NpmInstall(a) => a,
         }
     }
 }
@@ -404,6 +412,7 @@ impl Display for Actions {
             Actions::RubyInstall(_) => "ruby.install",
             Actions::GemInstall(_) => "gem.install",
             Actions::PipInstall(_) => "pip.install",
+            Actions::NpmInstall(_) => "npm.install",
         };
 
         write!(f, "{name}")
@@ -661,6 +670,8 @@ actions:
   - action: pip.install
     name: requests
   - action: package.autoremove
+  - action: npm.install
+    name: typescript
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
 
@@ -694,6 +705,7 @@ actions:
             "gem.install",
             "pip.install",
             "package.autoremove",
+            "npm.install",
         ];
 
         for (action, expected) in manifest.actions.iter().zip(expected_names.iter()) {
@@ -913,9 +925,11 @@ actions:
   - action: pip.install
     name: requests
   - action: package.autoremove
+  - action: npm.install
+    name: typescript
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(30, manifest.actions.len());
+        assert_eq!(31, manifest.actions.len());
 
         for action in &manifest.actions {
             // Exercise inner_ref() for every variant
