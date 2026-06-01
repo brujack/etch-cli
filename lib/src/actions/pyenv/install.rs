@@ -10,6 +10,10 @@ use serde::{Deserialize, Serialize};
 pub struct PyenvInstall {
     /// Python version to install via pyenv (e.g. "3.12.0").
     pub version: Option<String>,
+    /// Value for PYTHON_CONFIGURE_OPTS before invoking pyenv install.
+    /// On macOS with Homebrew, use "--with-system-libmpdec=no" to avoid
+    /// conflicts between Homebrew-installed libmpdec and CPython's bundled copy.
+    pub configure_opts: Option<String>,
 }
 
 impl PyenvInstall {
@@ -47,10 +51,17 @@ impl Action for PyenvInstall {
             return Ok(vec![]);
         }
 
+        let environment = self
+            .configure_opts
+            .as_deref()
+            .map(|opts| vec![(String::from("PYTHON_CONFIGURE_OPTS"), opts.to_string())])
+            .unwrap_or_default();
+
         Ok(vec![Step {
             atom: Box::new(Exec {
                 command: String::from("pyenv"),
                 arguments: vec![String::from("install"), version],
+                environment,
                 ..Default::default()
             }),
             initializers: vec![],
@@ -79,6 +90,27 @@ mod tests {
         match actions.pop() {
             Some(Actions::PyenvInstall(action)) => {
                 assert_eq!(Some("3.12.0".to_string()), action.action.version);
+                assert_eq!(None, action.action.configure_opts);
+            }
+            _ => panic!("PyenvInstall didn't deserialize to the correct type"),
+        }
+    }
+
+    #[test]
+    fn it_can_be_deserialized_with_configure_opts() {
+        let yaml = r#"
+- action: pyenv.install
+  version: "3.12.0"
+  configure_opts: "--with-system-libmpdec=no"
+"#;
+        let mut actions: Vec<Actions> = serde_yaml_ng::from_str(yaml).unwrap();
+        match actions.pop() {
+            Some(Actions::PyenvInstall(action)) => {
+                assert_eq!(Some("3.12.0".to_string()), action.action.version);
+                assert_eq!(
+                    Some("--with-system-libmpdec=no".to_string()),
+                    action.action.configure_opts
+                );
             }
             _ => panic!("PyenvInstall didn't deserialize to the correct type"),
         }
@@ -88,6 +120,7 @@ mod tests {
     fn summarize_includes_version() {
         let action = PyenvInstall {
             version: Some(String::from("3.12.0")),
+            configure_opts: None,
         };
         let s = action.summarize();
         assert!(s.contains("3.12.0"), "expected version in: {s}");
@@ -118,6 +151,7 @@ mod tests {
     fn plan_returns_exec_for_uninstalled_version() {
         let action = PyenvInstall {
             version: Some(String::from(FAKE_VERSION)),
+            configure_opts: None,
         };
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
@@ -135,6 +169,83 @@ mod tests {
         assert!(
             display.contains("install"),
             "expected 'install' subcommand in: {display}"
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn plan_sets_configure_opts_env_when_specified() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let tmp = tempfile::tempdir().unwrap();
+        let fake_pyenv = tmp.path().join("pyenv");
+        // Fake pyenv: versions --bare returns empty (version not installed);
+        // install subcommand prints PYTHON_CONFIGURE_OPTS env var value
+        std::fs::write(
+            &fake_pyenv,
+            "#!/bin/sh\nif [ \"$1\" = \"versions\" ]; then exit 1; fi\nprintf '%s\\n' \"${PYTHON_CONFIGURE_OPTS}\"\n",
+        )
+        .unwrap();
+        std::fs::set_permissions(&fake_pyenv, std::fs::Permissions::from_mode(0o755)).unwrap();
+
+        let old_path = std::env::var("PATH").unwrap_or_default();
+        std::env::set_var("PATH", format!("{}:{old_path}", tmp.path().display()));
+
+        let action = PyenvInstall {
+            version: Some(String::from("3.12.0")),
+            configure_opts: Some(String::from("--with-system-libmpdec=no")),
+        };
+        let mut steps = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+
+        assert_eq!(1, steps.len());
+        steps[0].atom.execute().unwrap();
+        let output = steps[0].atom.output_string();
+
+        std::env::set_var("PATH", old_path);
+
+        assert!(
+            output.contains("--with-system-libmpdec=no"),
+            "expected PYTHON_CONFIGURE_OPTS value in output: {output}"
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn plan_omits_configure_opts_env_when_absent() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let tmp = tempfile::tempdir().unwrap();
+        let fake_pyenv = tmp.path().join("pyenv");
+        // Fake pyenv: versions --bare returns empty; install prints PYTHON_CONFIGURE_OPTS (empty)
+        std::fs::write(
+            &fake_pyenv,
+            "#!/bin/sh\nif [ \"$1\" = \"versions\" ]; then exit 1; fi\nprintf 'OPTS=[%s]\\n' \"${PYTHON_CONFIGURE_OPTS}\"\n",
+        )
+        .unwrap();
+        std::fs::set_permissions(&fake_pyenv, std::fs::Permissions::from_mode(0o755)).unwrap();
+
+        let old_path = std::env::var("PATH").unwrap_or_default();
+        std::env::set_var("PATH", format!("{}:{old_path}", tmp.path().display()));
+
+        let action = PyenvInstall {
+            version: Some(String::from("3.12.0")),
+            configure_opts: None,
+        };
+        let mut steps = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+
+        assert_eq!(1, steps.len());
+        steps[0].atom.execute().unwrap();
+        let output = steps[0].atom.output_string();
+
+        std::env::set_var("PATH", old_path);
+
+        assert!(
+            output.contains("OPTS=[]"),
+            "expected empty PYTHON_CONFIGURE_OPTS in output: {output}"
         );
     }
 
@@ -158,6 +269,7 @@ mod tests {
 
         let action = PyenvInstall {
             version: Some(String::from("3.12.0")),
+            configure_opts: None,
         };
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
@@ -191,6 +303,7 @@ mod tests {
 
         let action = PyenvInstall {
             version: Some(String::from("3.12.0")),
+            configure_opts: None,
         };
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
@@ -215,6 +328,7 @@ mod tests {
 
         let action = PyenvInstall {
             version: Some(String::from("3.12.0")),
+            configure_opts: None,
         };
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
