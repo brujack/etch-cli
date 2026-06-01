@@ -6,6 +6,13 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
+#[derive(JsonSchema, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum VersionManager {
+    Rbenv,
+    Chruby,
+}
+
 #[derive(JsonSchema, Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RubyInstall {
     pub version: String,
@@ -13,6 +20,9 @@ pub struct RubyInstall {
     pub implementation: Option<String>,
     /// Directory where rubies are installed. Defaults to ~/.rubies. Passed as --rubies-dir to ruby-install when set.
     pub rubies_dir: Option<String>,
+    /// Version manager to notify after installation. When `rbenv`, appends
+    /// `rbenv global <version>` and `rbenv rehash` steps after ruby-install.
+    pub version_manager: Option<VersionManager>,
 }
 
 impl RubyInstall {
@@ -53,7 +63,7 @@ impl Action for RubyInstall {
             arguments.push(expanded);
         }
 
-        Ok(vec![Step {
+        let mut steps = vec![Step {
             atom: Box::new(Exec {
                 command: String::from("ruby-install"),
                 arguments,
@@ -61,7 +71,30 @@ impl Action for RubyInstall {
             }),
             initializers: vec![],
             finalizers: vec![],
-        }])
+        }];
+
+        if let Some(VersionManager::Rbenv) = &self.version_manager {
+            steps.push(Step {
+                atom: Box::new(Exec {
+                    command: String::from("rbenv"),
+                    arguments: vec![String::from("global"), self.version.clone()],
+                    ..Default::default()
+                }),
+                initializers: vec![],
+                finalizers: vec![],
+            });
+            steps.push(Step {
+                atom: Box::new(Exec {
+                    command: String::from("rbenv"),
+                    arguments: vec![String::from("rehash")],
+                    ..Default::default()
+                }),
+                initializers: vec![],
+                finalizers: vec![],
+            });
+        }
+
+        Ok(steps)
     }
 }
 
@@ -111,6 +144,7 @@ mod tests {
             version: String::from("3.3.0"),
             implementation: None,
             rubies_dir: None,
+            version_manager: None,
         };
         let s = action.summarize();
         assert!(s.contains("ruby"), "expected 'ruby' in: {s}");
@@ -123,6 +157,7 @@ mod tests {
             version: String::from("9.4.0.0"),
             implementation: Some(String::from("jruby")),
             rubies_dir: None,
+            version_manager: None,
         };
         let s = action.summarize();
         assert!(s.contains("jruby"), "expected 'jruby' in: {s}");
@@ -136,6 +171,7 @@ mod tests {
             version: String::from("3.3.0"),
             implementation: None,
             rubies_dir: Some(tmp.path().to_string_lossy().to_string()),
+            version_manager: None,
         };
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
@@ -157,6 +193,7 @@ mod tests {
             version: String::from("3.3.0"),
             implementation: None,
             rubies_dir: Some(tmp.path().to_string_lossy().to_string()),
+            version_manager: None,
         };
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
@@ -175,6 +212,7 @@ mod tests {
             version: String::from("9.4.0.0"),
             implementation: Some(String::from("jruby")),
             rubies_dir: Some(tmp.path().to_string_lossy().to_string()),
+            version_manager: None,
         };
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
@@ -193,6 +231,7 @@ mod tests {
             version: String::from("3.3.0"),
             implementation: None,
             rubies_dir: Some(dir_str.clone()),
+            version_manager: None,
         };
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
@@ -211,6 +250,7 @@ mod tests {
             version: String::from("99.99.99"),
             implementation: None,
             rubies_dir: None,
+            version_manager: None,
         };
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
@@ -230,6 +270,7 @@ mod tests {
             version: String::from("3.3.0"),
             implementation: None,
             rubies_dir: None,
+            version_manager: None,
         };
         assert_eq!("ruby", action.impl_name());
     }
@@ -240,7 +281,133 @@ mod tests {
             version: String::from("9.4.0.0"),
             implementation: Some(String::from("jruby")),
             rubies_dir: None,
+            version_manager: None,
         };
         assert_eq!("jruby", action.impl_name());
+    }
+
+    #[test]
+    fn it_can_be_deserialized_with_version_manager_chruby() {
+        let yaml = r#"
+- action: ruby.install
+  version: "3.3.0"
+  version_manager: chruby
+"#;
+        let mut actions: Vec<Actions> = serde_yaml_ng::from_str(yaml).unwrap();
+        match actions.pop() {
+            Some(Actions::RubyInstall(action)) => {
+                assert_eq!("3.3.0", action.action.version);
+                assert_eq!(Some(VersionManager::Chruby), action.action.version_manager);
+            }
+            _ => panic!("RubyInstall didn't deserialize to the correct type"),
+        }
+    }
+
+    #[test]
+    fn it_can_be_deserialized_with_version_manager() {
+        let yaml = r#"
+- action: ruby.install
+  version: "3.3.0"
+  version_manager: rbenv
+"#;
+        let mut actions: Vec<Actions> = serde_yaml_ng::from_str(yaml).unwrap();
+        match actions.pop() {
+            Some(Actions::RubyInstall(action)) => {
+                assert_eq!("3.3.0", action.action.version);
+                assert_eq!(Some(VersionManager::Rbenv), action.action.version_manager);
+            }
+            _ => panic!("RubyInstall didn't deserialize to the correct type"),
+        }
+    }
+
+    #[test]
+    fn plan_with_rbenv_emits_three_steps() {
+        let tmp = tempfile::tempdir().unwrap();
+        let action = RubyInstall {
+            version: String::from("3.3.0"),
+            implementation: None,
+            rubies_dir: Some(tmp.path().to_string_lossy().to_string()),
+            version_manager: Some(VersionManager::Rbenv),
+        };
+        let steps = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+        assert_eq!(3, steps.len(), "expected 3 steps for rbenv install");
+        let step2 = steps[1].atom.to_string();
+        assert!(
+            step2.contains("rbenv"),
+            "step 2 should invoke rbenv: {step2}"
+        );
+        assert!(
+            step2.contains("global"),
+            "step 2 should set global: {step2}"
+        );
+        assert!(
+            step2.contains("3.3.0"),
+            "step 2 should include version: {step2}"
+        );
+        let step3 = steps[2].atom.to_string();
+        assert!(
+            step3.contains("rbenv"),
+            "step 3 should invoke rbenv: {step3}"
+        );
+        assert!(step3.contains("rehash"), "step 3 should rehash: {step3}");
+    }
+
+    #[test]
+    fn plan_with_chruby_emits_one_step() {
+        let tmp = tempfile::tempdir().unwrap();
+        let action = RubyInstall {
+            version: String::from("3.3.0"),
+            implementation: None,
+            rubies_dir: Some(tmp.path().to_string_lossy().to_string()),
+            version_manager: Some(VersionManager::Chruby),
+        };
+        let steps = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+        assert_eq!(
+            1,
+            steps.len(),
+            "chruby should emit only the ruby-install step"
+        );
+    }
+
+    #[test]
+    fn plan_skips_if_installed_with_chruby() {
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(tmp.path().join("ruby-3.3.0")).unwrap();
+        let action = RubyInstall {
+            version: String::from("3.3.0"),
+            implementation: None,
+            rubies_dir: Some(tmp.path().to_string_lossy().to_string()),
+            version_manager: Some(VersionManager::Chruby),
+        };
+        let steps = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+        assert!(
+            steps.is_empty(),
+            "expected no steps when ruby already installed with chruby set"
+        );
+    }
+
+    #[test]
+    fn plan_skips_all_if_installed_with_rbenv() {
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(tmp.path().join("ruby-3.3.0")).unwrap();
+        let action = RubyInstall {
+            version: String::from("3.3.0"),
+            implementation: None,
+            rubies_dir: Some(tmp.path().to_string_lossy().to_string()),
+            version_manager: Some(VersionManager::Rbenv),
+        };
+        let steps = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+        assert!(
+            steps.is_empty(),
+            "expected no steps when ruby already installed, even with rbenv set"
+        );
     }
 }

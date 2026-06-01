@@ -1,2 +1,2 @@
 mod install;
-pub use install::RubyInstall;
+pub(crate) use install::RubyInstall;
