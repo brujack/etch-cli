@@ -1,0 +1,11 @@
+---
+# macos.rosetta — ensure Rosetta 2 is installed on Apple Silicon
+#
+# No fields. Idempotent: skips if /Library/Apple/usr/share/rosetta/rosetta
+# already exists. Runs softwareupdate --install-rosetta --agree-to-license.
+#
+# Gate with where: so this only runs on macOS (no-op on Linux).
+
+actions:
+  - action: macos.rosetta
+    where: 'os.name == "macos"'
