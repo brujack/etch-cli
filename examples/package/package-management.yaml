@@ -76,6 +76,39 @@ actions:
     cask: true
 
   # ==========================================================================
+  # INSTALL — version pinning
+  # ==========================================================================
+
+  # Pin a Homebrew formula to a specific version.
+  # etch checks the installed version at plan time:
+  #   - not installed → brew install python@3.11
+  #   - correct version → skip (no steps emitted)
+  #   - wrong version → error: operator must resolve manually
+  # version: requires name: (not list:) and cannot be used with cask: true.
+  - action: package.install
+    name: python
+    provider: homebrew
+    version: "3.11"
+
+  # Pin a specific apt package version.
+  # Use the exact version string from `apt-cache show <pkg>`.
+  # not installed → apt-get install git=1:2.43.0-1ubuntu7
+  - action: package.install
+    name: git
+    provider: apt
+    version: "1:2.43.0-1ubuntu7"
+    where: 'os.family == "linux"'
+
+  # Pin a snap to a specific channel.
+  # snap version: is a channel name (stable/edge/candidate/1.0/stable),
+  # not a semver. Compares the installed Tracking column from snap list.
+  - action: package.install
+    name: code
+    provider: snap
+    version: "latest/stable"
+    where: 'variables.has_snap'
+
+  # ==========================================================================
   # INSTALL — apt (Linux/Debian/Ubuntu)
   # ==========================================================================
 

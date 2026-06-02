@@ -60,11 +60,57 @@ pub trait PackageProvider {
     ) -> anyhow::Result<Vec<Step>>;
     fn query(&self, package: &PackageVariant) -> anyhow::Result<Vec<String>>;
     fn install(&self, package: &PackageVariant, contexts: &Contexts) -> anyhow::Result<Vec<Step>>;
+    /// Returns the installed version of a single named package, or None if not installed.
+    fn installed_version(&self, name: &str) -> anyhow::Result<Option<String>>;
+}
+
+/// Outcome of comparing a declared version against what is currently installed.
+pub(super) enum VersionCheck {
+    /// Installed version matches declared — skip, emit no steps.
+    Skip,
+    /// Package is not installed — proceed to install at declared version.
+    InstallNeeded,
+    /// Wrong version installed — operator must resolve manually.
+    Mismatch { actual: String },
+}
+
+pub(super) fn check_version(declared: &str, installed: Option<&str>) -> VersionCheck {
+    match installed {
+        None => VersionCheck::InstallNeeded,
+        Some(actual) if actual == declared => VersionCheck::Skip,
+        Some(actual) => VersionCheck::Mismatch {
+            actual: actual.to_string(),
+        },
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn check_version_not_installed_returns_install_needed() {
+        assert!(matches!(
+            check_version("3.11", None),
+            VersionCheck::InstallNeeded
+        ));
+    }
+
+    #[test]
+    fn check_version_correct_returns_skip() {
+        assert!(matches!(
+            check_version("3.11", Some("3.11")),
+            VersionCheck::Skip
+        ));
+    }
+
+    #[test]
+    fn check_version_wrong_returns_mismatch() {
+        match check_version("3.11", Some("3.12")) {
+            VersionCheck::Mismatch { actual } => assert_eq!(actual, "3.12"),
+            _ => panic!("expected Mismatch"),
+        }
+    }
 
     #[test]
     fn homebrew_get_provider_returns_homebrew() {
