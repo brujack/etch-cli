@@ -12,7 +12,6 @@ use super::providers::{apt_upgrade, snap_upgrade};
 pub struct PackageUpgrade {
     pub provider: String,
     pub name: Option<String>,
-    #[serde(default)]
     pub list: Option<Vec<String>>,
 }
 
