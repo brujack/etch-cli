@@ -1,4 +1,5 @@
 use assert_cmd::Command;
+use predicates::prelude::PredicateBooleanExt;
 use predicates::str::contains;
 use std::path::{Path, PathBuf};
 use tempfile::TempDir;
@@ -109,4 +110,67 @@ fn status_exits_nonzero_when_atom_drifted() {
         .assert()
         .failure()
         .stdout(predicates::str::contains("drifted"));
+}
+
+#[test]
+fn status_unchecked_atom_exits_zero() {
+    let root_tmp = TempDir::new().unwrap();
+    let root = root_tmp.path().to_path_buf();
+    let manifest_dir = root.join("directory/mymanifest");
+    std::fs::create_dir_all(&manifest_dir).unwrap();
+
+    // command.run atoms return Unchecked — always exit 0
+    std::fs::write(
+        manifest_dir.join("main.yaml"),
+        "actions:\n  - action: command.run\n    command: echo\n    args:\n      - hello\n",
+    )
+    .unwrap();
+
+    etch()
+        .current_dir(&root)
+        .args([
+            "--no-color",
+            "-d",
+            "./directory",
+            "status",
+            "-m",
+            "mymanifest",
+        ])
+        .assert()
+        .success()
+        .stdout(contains("unchecked"));
+}
+
+#[test]
+fn status_where_false_skips_manifest() {
+    let root_tmp = TempDir::new().unwrap();
+    let target_tmp = TempDir::new().unwrap();
+    let root = root_tmp.path().to_path_buf();
+    let target_link = target_tmp.path().join("target_link");
+
+    let manifest_dir = root.join("directory/mymanifest");
+    let files_dir = manifest_dir.join("files");
+    std::fs::create_dir_all(&files_dir).unwrap();
+    std::fs::write(files_dir.join("source.txt"), "content").unwrap();
+
+    // where: 'false' — manifest is skipped entirely, even though symlink is missing
+    let yaml = format!(
+        "where: 'false'\nactions:\n  - action: file.link\n    source: source.txt\n    target: {}\n",
+        target_link.display()
+    );
+    std::fs::write(manifest_dir.join("main.yaml"), yaml).unwrap();
+
+    etch()
+        .current_dir(&root)
+        .args([
+            "--no-color",
+            "-d",
+            "./directory",
+            "status",
+            "-m",
+            "mymanifest",
+        ])
+        .assert()
+        .success()
+        .stdout(predicates::str::contains("mymanifest").not());
 }
