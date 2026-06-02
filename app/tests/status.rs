@@ -81,3 +81,32 @@ fn status_exits_nonzero_when_atom_missing() {
         .failure()
         .stdout(contains("missing"));
 }
+
+#[test]
+fn status_exits_nonzero_when_atom_drifted() {
+    let root_tmp = TempDir::new().unwrap();
+    let target_tmp = TempDir::new().unwrap();
+    let root = root_tmp.path().to_path_buf();
+    let target_link = target_tmp.path().join("target_link");
+
+    setup_link_manifest(&root, "mymanifest", &target_link);
+
+    // Create a symlink pointing to a different file — status should be Drifted
+    let other_file = target_tmp.path().join("other.txt");
+    std::fs::write(&other_file, "other content").unwrap();
+    std::os::unix::fs::symlink(&other_file, &target_link).unwrap();
+
+    etch()
+        .current_dir(&root)
+        .args([
+            "--no-color",
+            "-d",
+            "./directory",
+            "status",
+            "-m",
+            "mymanifest",
+        ])
+        .assert()
+        .failure()
+        .stdout(predicates::str::contains("drifted"));
+}
