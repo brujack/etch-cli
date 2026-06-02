@@ -69,7 +69,7 @@ impl Action for RubyInstall {
 
         if !self.compile_flags.is_empty() {
             arguments.push(String::from("--"));
-            arguments.extend(self.compile_flags.clone());
+            arguments.extend(self.compile_flags.iter().cloned());
         }
 
         let mut steps = vec![Step {
@@ -488,13 +488,52 @@ mod tests {
             .unwrap();
         assert_eq!(1, steps.len());
         let display = steps[0].atom.to_string();
+        let sep_pos = display
+            .find(" -- ")
+            .unwrap_or_else(|| panic!("expected ' -- ' separator in: {display}"));
+        let flag_pos = display
+            .find("--with-openssl-dir")
+            .unwrap_or_else(|| panic!("expected flag in: {display}"));
         assert!(
-            display.contains(" -- "),
-            "expected -- separator in: {display}"
+            sep_pos < flag_pos,
+            "separator must appear before flag in: {display}"
+        );
+    }
+
+    #[test]
+    fn plan_includes_multiple_compile_flags_all_after_separator() {
+        let tmp = tempfile::tempdir().unwrap();
+        let action = RubyInstall {
+            version: String::from("3.3.0"),
+            implementation: None,
+            rubies_dir: Some(tmp.path().to_string_lossy().to_string()),
+            version_manager: None,
+            compile_flags: vec![
+                String::from("--with-openssl-dir=/opt/homebrew/opt/openssl@3"),
+                String::from("--with-libyaml-dir=/opt/homebrew/opt/libyaml"),
+            ],
+        };
+        let steps = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+        assert_eq!(1, steps.len());
+        let display = steps[0].atom.to_string();
+        let sep_pos = display
+            .find(" -- ")
+            .unwrap_or_else(|| panic!("expected ' -- ' separator in: {display}"));
+        let openssl_pos = display
+            .find("--with-openssl-dir")
+            .unwrap_or_else(|| panic!("expected openssl flag in: {display}"));
+        let libyaml_pos = display
+            .find("--with-libyaml-dir")
+            .unwrap_or_else(|| panic!("expected libyaml flag in: {display}"));
+        assert!(
+            sep_pos < openssl_pos,
+            "separator before first flag: {display}"
         );
         assert!(
-            display.contains("--with-openssl-dir"),
-            "expected flag in: {display}"
+            sep_pos < libyaml_pos,
+            "separator before second flag: {display}"
         );
     }
 
