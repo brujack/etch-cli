@@ -2,6 +2,7 @@ mod autoremove;
 mod install;
 mod providers;
 mod repository;
+mod upgrade;
 
 pub(crate) use autoremove::PackageAutoremove;
 pub(crate) use install::PackageInstall;
@@ -11,6 +12,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tracing::debug;
+pub(crate) use upgrade::PackageUpgrade;
 
 #[derive(JsonSchema, Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(rename = "package.install")]

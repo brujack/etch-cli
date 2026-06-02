@@ -1,0 +1,31 @@
+---
+# package.upgrade — upgrade packages via apt or snap
+#
+# Homebrew upgrades use brew.upgrade instead.
+# name and list are mutually exclusive.
+
+actions:
+  # Upgrade all upgradable apt packages
+  - action: package.upgrade
+    provider: apt
+
+  # Upgrade a single apt package (only if already installed)
+  - action: package.upgrade
+    provider: apt
+    name: git
+
+  # Upgrade specific apt packages
+  - action: package.upgrade
+    provider: apt
+    list: [git, curl, vim]
+
+  # Refresh all installed snaps
+  - action: package.upgrade
+    provider: snap
+    where: 'os.family == "linux"'
+
+  # Refresh a specific snap
+  - action: package.upgrade
+    provider: snap
+    name: code
+    where: 'os.family == "linux"'
