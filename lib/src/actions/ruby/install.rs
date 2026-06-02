@@ -23,6 +23,10 @@ pub struct RubyInstall {
     /// Version manager to notify after installation. When `rbenv`, appends
     /// `rbenv global <version>` and `rbenv rehash` steps after ruby-install.
     pub version_manager: Option<VersionManager>,
+    /// Flags passed to ruby-install after `--`, forwarded verbatim to ./configure.
+    /// Example: ["--with-openssl-dir=/opt/homebrew/opt/openssl@3"]
+    #[serde(default)]
+    pub compile_flags: Vec<String>,
 }
 
 impl RubyInstall {
@@ -145,6 +149,7 @@ mod tests {
             implementation: None,
             rubies_dir: None,
             version_manager: None,
+            compile_flags: vec![],
         };
         let s = action.summarize();
         assert!(s.contains("ruby"), "expected 'ruby' in: {s}");
@@ -158,6 +163,7 @@ mod tests {
             implementation: Some(String::from("jruby")),
             rubies_dir: None,
             version_manager: None,
+            compile_flags: vec![],
         };
         let s = action.summarize();
         assert!(s.contains("jruby"), "expected 'jruby' in: {s}");
@@ -172,6 +178,7 @@ mod tests {
             implementation: None,
             rubies_dir: Some(tmp.path().to_string_lossy().to_string()),
             version_manager: None,
+            compile_flags: vec![],
         };
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
@@ -194,6 +201,7 @@ mod tests {
             implementation: None,
             rubies_dir: Some(tmp.path().to_string_lossy().to_string()),
             version_manager: None,
+            compile_flags: vec![],
         };
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
@@ -213,6 +221,7 @@ mod tests {
             implementation: Some(String::from("jruby")),
             rubies_dir: Some(tmp.path().to_string_lossy().to_string()),
             version_manager: None,
+            compile_flags: vec![],
         };
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
@@ -232,6 +241,7 @@ mod tests {
             implementation: None,
             rubies_dir: Some(dir_str.clone()),
             version_manager: None,
+            compile_flags: vec![],
         };
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
@@ -251,6 +261,7 @@ mod tests {
             implementation: None,
             rubies_dir: None,
             version_manager: None,
+            compile_flags: vec![],
         };
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
@@ -271,6 +282,7 @@ mod tests {
             implementation: None,
             rubies_dir: None,
             version_manager: None,
+            compile_flags: vec![],
         };
         assert_eq!("ruby", action.impl_name());
     }
@@ -282,6 +294,7 @@ mod tests {
             implementation: Some(String::from("jruby")),
             rubies_dir: None,
             version_manager: None,
+            compile_flags: vec![],
         };
         assert_eq!("jruby", action.impl_name());
     }
@@ -328,6 +341,7 @@ mod tests {
             implementation: None,
             rubies_dir: Some(tmp.path().to_string_lossy().to_string()),
             version_manager: Some(VersionManager::Rbenv),
+            compile_flags: vec![],
         };
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
@@ -362,6 +376,7 @@ mod tests {
             implementation: None,
             rubies_dir: Some(tmp.path().to_string_lossy().to_string()),
             version_manager: Some(VersionManager::Chruby),
+            compile_flags: vec![],
         };
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
@@ -382,6 +397,7 @@ mod tests {
             implementation: None,
             rubies_dir: Some(tmp.path().to_string_lossy().to_string()),
             version_manager: Some(VersionManager::Chruby),
+            compile_flags: vec![],
         };
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
@@ -401,6 +417,7 @@ mod tests {
             implementation: None,
             rubies_dir: Some(tmp.path().to_string_lossy().to_string()),
             version_manager: Some(VersionManager::Rbenv),
+            compile_flags: vec![],
         };
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
