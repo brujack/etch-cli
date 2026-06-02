@@ -1,3 +1,5 @@
+> **Status: DONE** — implemented in PR #75 (feat/version-pinning). `version:` field added to `package.install` for Homebrew, apt, and snap providers.
+
 # package.install Version Pinning Design
 
 ## Overview
