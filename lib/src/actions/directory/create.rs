@@ -49,7 +49,7 @@ mod tests {
 
         match manifest.actions.pop() {
             Some(Actions::DirectoryCreate(action)) => {
-                assert_eq!("/some-directory", action.action.path);
+                assert_eq!("{{ user.home_dir }}/.config/myapp", action.action.path);
             }
             _ => {
                 panic!("DirectoryCopy didn't deserialize to the correct type");
