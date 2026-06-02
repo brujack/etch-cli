@@ -1,8 +1,9 @@
-use super::PackageProvider;
+use super::{check_version, PackageProvider, VersionCheck};
 use crate::actions::package::repository::PackageRepository;
 use crate::contexts::Contexts;
 use crate::steps::Step;
 use crate::{actions::package::PackageVariant, atoms::command::Exec};
+use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
 use std::{path::Path, process::Command};
 use tracing::{debug, trace};
@@ -79,8 +80,28 @@ impl PackageProvider for Homebrew {
             .collect())
     }
 
+    fn installed_version(&self, name: &str) -> anyhow::Result<Option<String>> {
+        let out = Command::new("brew")
+            .args(["info", "--json=v2", name])
+            .output()?;
+        if !out.status.success() {
+            return Ok(None);
+        }
+        let json: serde_json::Value = serde_json::from_slice(&out.stdout)?;
+        let version = json["formulae"][0]["installed"][0]["version"]
+            .as_str()
+            .map(str::to_owned);
+        Ok(version)
+    }
+
     fn install(&self, package: &PackageVariant, _contexts: &Contexts) -> anyhow::Result<Vec<Step>> {
         // Does not require privilege escalation
+
+        if let Some(ref declared) = package.version {
+            let name = package.name.as_deref().unwrap_or_default();
+            let installed = self.installed_version(name)?;
+            return Self::brew_version_step(name, declared, installed.as_deref());
+        }
 
         let need_installed = self.query(package)?;
 
@@ -102,6 +123,34 @@ impl PackageProvider for Homebrew {
             initializers: vec![],
             finalizers: vec![],
         }])
+    }
+}
+
+impl Homebrew {
+    fn brew_version_step(
+        name: &str,
+        declared: &str,
+        installed: Option<&str>,
+    ) -> anyhow::Result<Vec<Step>> {
+        match check_version(declared, installed) {
+            VersionCheck::Skip => Ok(vec![]),
+            VersionCheck::Mismatch { actual } => Err(anyhow!(
+                "package {name} is at {actual}, declared version is {declared}; \
+                 manually upgrade/downgrade and re-apply"
+            )),
+            VersionCheck::InstallNeeded => {
+                let formula = format!("{name}@{declared}");
+                Ok(vec![Step {
+                    atom: Box::new(Exec {
+                        command: String::from("brew"),
+                        arguments: vec![String::from("install"), formula],
+                        ..Default::default()
+                    }),
+                    initializers: vec![],
+                    finalizers: vec![],
+                }])
+            }
+        }
     }
 }
 
@@ -201,6 +250,31 @@ mod test {
             display.contains("--cask"),
             "expected '--cask' in brew install args: {display}"
         );
+    }
+
+    #[test]
+    fn brew_version_step_not_installed_returns_versioned_formula() {
+        let steps = Homebrew::brew_version_step("python", "3.11", None).unwrap();
+        assert_eq!(steps.len(), 1);
+        let display = steps[0].atom.to_string();
+        assert!(display.contains("python@3.11"), "display: {display}");
+    }
+
+    #[test]
+    fn brew_version_step_correct_version_returns_empty() {
+        let steps = Homebrew::brew_version_step("python", "3.11", Some("3.11")).unwrap();
+        assert!(steps.is_empty());
+    }
+
+    #[test]
+    fn brew_version_step_wrong_version_returns_error() {
+        let result = Homebrew::brew_version_step("python", "3.11", Some("3.12"));
+        assert!(result.is_err());
+        let msg = result.err().unwrap().to_string();
+        assert!(msg.contains("python"), "msg: {msg}");
+        assert!(msg.contains("3.12"), "msg: {msg}");
+        assert!(msg.contains("3.11"), "msg: {msg}");
+        assert!(msg.contains("manually upgrade/downgrade"), "msg: {msg}");
     }
 
     #[test]

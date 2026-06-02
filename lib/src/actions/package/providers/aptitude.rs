@@ -1,11 +1,13 @@
-use super::PackageProvider;
+use super::{check_version, PackageProvider, VersionCheck};
 use crate::actions::package::{repository::PackageRepository, PackageVariant};
 use crate::atoms::command::Exec;
 use crate::contexts::Contexts;
 use crate::steps::Step;
 use crate::utilities;
+use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
 use sha256::digest;
+use std::process::Command;
 use tracing::warn;
 use which::which;
 
@@ -141,9 +143,36 @@ impl PackageProvider for Aptitude {
         Ok(package.packages())
     }
 
+    fn installed_version(&self, name: &str) -> anyhow::Result<Option<String>> {
+        let out = Command::new("dpkg-query")
+            .args(["-W", "-f=${Version}", name])
+            .output()?;
+        if !out.status.success() {
+            return Ok(None);
+        }
+        let s = String::from_utf8(out.stdout)?.trim().to_owned();
+        if s.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(s))
+        }
+    }
+
     fn install(&self, package: &PackageVariant, contexts: &Contexts) -> anyhow::Result<Vec<Step>> {
         let privilege_provider =
             utilities::get_privilege_provider(contexts).unwrap_or_else(|| "sudo".to_string());
+
+        if let Some(ref declared) = package.version {
+            let name = package.name.as_deref().unwrap_or_default();
+            let installed = self.installed_version(name)?;
+            return Self::apt_version_step(
+                name,
+                declared,
+                installed.as_deref(),
+                &privilege_provider,
+                &self.env(),
+            );
+        }
 
         Ok(vec![Step {
             atom: Box::new(Exec {
@@ -161,6 +190,40 @@ impl PackageProvider for Aptitude {
             initializers: vec![],
             finalizers: vec![],
         }])
+    }
+}
+
+impl Aptitude {
+    fn apt_version_step(
+        name: &str,
+        declared: &str,
+        installed: Option<&str>,
+        privilege_provider: &str,
+        env: &[(String, String)],
+    ) -> anyhow::Result<Vec<Step>> {
+        match check_version(declared, installed) {
+            VersionCheck::Skip => Ok(vec![]),
+            VersionCheck::Mismatch { actual } => Err(anyhow!(
+                "package {name} is at {actual}, declared version is {declared}; \
+                 manually upgrade/downgrade and re-apply"
+            )),
+            VersionCheck::InstallNeeded => Ok(vec![Step {
+                atom: Box::new(Exec {
+                    command: String::from("apt-get"),
+                    arguments: vec![
+                        String::from("install"),
+                        String::from("--yes"),
+                        format!("{name}={declared}"),
+                    ],
+                    environment: env.to_vec(),
+                    privileged: true,
+                    privilege_provider: privilege_provider.to_string(),
+                    ..Default::default()
+                }),
+                initializers: vec![],
+                finalizers: vec![],
+            }]),
+        }
     }
 }
 
@@ -266,6 +329,51 @@ mod test {
         };
         let result = aptitude.query(&variant).unwrap();
         assert!(result.is_empty()); // no packages set
+    }
+
+    #[test]
+    fn apt_version_step_not_installed_returns_versioned_install() {
+        let env = vec![("DEBIAN_FRONTEND".to_string(), "noninteractive".to_string())];
+        let steps =
+            Aptitude::apt_version_step("git", "1:2.43.0-1ubuntu7", None, "sudo", &env).unwrap();
+        assert_eq!(steps.len(), 1);
+        let display = steps[0].atom.to_string();
+        assert!(
+            display.contains("git=1:2.43.0-1ubuntu7"),
+            "display: {display}"
+        );
+    }
+
+    #[test]
+    fn apt_version_step_correct_version_returns_empty() {
+        let env = vec![];
+        let steps = Aptitude::apt_version_step(
+            "git",
+            "1:2.43.0-1ubuntu7",
+            Some("1:2.43.0-1ubuntu7"),
+            "sudo",
+            &env,
+        )
+        .unwrap();
+        assert!(steps.is_empty());
+    }
+
+    #[test]
+    fn apt_version_step_wrong_version_returns_error() {
+        let env = vec![];
+        let result = Aptitude::apt_version_step(
+            "git",
+            "1:2.43.0-1ubuntu7",
+            Some("1:2.41.0-1ubuntu2"),
+            "sudo",
+            &env,
+        );
+        assert!(result.is_err());
+        let msg = result.err().unwrap().to_string();
+        assert!(msg.contains("git"), "msg: {msg}");
+        assert!(msg.contains("1:2.41.0-1ubuntu2"), "msg: {msg}");
+        assert!(msg.contains("1:2.43.0-1ubuntu7"), "msg: {msg}");
+        assert!(msg.contains("manually upgrade/downgrade"), "msg: {msg}");
     }
 
     #[test]

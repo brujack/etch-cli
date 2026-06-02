@@ -42,6 +42,8 @@ pub struct Package {
 
     #[serde(default)]
     cask: bool,
+
+    version: Option<String>,
 }
 
 #[derive(JsonSchema, Clone, Debug, Default, Serialize, Deserialize)]
@@ -62,6 +64,8 @@ pub struct PackageVariant {
 
     #[serde(default)]
     cask: bool,
+
+    version: Option<String>,
 }
 
 impl PackageVariant {
@@ -89,6 +93,7 @@ impl From<&Package> for PackageVariant {
                 extra_args: package.extra_args.clone(),
                 file: package.file,
                 cask: package.cask,
+                version: package.version.clone(),
             };
         };
 
@@ -104,6 +109,7 @@ impl From<&Package> for PackageVariant {
             extra_args: variant.extra_args.clone(),
             file: package.file,
             cask: variant.cask,
+            version: variant.version.clone().or_else(|| package.version.clone()),
         };
 
         if variant.name.is_some() {
@@ -181,6 +187,93 @@ mod tests {
         let variant: PackageVariant = (&pkg).into();
         // variant.name overrides base name; variant.list overrides base list
         assert_eq!(variant.packages(), vec!["variant-pkg"]);
+    }
+
+    #[test]
+    fn package_variant_version_propagated_from_base() {
+        let pkg = Package {
+            name: Some("python".to_string()),
+            version: Some("3.11".to_string()),
+            ..Default::default()
+        };
+        let variant: PackageVariant = (&pkg).into();
+        assert_eq!(variant.version, Some("3.11".to_string()));
+    }
+
+    #[test]
+    fn package_variant_version_none_when_not_set() {
+        let pkg = Package {
+            name: Some("curl".to_string()),
+            ..Default::default()
+        };
+        let variant: PackageVariant = (&pkg).into();
+        assert_eq!(variant.version, None);
+    }
+
+    #[test]
+    fn package_variant_version_deserializes() {
+        let yaml = r#"
+action: package.install
+name: python
+provider: homebrew
+version: "3.11"
+"#;
+        let pkg: Package = serde_yaml_ng::from_str(yaml).unwrap();
+        assert_eq!(pkg.version, Some("3.11".to_string()));
+    }
+
+    #[test]
+    fn package_variant_version_omitted_gives_none() {
+        let yaml = r#"
+action: package.install
+name: curl
+provider: homebrew
+"#;
+        let pkg: Package = serde_yaml_ng::from_str(yaml).unwrap();
+        assert_eq!(pkg.version, None);
+    }
+
+    #[test]
+    fn package_variant_os_variant_version_overrides_base() {
+        let os = os_info::get();
+        let mut variants = std::collections::HashMap::new();
+        variants.insert(
+            os.os_type(),
+            PackageVariant {
+                version: Some("3.12".to_string()),
+                ..Default::default()
+            },
+        );
+        let pkg = Package {
+            name: Some("python".to_string()),
+            version: Some("3.11".to_string()),
+            variants,
+            ..Default::default()
+        };
+        let variant: PackageVariant = (&pkg).into();
+        assert_eq!(variant.version, Some("3.12".to_string()));
+    }
+
+    #[test]
+    fn package_variant_os_variant_inherits_base_version_when_variant_has_none() {
+        let os = os_info::get();
+        let mut variants = std::collections::HashMap::new();
+        variants.insert(
+            os.os_type(),
+            PackageVariant {
+                name: Some("python3".to_string()),
+                version: None,
+                ..Default::default()
+            },
+        );
+        let pkg = Package {
+            name: Some("python".to_string()),
+            version: Some("3.11".to_string()),
+            variants,
+            ..Default::default()
+        };
+        let variant: PackageVariant = (&pkg).into();
+        assert_eq!(variant.version, Some("3.11".to_string()));
     }
 
     #[test]

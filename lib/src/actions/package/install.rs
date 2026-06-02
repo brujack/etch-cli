@@ -28,6 +28,21 @@ impl Action for PackageInstall {
 
     fn plan(&self, _manifest: &Manifest, context: &Contexts) -> anyhow::Result<Vec<Step>> {
         let variant: PackageVariant = self.into();
+
+        if variant.version.is_some() && !variant.list.is_empty() {
+            return Err(anyhow!(
+                "package.install: 'version' cannot be used with 'list'; \
+                 pin one package at a time using 'name'"
+            ));
+        }
+
+        if variant.version.is_some() && variant.cask {
+            return Err(anyhow!(
+                "package.install: 'version' is not supported with 'cask: true'; \
+                 Homebrew casks do not have versioned taps"
+            ));
+        }
+
         let box_provider = variant.provider.clone().get_provider();
         let provider = box_provider.deref();
 
@@ -186,6 +201,53 @@ mod tests {
         // no packages set — should not panic
         let s = pkg.summarize();
         assert!(!s.is_empty());
+    }
+
+    #[test]
+    fn plan_rejects_version_with_list() {
+        use super::PackageInstall;
+        use crate::actions::package::providers::PackageProviders;
+        use crate::actions::Action;
+        use crate::contexts::Contexts;
+        use crate::manifests::Manifest;
+
+        let pkg = PackageInstall {
+            list: vec!["git".to_string(), "curl".to_string()],
+            provider: PackageProviders::Homebrew,
+            version: Some("2.43".to_string()),
+            ..Default::default()
+        };
+        let result = pkg.plan(&Manifest::default(), &Contexts::default());
+        assert!(result.is_err());
+        let msg = result.err().unwrap().to_string();
+        assert!(
+            msg.contains("'version' cannot be used with 'list'"),
+            "msg: {msg}"
+        );
+    }
+
+    #[test]
+    fn plan_rejects_version_with_cask() {
+        use super::PackageInstall;
+        use crate::actions::package::providers::PackageProviders;
+        use crate::actions::Action;
+        use crate::contexts::Contexts;
+        use crate::manifests::Manifest;
+
+        let pkg = PackageInstall {
+            name: Some("firefox".to_string()),
+            provider: PackageProviders::Homebrew,
+            cask: true,
+            version: Some("120.0".to_string()),
+            ..Default::default()
+        };
+        let result = pkg.plan(&Manifest::default(), &Contexts::default());
+        assert!(result.is_err());
+        let msg = result.err().unwrap().to_string();
+        assert!(
+            msg.contains("'version' is not supported with 'cask: true'"),
+            "msg: {msg}"
+        );
     }
 
     #[cfg(target_os = "macos")]
