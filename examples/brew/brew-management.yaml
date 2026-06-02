@@ -1,0 +1,59 @@
+---
+# Homebrew management — bundle, upgrade, and cleanup
+#
+# Actions covered:
+#   brew.bundle   — install everything in a Brewfile (taps, formulae, casks, MAS)
+#   brew.upgrade  — upgrade installed formulae and casks
+#   brew.cleanup  — remove old versions and cached downloads
+#
+# These actions are macOS-primary but brew.bundle and brew.upgrade also work
+# on Linux where Homebrew is installed.
+# brew.bundle is the recommended approach for managing a full macOS package set.
+
+actions:
+  # ==========================================================================
+  # BUNDLE — install from a Brewfile
+  # ==========================================================================
+
+  # Install everything in a Brewfile: taps, formulae, casks, and MAS apps.
+  # Idempotent: skips anything already installed.
+  - action: brew.bundle
+    file: "{{ user.home_dir }}/git-repos/personal/dotfiles/Brewfile"
+
+  # no_upgrade: true — skip `brew upgrade` for already-installed packages.
+  # Use when you want install-only behavior (faster, avoids unintended upgrades).
+  - action: brew.bundle
+    file: "{{ user.home_dir }}/git-repos/personal/dotfiles/Brewfile"
+    no_upgrade: true
+
+  # cleanup: true — remove packages NOT listed in the Brewfile after install.
+  # Destructive: treats the Brewfile as the complete desired state.
+  # Omit or set false (default) to leave unmanaged packages in place.
+  - action: brew.bundle
+    file: "{{ user.home_dir }}/git-repos/personal/dotfiles/Brewfile"
+    cleanup: true
+
+  # ==========================================================================
+  # UPGRADE — upgrade installed formulae and casks
+  # ==========================================================================
+
+  # Upgrade all installed Homebrew formulae and casks.
+  # Skips casks that manage their own updates (e.g. Chrome, Slack).
+  - action: brew.upgrade
+
+  # greedy: true — also upgrade auto-update casks.
+  # Use when you want etch to own all updates, not the app itself.
+  - action: brew.upgrade
+    greedy: true
+
+  # ==========================================================================
+  # CLEANUP — remove old versions and cached downloads
+  # ==========================================================================
+
+  # Remove all old versions and cached downloads (brew's default pruning).
+  - action: brew.cleanup
+
+  # prune: N — only remove versions older than N days.
+  # Useful to keep a short rollback window while still freeing disk space.
+  - action: brew.cleanup
+    prune: 30

@@ -1,8 +1,0 @@
-actions:
-  # Remove all old versions and cached downloads (brew's default pruning).
-  - action: brew.cleanup
-
-  # prune: N — only remove versions older than N days.
-  # Useful to keep a short rollback window.
-  - action: brew.cleanup
-    prune: 30

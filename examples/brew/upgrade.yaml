@@ -1,9 +1,0 @@
-actions:
-  # Upgrade all installed Homebrew formulae and casks.
-  # Skips casks that manage their own updates (e.g. Chrome, Slack).
-  - action: brew.upgrade
-
-  # greedy: true — also upgrade auto-update casks.
-  # Use when you want etch to own all updates, not the app itself.
-  - action: brew.upgrade
-    greedy: true
