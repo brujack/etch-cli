@@ -4,6 +4,8 @@ mod homebrew;
 use self::homebrew::Homebrew;
 mod snapcraft;
 use self::snapcraft::Snapcraft;
+pub(crate) mod apt_upgrade;
+pub(crate) mod snap_upgrade;
 use super::{repository::PackageRepository, PackageVariant};
 use crate::contexts::Contexts;
 use crate::steps::Step;

@@ -39,7 +39,7 @@ use gem::GemInstall;
 use git::{GitClone, GitConfig, GitPull};
 use group::add::GroupAdd;
 use npm::NpmInstall;
-use package::{PackageAutoremove, PackageInstall, PackageRepository};
+use package::{PackageAutoremove, PackageInstall, PackageRepository, PackageUpgrade};
 use pip::PipInstall;
 use plugin::Plugin;
 use pyenv::{PyenvInstall, PyenvVirtualenv};
@@ -226,6 +226,9 @@ pub enum Actions {
     #[serde(rename = "package.autoremove")]
     PackageAutoremove(ConditionalVariantAction<PackageAutoremove>),
 
+    #[serde(rename = "package.upgrade")]
+    PackageUpgrade(ConditionalVariantAction<PackageUpgrade>),
+
     #[serde(rename = "user.add")]
     UserAdd(ConditionalVariantAction<UserAdd>),
 
@@ -284,6 +287,7 @@ impl Actions {
             Actions::PackageInstall(a) => a,
             Actions::PackageRepository(a) => a,
             Actions::PackageAutoremove(a) => a,
+            Actions::PackageUpgrade(a) => a,
             Actions::UserAdd(a) => a,
             Actions::UserAddGroup(a) => a,
             Actions::FileRemove(a) => a,
@@ -329,6 +333,7 @@ impl Actions {
             Actions::PackageInstall(a) => &a.notify,
             Actions::PackageRepository(a) => &a.notify,
             Actions::PackageAutoremove(a) => &a.notify,
+            Actions::PackageUpgrade(a) => &a.notify,
             Actions::UserAdd(a) => &a.notify,
             Actions::UserAddGroup(a) => &a.notify,
             Actions::Plugin(a) => &a.notify,
@@ -373,6 +378,7 @@ impl Deref for Actions {
             Actions::PackageInstall(a) => a,
             Actions::PackageRepository(a) => a,
             Actions::PackageAutoremove(a) => a,
+            Actions::PackageUpgrade(a) => a,
             Actions::UserAdd(a) => a,
             Actions::UserAddGroup(a) => a,
             Actions::FileRemove(a) => a,
@@ -420,6 +426,7 @@ impl Display for Actions {
             Actions::PackageInstall(_) => "package.install",
             Actions::PackageRepository(_) => "package.repository",
             Actions::PackageAutoremove(_) => "package.autoremove",
+            Actions::PackageUpgrade(_) => "package.upgrade",
             Actions::UserAdd(_) => "user.add",
             Actions::UserAddGroup(_) => "user.group",
             Actions::Plugin(_) => "plugin",
@@ -608,9 +615,11 @@ actions:
     name: bundler
   - action: pip.install
     name: requests
+  - action: package.upgrade
+    provider: apt
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(26, manifest.actions.len());
+        assert_eq!(27, manifest.actions.len());
     }
 
     #[test]
@@ -693,6 +702,8 @@ actions:
   - action: pyenv.virtualenv
     python_version: "3.12.0"
     name: myproject
+  - action: package.upgrade
+    provider: snap
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
 
@@ -729,6 +740,7 @@ actions:
             "npm.install",
             "pyenv.install",
             "pyenv.virtualenv",
+            "package.upgrade",
         ];
 
         for (action, expected) in manifest.actions.iter().zip(expected_names.iter()) {
