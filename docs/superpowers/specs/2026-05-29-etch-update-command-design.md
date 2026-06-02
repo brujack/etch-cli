@@ -1,5 +1,7 @@
 # etch update Command Design
 
+> **Status: SUPERSEDED** by [etch-update-workflow](2026-05-30-etch-update-workflow-design.md) — manifest-traversal approach was replaced with a built-in tool-update workflow.
+
 ## Overview
 
 Add an `etch update` subcommand that runs all upgrade-capable atoms across all configured manifests in a single invocation. Only atoms that declare `upgradeable() -> bool` == `true` execute; all other atoms are skipped.
