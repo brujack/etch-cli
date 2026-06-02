@@ -1,0 +1,188 @@
+---
+# Package management — install, upgrade, and maintain packages
+#
+# Actions covered:
+#   package.install    — install packages (Homebrew, apt, snap); idempotent
+#   package.upgrade    — upgrade installed packages (apt, snap); plan-time no-op
+#                        if nothing to upgrade
+#   package.repository — add a Homebrew tap or apt repository before installing
+#   package.autoremove — remove unused apt dependencies
+#
+# For Homebrew upgrades use brew.upgrade; package.upgrade provider: homebrew
+# is rejected at plan time with a redirect message.
+#
+# Use where: to gate platform-specific actions.
+# name and list are mutually exclusive on all actions.
+
+actions:
+  # ==========================================================================
+  # REPOSITORIES — add before any package.install that depends on them
+  # ==========================================================================
+
+  # Add a Homebrew tap.
+  # Always add the tap before installing formulae from it.
+  - action: package.repository
+    name: go-task/tap
+    provider: homebrew
+
+  # Add another tap.
+  - action: package.repository
+    name: hashicorp/tap
+    provider: homebrew
+
+  # Add an apt repository (Linux).
+  - action: package.repository
+    name: "deb https://download.docker.com/linux/ubuntu focal stable"
+    provider: apt
+    where: 'os.family == "linux"'
+
+  # ==========================================================================
+  # INSTALL — Homebrew
+  # ==========================================================================
+
+  # Install a single formula.
+  - action: package.install
+    name: ripgrep
+    provider: homebrew
+
+  # Install a formula from a tap (tap must be added above first).
+  - action: package.install
+    name: go-task/tap/go-task
+    provider: homebrew
+
+  # Install a list of formulae in one action.
+  - action: package.install
+    list:
+      - jq
+      - fd
+      - bat
+      - fzf
+    provider: homebrew
+
+  # Install a Homebrew cask (GUI application).
+  # cask: true passes --cask to brew install.
+  - action: package.install
+    name: visual-studio-code
+    provider: homebrew
+    cask: true
+
+  # Install multiple casks at once.
+  - action: package.install
+    list:
+      - alfred
+      - iterm2
+      - obsidian
+    provider: homebrew
+    cask: true
+
+  # ==========================================================================
+  # INSTALL — apt (Linux/Debian/Ubuntu)
+  # ==========================================================================
+
+  # Install a single package via apt.
+  - action: package.install
+    name: ripgrep
+    provider: apt
+    where: 'os.family == "linux"'
+
+  # Install multiple packages via apt.
+  - action: package.install
+    list:
+      - build-essential
+      - curl
+      - git
+      - unzip
+    provider: apt
+    where: 'os.family == "linux"'
+
+  # Pass extra flags to apt-get install (e.g. pin a version).
+  - action: package.install
+    name: nodejs
+    provider: apt
+    extra_args:
+      - nodejs=18.*
+    where: 'os.family == "linux"'
+
+  # Install from a local .deb file (file: true treats name as a path).
+  - action: package.install
+    name: /tmp/mypackage.deb
+    provider: apt
+    file: true
+    where: 'os.family == "linux"'
+
+  # ==========================================================================
+  # INSTALL — snap (Linux)
+  # ==========================================================================
+
+  # Install via snap. Gate on has_snap (set in etch.yaml on Linux machines).
+  - action: package.install
+    name: code
+    provider: snap
+    where: 'variables.has_snap'
+
+  # ==========================================================================
+  # INSTALL — OS-variant pattern
+  # ==========================================================================
+
+  # Install the same logical package with the correct provider per OS.
+  # The variants block overrides fields for a specific OS type.
+  - action: package.install
+    name: ripgrep
+    provider: homebrew
+    variants:
+      Ubuntu:
+        name: ripgrep
+        provider: apt
+
+  # ==========================================================================
+  # UPGRADE — apt
+  # ==========================================================================
+
+  # Upgrade all upgradable apt packages.
+  # Runs `apt list --upgradable` at plan time; no-ops if nothing to upgrade.
+  # Generates: apt-get update + apt-get upgrade -y
+  - action: package.upgrade
+    provider: apt
+    where: 'os.family == "linux"'
+
+  # Upgrade a single apt package (skips if not in the upgradable list).
+  # Generates: apt-get update + apt-get install --only-upgrade -y git
+  - action: package.upgrade
+    provider: apt
+    name: git
+    where: 'os.family == "linux"'
+
+  # Upgrade a specific set of apt packages.
+  # Only packages in `apt list --upgradable` are upgraded; others skipped.
+  - action: package.upgrade
+    provider: apt
+    list:
+      - git
+      - curl
+      - vim
+    where: 'os.family == "linux"'
+
+  # ==========================================================================
+  # UPGRADE — snap
+  # ==========================================================================
+
+  # Refresh all installed snaps.
+  # snap escalates privileges internally — no privileged: field needed.
+  - action: package.upgrade
+    provider: snap
+    where: 'variables.has_snap'
+
+  # Refresh a specific snap (skips if not in snap refresh --list output).
+  - action: package.upgrade
+    provider: snap
+    name: code
+    where: 'variables.has_snap'
+
+  # ==========================================================================
+  # AUTOREMOVE — remove unused apt dependencies
+  # ==========================================================================
+
+  # Remove packages that were installed as dependencies but are no longer needed.
+  # Run after upgrades or package removals to keep the system clean.
+  - action: package.autoremove
+    where: 'os.family == "linux"'
