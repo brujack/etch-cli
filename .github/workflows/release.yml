@@ -89,7 +89,7 @@ jobs:
 
       - name: Generate SHA256 checksum
         run: |
-          sha256sum target/release/etch > target/release/etch.sha256
+          (cd target/release && sha256sum etch) > target/release/etch.sha256
           cat target/release/etch.sha256
 
       - name: Create GitHub release
