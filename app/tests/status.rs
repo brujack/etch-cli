@@ -174,3 +174,75 @@ fn status_where_false_skips_manifest() {
         .success()
         .stdout(predicates::str::contains("mymanifest").not());
 }
+
+#[test]
+fn status_json_flag_produces_valid_json() {
+    let root_tmp = TempDir::new().unwrap();
+    let target_tmp = TempDir::new().unwrap();
+    let root = root_tmp.path().to_path_buf();
+    let target_link = target_tmp.path().join("target_link");
+
+    let source_file = setup_link_manifest(&root, "mymanifest", &target_link);
+    std::os::unix::fs::symlink(&source_file, &target_link).unwrap();
+
+    let output = etch()
+        .current_dir(&root)
+        .args([
+            "--no-color",
+            "-d",
+            "./directory",
+            "status",
+            "--json",
+            "-m",
+            "mymanifest",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let text = String::from_utf8(output).unwrap();
+    let parsed: serde_json::Value =
+        serde_json::from_str(&text).expect("--json output must be valid JSON");
+
+    assert!(parsed["manifests"].is_array(), "must have manifests array");
+    assert!(parsed["summary"].is_object(), "must have summary object");
+    assert!(parsed["summary"]["ok"].as_u64().unwrap() >= 1);
+    assert_eq!(parsed["summary"]["missing"], 0);
+    assert_eq!(parsed["summary"]["drifted"], 0);
+}
+
+#[test]
+fn status_json_missing_has_nonzero_exit_and_summary() {
+    let root_tmp = TempDir::new().unwrap();
+    let target_tmp = TempDir::new().unwrap();
+    let root = root_tmp.path().to_path_buf();
+    let target_link = target_tmp.path().join("target_link");
+
+    setup_link_manifest(&root, "mymanifest", &target_link);
+    // No symlink — atom is Missing
+
+    let output = etch()
+        .current_dir(&root)
+        .args([
+            "--no-color",
+            "-d",
+            "./directory",
+            "status",
+            "--json",
+            "-m",
+            "mymanifest",
+        ])
+        .assert()
+        .failure()
+        .get_output()
+        .stdout
+        .clone();
+
+    let text = String::from_utf8(output).unwrap();
+    let parsed: serde_json::Value =
+        serde_json::from_str(&text).expect("--json output must be valid JSON even on failure");
+
+    assert_eq!(parsed["summary"]["missing"], 1);
+}
