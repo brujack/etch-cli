@@ -23,3 +23,12 @@ actions:
     - action: ruby.install
       version: "3.3.0"
       version_manager: chruby
+
+    # Pass custom flags to ./configure via ruby-install's -- separator.
+    # Required on macOS to link against Homebrew's keg-only OpenSSL.
+    # Use `where: 'os.name == "macos"'` to gate this to macOS only.
+    - action: ruby.install
+      version: "3.3.0"
+      compile_flags:
+          - "--with-openssl-dir=/opt/homebrew/opt/openssl@3"
+      where: 'os.name == "macos"'

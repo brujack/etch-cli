@@ -23,6 +23,10 @@ pub struct RubyInstall {
     /// Version manager to notify after installation. When `rbenv`, appends
     /// `rbenv global <version>` and `rbenv rehash` steps after ruby-install.
     pub version_manager: Option<VersionManager>,
+    /// Flags passed to ruby-install after `--`, forwarded verbatim to ./configure.
+    /// Example: ["--with-openssl-dir=/opt/homebrew/opt/openssl@3"]
+    #[serde(default)]
+    pub compile_flags: Vec<String>,
 }
 
 impl RubyInstall {
@@ -61,6 +65,11 @@ impl Action for RubyInstall {
             let expanded = shellexpand::tilde(dir).into_owned();
             arguments.push(String::from("--rubies-dir"));
             arguments.push(expanded);
+        }
+
+        if !self.compile_flags.is_empty() {
+            arguments.push(String::from("--"));
+            arguments.extend(self.compile_flags.iter().cloned());
         }
 
         let mut steps = vec![Step {
@@ -145,6 +154,7 @@ mod tests {
             implementation: None,
             rubies_dir: None,
             version_manager: None,
+            compile_flags: vec![],
         };
         let s = action.summarize();
         assert!(s.contains("ruby"), "expected 'ruby' in: {s}");
@@ -158,6 +168,7 @@ mod tests {
             implementation: Some(String::from("jruby")),
             rubies_dir: None,
             version_manager: None,
+            compile_flags: vec![],
         };
         let s = action.summarize();
         assert!(s.contains("jruby"), "expected 'jruby' in: {s}");
@@ -172,6 +183,7 @@ mod tests {
             implementation: None,
             rubies_dir: Some(tmp.path().to_string_lossy().to_string()),
             version_manager: None,
+            compile_flags: vec![],
         };
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
@@ -194,6 +206,7 @@ mod tests {
             implementation: None,
             rubies_dir: Some(tmp.path().to_string_lossy().to_string()),
             version_manager: None,
+            compile_flags: vec![],
         };
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
@@ -213,6 +226,7 @@ mod tests {
             implementation: Some(String::from("jruby")),
             rubies_dir: Some(tmp.path().to_string_lossy().to_string()),
             version_manager: None,
+            compile_flags: vec![],
         };
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
@@ -232,6 +246,7 @@ mod tests {
             implementation: None,
             rubies_dir: Some(dir_str.clone()),
             version_manager: None,
+            compile_flags: vec![],
         };
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
@@ -251,6 +266,7 @@ mod tests {
             implementation: None,
             rubies_dir: None,
             version_manager: None,
+            compile_flags: vec![],
         };
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
@@ -271,6 +287,7 @@ mod tests {
             implementation: None,
             rubies_dir: None,
             version_manager: None,
+            compile_flags: vec![],
         };
         assert_eq!("ruby", action.impl_name());
     }
@@ -282,6 +299,7 @@ mod tests {
             implementation: Some(String::from("jruby")),
             rubies_dir: None,
             version_manager: None,
+            compile_flags: vec![],
         };
         assert_eq!("jruby", action.impl_name());
     }
@@ -328,6 +346,7 @@ mod tests {
             implementation: None,
             rubies_dir: Some(tmp.path().to_string_lossy().to_string()),
             version_manager: Some(VersionManager::Rbenv),
+            compile_flags: vec![],
         };
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
@@ -362,6 +381,7 @@ mod tests {
             implementation: None,
             rubies_dir: Some(tmp.path().to_string_lossy().to_string()),
             version_manager: Some(VersionManager::Chruby),
+            compile_flags: vec![],
         };
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
@@ -382,6 +402,7 @@ mod tests {
             implementation: None,
             rubies_dir: Some(tmp.path().to_string_lossy().to_string()),
             version_manager: Some(VersionManager::Chruby),
+            compile_flags: vec![],
         };
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
@@ -401,6 +422,7 @@ mod tests {
             implementation: None,
             rubies_dir: Some(tmp.path().to_string_lossy().to_string()),
             version_manager: Some(VersionManager::Rbenv),
+            compile_flags: vec![],
         };
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
@@ -408,6 +430,199 @@ mod tests {
         assert!(
             steps.is_empty(),
             "expected no steps when ruby already installed, even with rbenv set"
+        );
+    }
+
+    #[test]
+    fn it_can_be_deserialized_with_compile_flags() {
+        let yaml = r#"
+- action: ruby.install
+  version: "3.3.0"
+  compile_flags:
+    - "--with-openssl-dir=/opt/homebrew/opt/openssl@3"
+"#;
+        let mut actions: Vec<Actions> = serde_yaml_ng::from_str(yaml).unwrap();
+        match actions.pop() {
+            Some(Actions::RubyInstall(action)) => {
+                assert_eq!(
+                    vec!["--with-openssl-dir=/opt/homebrew/opt/openssl@3"],
+                    action.action.compile_flags
+                );
+            }
+            _ => panic!("RubyInstall didn't deserialize to the correct type"),
+        }
+    }
+
+    #[test]
+    fn compile_flags_defaults_to_empty_when_absent() {
+        let yaml = r#"
+- action: ruby.install
+  version: "3.3.0"
+"#;
+        let mut actions: Vec<Actions> = serde_yaml_ng::from_str(yaml).unwrap();
+        match actions.pop() {
+            Some(Actions::RubyInstall(action)) => {
+                assert!(
+                    action.action.compile_flags.is_empty(),
+                    "expected empty compile_flags when field absent"
+                );
+            }
+            _ => panic!("RubyInstall didn't deserialize to the correct type"),
+        }
+    }
+
+    #[test]
+    fn plan_includes_compile_flags_after_separator() {
+        let tmp = tempfile::tempdir().unwrap();
+        let action = RubyInstall {
+            version: String::from("3.3.0"),
+            implementation: None,
+            rubies_dir: Some(tmp.path().to_string_lossy().to_string()),
+            version_manager: None,
+            compile_flags: vec![String::from(
+                "--with-openssl-dir=/opt/homebrew/opt/openssl@3",
+            )],
+        };
+        let steps = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+        assert_eq!(1, steps.len());
+        let display = steps[0].atom.to_string();
+        let sep_pos = display
+            .find(" -- ")
+            .unwrap_or_else(|| panic!("expected ' -- ' separator in: {display}"));
+        let flag_pos = display
+            .find("--with-openssl-dir")
+            .unwrap_or_else(|| panic!("expected flag in: {display}"));
+        assert!(
+            sep_pos < flag_pos,
+            "separator must appear before flag in: {display}"
+        );
+    }
+
+    #[test]
+    fn plan_includes_compile_flags_with_default_rubies_dir() {
+        // compile_flags with rubies_dir: None — flags follow directly after version,
+        // no --rubies-dir arg, still correct ruby-install CLI syntax
+        let action = RubyInstall {
+            version: String::from("99.99.99"),
+            implementation: None,
+            rubies_dir: None,
+            version_manager: None,
+            compile_flags: vec![String::from(
+                "--with-openssl-dir=/opt/homebrew/opt/openssl@3",
+            )],
+        };
+        let steps = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+        // ~/.rubies/ruby-99.99.99 won't exist so we get a step
+        assert_eq!(1, steps.len());
+        let display = steps[0].atom.to_string();
+        let sep_pos = display
+            .find(" -- ")
+            .unwrap_or_else(|| panic!("expected ' -- ' separator in: {display}"));
+        let flag_pos = display
+            .find("--with-openssl-dir")
+            .unwrap_or_else(|| panic!("expected flag in: {display}"));
+        assert!(sep_pos < flag_pos, "separator must precede flag: {display}");
+        assert!(
+            !display.contains("--rubies-dir"),
+            "should not have --rubies-dir when rubies_dir is None: {display}"
+        );
+    }
+
+    #[test]
+    fn plan_includes_multiple_compile_flags_all_after_separator() {
+        let tmp = tempfile::tempdir().unwrap();
+        let action = RubyInstall {
+            version: String::from("3.3.0"),
+            implementation: None,
+            rubies_dir: Some(tmp.path().to_string_lossy().to_string()),
+            version_manager: None,
+            compile_flags: vec![
+                String::from("--with-openssl-dir=/opt/homebrew/opt/openssl@3"),
+                String::from("--with-libyaml-dir=/opt/homebrew/opt/libyaml"),
+            ],
+        };
+        let steps = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+        assert_eq!(1, steps.len());
+        let display = steps[0].atom.to_string();
+        let sep_pos = display
+            .find(" -- ")
+            .unwrap_or_else(|| panic!("expected ' -- ' separator in: {display}"));
+        let openssl_pos = display
+            .find("--with-openssl-dir")
+            .unwrap_or_else(|| panic!("expected openssl flag in: {display}"));
+        let libyaml_pos = display
+            .find("--with-libyaml-dir")
+            .unwrap_or_else(|| panic!("expected libyaml flag in: {display}"));
+        assert!(
+            sep_pos < openssl_pos,
+            "separator before first flag: {display}"
+        );
+        assert!(
+            sep_pos < libyaml_pos,
+            "separator before second flag: {display}"
+        );
+    }
+
+    #[test]
+    fn plan_omits_separator_when_compile_flags_empty() {
+        let tmp = tempfile::tempdir().unwrap();
+        let action = RubyInstall {
+            version: String::from("3.3.0"),
+            implementation: None,
+            rubies_dir: Some(tmp.path().to_string_lossy().to_string()),
+            version_manager: None,
+            compile_flags: vec![],
+        };
+        let steps = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+        assert_eq!(1, steps.len());
+        let display = steps[0].atom.to_string();
+        assert!(
+            !display.contains(" -- "),
+            "expected no -- separator when compile_flags empty: {display}"
+        );
+    }
+
+    #[test]
+    fn plan_with_compile_flags_and_rbenv_emits_three_steps_flags_in_first() {
+        let tmp = tempfile::tempdir().unwrap();
+        let action = RubyInstall {
+            version: String::from("3.3.0"),
+            implementation: None,
+            rubies_dir: Some(tmp.path().to_string_lossy().to_string()),
+            version_manager: Some(VersionManager::Rbenv),
+            compile_flags: vec![String::from(
+                "--with-openssl-dir=/opt/homebrew/opt/openssl@3",
+            )],
+        };
+        let steps = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+        assert_eq!(
+            3,
+            steps.len(),
+            "expected 3 steps with rbenv + compile_flags"
+        );
+        let step1 = steps[0].atom.to_string();
+        assert!(
+            step1.contains(" -- "),
+            "expected -- separator in step1: {step1}"
+        );
+        assert!(
+            step1.contains("--with-openssl-dir"),
+            "expected flag in step1: {step1}"
+        );
+        let step2 = steps[1].atom.to_string();
+        assert!(
+            !step2.contains("openssl"),
+            "step2 (rbenv global) should not contain compile flags: {step2}"
         );
     }
 }
