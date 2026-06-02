@@ -69,6 +69,7 @@ Master status index for all specs and implementation plans in this directory.
 | 2026-06-01 | pyenv.virtualenv action                                                                  | —                                                                                                                         | Done    |
 | 2026-06-01 | [ruby-install-version-manager](plans/2026-06-01-ruby-install-version-manager.md)         | [ruby-install-version-manager](specs/2026-06-01-ruby-install-version-manager-design.md)                                   | Done    |
 | 2026-06-01 | [ruby-install-compile-flags](plans/2026-06-01-ruby-install-compile-flags.md)             | [ruby-install-compile-flags](specs/2026-06-01-ruby-install-compile-flags-design.md)                                       | Done    |
+| 2026-06-02 | [etch-status-coverage](plans/2026-06-02-etch-status-coverage.md)                         | [etch-status-coverage](specs/2026-06-02-etch-status-coverage-design.md)                                                   | Done    |
 
 ---
 
