@@ -1,5 +1,14 @@
+---
+# package.install — install OS packages via Homebrew, apt, or snap
+#
+# Idempotent: skips packages that are already installed.
+# Use name for a single package or list for multiple (mutually exclusive).
+# Use where: to gate platform-specific actions.
+
 actions:
-  # Install a single package via Homebrew (macOS default provider).
+  # --- Homebrew (macOS / Linux) ------------------------------------------
+
+  # Install a single formula.
   - action: package.install
     name: ripgrep
     provider: homebrew
@@ -29,7 +38,9 @@ actions:
     provider: homebrew
     cask: true
 
-  # Install via apt (Linux/Debian/Ubuntu).
+  # --- apt (Linux/Debian/Ubuntu) -----------------------------------------
+
+  # Install a single package via apt.
   - action: package.install
     name: ripgrep
     provider: apt
@@ -45,13 +56,32 @@ actions:
     provider: apt
     where: 'os.family == "linux"'
 
-  # Install via snap (Linux).
+  # Pass extra flags to apt-get install (e.g. install a specific version).
+  - action: package.install
+    name: nodejs
+    provider: apt
+    extra_args:
+      - nodejs=18.*
+    where: 'os.family == "linux"'
+
+  # Install from a local .deb file (file: true treats name as a file path).
+  - action: package.install
+    name: /tmp/mypackage.deb
+    provider: apt
+    file: true
+    where: 'os.family == "linux"'
+
+  # --- snap (Linux) -------------------------------------------------------
+
+  # Install via snap. Gate on has_snap variable (set in etch.yaml on Linux).
   - action: package.install
     name: code
     provider: snap
     where: 'variables.has_snap'
 
-  # OS-variant pattern: different provider per OS, same logical package.
+  # --- OS-variant pattern ------------------------------------------------
+
+  # Install the same logical package with the correct provider per OS.
   # The variants block overrides fields for a specific OS type.
   - action: package.install
     name: ripgrep

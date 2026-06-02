@@ -108,38 +108,7 @@ Available context namespaces inside templates:
 
 Tera supports `{% if %}`, `{% for %}`, filters (`| default(value="x")`), and the custom `read_file_contents(path=...)` function. See `examples/file/files/some-file.j2` for a full reference.
 
-### Package upgrades
-
-`package.upgrade` checks for available upgrades at plan time and only generates steps when packages actually need upgrading — it is safe to include in a regular `etch apply` run:
-
-```yaml
-actions:
-    # Upgrade all upgradable apt packages (runs apt-get update + apt-get upgrade)
-    - action: package.upgrade
-      provider: apt
-      where: 'os.family == "linux"'
-
-    # Upgrade a single apt package (uses apt-get install --only-upgrade)
-    - action: package.upgrade
-      provider: apt
-      name: git
-      where: 'os.family == "linux"'
-
-    # Refresh all installed snaps (snap escalates privileges internally)
-    - action: package.upgrade
-      provider: snap
-      where: 'os.family == "linux"'
-
-    # Refresh a specific snap
-    - action: package.upgrade
-      provider: snap
-      name: code
-      where: 'os.family == "linux"'
-```
-
-For Homebrew upgrades use `brew.upgrade` instead — `provider: homebrew` is rejected at plan time with a redirect message.
-
-See `CLAUDE.md` for the full action catalog with all fields documented.
+See `CLAUDE.md` for the full action catalog with all fields documented. Complete working examples are in [`examples/package/`](examples/package/).
 
 ## Action catalog
 

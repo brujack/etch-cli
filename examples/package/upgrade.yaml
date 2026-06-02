@@ -1,31 +1,77 @@
 ---
-# package.upgrade — upgrade packages via apt or snap
+# package.upgrade — upgrade installed packages via apt or snap
 #
-# Homebrew upgrades use brew.upgrade instead.
+# Checks for available upgrades at plan time (apt list --upgradable /
+# snap refresh --list) and generates steps only when upgrades exist.
+# Safe to include in a regular `etch apply` run — no-ops when everything
+# is already up to date.
+#
+# For Homebrew upgrades use brew.upgrade instead; provider: homebrew
+# is rejected at plan time with a redirect message.
+#
 # name and list are mutually exclusive.
+# All apt and snap steps require Linux; use where: to gate them.
 
 actions:
-  # Upgrade all upgradable apt packages
+  # --- apt ---------------------------------------------------------------
+
+  # Upgrade all upgradable apt packages.
+  # Generates: apt-get update + apt-get upgrade -y
   - action: package.upgrade
     provider: apt
+    where: 'os.family == "linux"'
 
-  # Upgrade a single apt package (only if already installed)
+  # Upgrade a single apt package (skips if not in the upgradable list).
+  # Generates: apt-get update + apt-get install --only-upgrade -y git
   - action: package.upgrade
     provider: apt
     name: git
+    where: 'os.family == "linux"'
 
-  # Upgrade specific apt packages
+  # Upgrade a specific set of apt packages.
+  # Only packages that appear in `apt list --upgradable` are upgraded;
+  # packages already at the latest version are silently skipped.
+  # Generates: apt-get update + apt-get install --only-upgrade -y git curl vim
   - action: package.upgrade
     provider: apt
-    list: [git, curl, vim]
+    list:
+      - git
+      - curl
+      - vim
+    where: 'os.family == "linux"'
 
-  # Refresh all installed snaps
+  # apt-get and aptitude are accepted aliases for apt.
+  - action: package.upgrade
+    provider: apt-get
+    name: openssl
+    where: 'os.family == "linux"'
+
+  # --- snap --------------------------------------------------------------
+
+  # Refresh all installed snaps.
+  # Generates: snap refresh
+  # snap escalates privileges internally — no privileged: field needed.
   - action: package.upgrade
     provider: snap
     where: 'os.family == "linux"'
 
-  # Refresh a specific snap
+  # Refresh a specific snap (skips if not in snap refresh --list output).
+  # Generates: snap refresh code
   - action: package.upgrade
     provider: snap
     name: code
     where: 'os.family == "linux"'
+
+  # snapcraft is an accepted alias for snap.
+  - action: package.upgrade
+    provider: snapcraft
+    name: htop
+    where: 'os.family == "linux"'
+
+  # --- capability-gated pattern ------------------------------------------
+
+  # Gate on a variable so snap upgrades only run on machines that have snap.
+  # Set has_snap: "true" in ~/.config/etch/etch.yaml on Linux machines.
+  - action: package.upgrade
+    provider: snap
+    where: 'variables.has_snap'
