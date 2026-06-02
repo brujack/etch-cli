@@ -9,9 +9,12 @@ pub(crate) fn plan_from_output(
 ) -> anyhow::Result<Vec<Step>> {
     // Parse snap names from `snap refresh --list` output.
     // Header line starts with "Name"; data lines: "name version rev tracking publisher notes"
+    // When nothing needs updating, snap outputs "All snaps up to date." to stdout —
+    // all data lines contain '/' (tracking channel: latest/stable, etc.); that message
+    // and the header do not, so filtering on '/' cleanly distinguishes them.
     let snap_names: Vec<&str> = output
         .lines()
-        .filter(|l| !l.trim().is_empty() && !l.trim_start().starts_with("Name"))
+        .filter(|l| l.contains('/'))
         .filter_map(|l| l.split_whitespace().next())
         .collect();
 
@@ -99,6 +102,16 @@ htop     3.3.0    55   latest/stable  hisham✓     -
         assert!(
             !display.contains("code") && !display.contains("htop"),
             "refresh-all should not name a snap: {display}"
+        );
+    }
+
+    #[test]
+    fn all_snaps_up_to_date_message_returns_no_steps() {
+        let steps =
+            plan_from_output("All snaps up to date.\n", None, &Contexts::default()).unwrap();
+        assert!(
+            steps.is_empty(),
+            "expected no steps for 'all up to date' message"
         );
     }
 
