@@ -67,6 +67,11 @@ impl Action for RubyInstall {
             arguments.push(expanded);
         }
 
+        if !self.compile_flags.is_empty() {
+            arguments.push(String::from("--"));
+            arguments.extend(self.compile_flags.clone());
+        }
+
         let mut steps = vec![Step {
             atom: Box::new(Exec {
                 command: String::from("ruby-install"),
@@ -425,6 +430,128 @@ mod tests {
         assert!(
             steps.is_empty(),
             "expected no steps when ruby already installed, even with rbenv set"
+        );
+    }
+
+    #[test]
+    fn it_can_be_deserialized_with_compile_flags() {
+        let yaml = r#"
+- action: ruby.install
+  version: "3.3.0"
+  compile_flags:
+    - "--with-openssl-dir=/opt/homebrew/opt/openssl@3"
+"#;
+        let mut actions: Vec<Actions> = serde_yaml_ng::from_str(yaml).unwrap();
+        match actions.pop() {
+            Some(Actions::RubyInstall(action)) => {
+                assert_eq!(
+                    vec!["--with-openssl-dir=/opt/homebrew/opt/openssl@3"],
+                    action.action.compile_flags
+                );
+            }
+            _ => panic!("RubyInstall didn't deserialize to the correct type"),
+        }
+    }
+
+    #[test]
+    fn compile_flags_defaults_to_empty_when_absent() {
+        let yaml = r#"
+- action: ruby.install
+  version: "3.3.0"
+"#;
+        let mut actions: Vec<Actions> = serde_yaml_ng::from_str(yaml).unwrap();
+        match actions.pop() {
+            Some(Actions::RubyInstall(action)) => {
+                assert!(
+                    action.action.compile_flags.is_empty(),
+                    "expected empty compile_flags when field absent"
+                );
+            }
+            _ => panic!("RubyInstall didn't deserialize to the correct type"),
+        }
+    }
+
+    #[test]
+    fn plan_includes_compile_flags_after_separator() {
+        let tmp = tempfile::tempdir().unwrap();
+        let action = RubyInstall {
+            version: String::from("3.3.0"),
+            implementation: None,
+            rubies_dir: Some(tmp.path().to_string_lossy().to_string()),
+            version_manager: None,
+            compile_flags: vec![String::from(
+                "--with-openssl-dir=/opt/homebrew/opt/openssl@3",
+            )],
+        };
+        let steps = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+        assert_eq!(1, steps.len());
+        let display = steps[0].atom.to_string();
+        assert!(
+            display.contains(" -- "),
+            "expected -- separator in: {display}"
+        );
+        assert!(
+            display.contains("--with-openssl-dir"),
+            "expected flag in: {display}"
+        );
+    }
+
+    #[test]
+    fn plan_omits_separator_when_compile_flags_empty() {
+        let tmp = tempfile::tempdir().unwrap();
+        let action = RubyInstall {
+            version: String::from("3.3.0"),
+            implementation: None,
+            rubies_dir: Some(tmp.path().to_string_lossy().to_string()),
+            version_manager: None,
+            compile_flags: vec![],
+        };
+        let steps = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+        assert_eq!(1, steps.len());
+        let display = steps[0].atom.to_string();
+        assert!(
+            !display.contains(" -- "),
+            "expected no -- separator when compile_flags empty: {display}"
+        );
+    }
+
+    #[test]
+    fn plan_with_compile_flags_and_rbenv_emits_three_steps_flags_in_first() {
+        let tmp = tempfile::tempdir().unwrap();
+        let action = RubyInstall {
+            version: String::from("3.3.0"),
+            implementation: None,
+            rubies_dir: Some(tmp.path().to_string_lossy().to_string()),
+            version_manager: Some(VersionManager::Rbenv),
+            compile_flags: vec![String::from(
+                "--with-openssl-dir=/opt/homebrew/opt/openssl@3",
+            )],
+        };
+        let steps = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+        assert_eq!(
+            3,
+            steps.len(),
+            "expected 3 steps with rbenv + compile_flags"
+        );
+        let step1 = steps[0].atom.to_string();
+        assert!(
+            step1.contains(" -- "),
+            "expected -- separator in step1: {step1}"
+        );
+        assert!(
+            step1.contains("--with-openssl-dir"),
+            "expected flag in step1: {step1}"
+        );
+        let step2 = steps[1].atom.to_string();
+        assert!(
+            !step2.contains("openssl"),
+            "step2 (rbenv global) should not contain compile flags: {step2}"
         );
     }
 }
