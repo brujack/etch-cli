@@ -501,6 +501,38 @@ mod tests {
     }
 
     #[test]
+    fn plan_includes_compile_flags_with_default_rubies_dir() {
+        // compile_flags with rubies_dir: None — flags follow directly after version,
+        // no --rubies-dir arg, still correct ruby-install CLI syntax
+        let action = RubyInstall {
+            version: String::from("99.99.99"),
+            implementation: None,
+            rubies_dir: None,
+            version_manager: None,
+            compile_flags: vec![String::from(
+                "--with-openssl-dir=/opt/homebrew/opt/openssl@3",
+            )],
+        };
+        let steps = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+        // ~/.rubies/ruby-99.99.99 won't exist so we get a step
+        assert_eq!(1, steps.len());
+        let display = steps[0].atom.to_string();
+        let sep_pos = display
+            .find(" -- ")
+            .unwrap_or_else(|| panic!("expected ' -- ' separator in: {display}"));
+        let flag_pos = display
+            .find("--with-openssl-dir")
+            .unwrap_or_else(|| panic!("expected flag in: {display}"));
+        assert!(sep_pos < flag_pos, "separator must precede flag: {display}");
+        assert!(
+            !display.contains("--rubies-dir"),
+            "should not have --rubies-dir when rubies_dir is None: {display}"
+        );
+    }
+
+    #[test]
     fn plan_includes_multiple_compile_flags_all_after_separator() {
         let tmp = tempfile::tempdir().unwrap();
         let action = RubyInstall {
