@@ -141,6 +141,8 @@ Every new action requires changes in exactly these places:
 
 Missing any step produces a compile error (missing match arm) or test failure (incorrect variant count). The `semver-check` CI job will always produce an advisory failure (`enum_variant_added`) — this is expected and non-blocking.
 
+**Editing match arms: use `replace_all: true` for identical `=> a` patterns.** The `inner_ref`, `notify`, and `Deref` match blocks all contain arms like `Actions::MacOSDefault(a) => a,` — identical structure across blocks. When adding a new arm to each block, the Edit tool will refuse with "Found 2 matches" if you target a common pattern. Fix: use `replace_all: true` when both identical blocks need the same addition, or use enough unique surrounding context (the action above/below the insertion point) to disambiguate.
+
 ## Homebrew macOS Workflow
 
 All four Homebrew install mechanisms are supported. **Recommended approach for dotfiles migration: use `brew.bundle` with the existing Brewfile** — it handles taps, formulae, casks, and MAS apps in one action.
