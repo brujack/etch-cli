@@ -14,3 +14,4 @@ Repo-specific decisions for etch-cli. Cross-cutting decisions that apply across 
 | [0008](0008-etch-update-subcommand.md)                   | etch update subcommand                                    | 2026-05-24 | Accepted |
 | [0009](0009-release-strategy-git-cliff-cosign-sha256.md) | Release strategy — git-cliff changelog, cosign v4, SHA256 | 2026-05-23 | Accepted |
 | [0010](0010-mutation-testing-cargo-mutants.md)           | Mutation testing with cargo-mutants                       | 2026-05-24 | Accepted |
+| [0011](0011-version-pinning-error-on-mismatch.md)        | package.install version pinning uses error-on-mismatch    | 2026-06-02 | Accepted |
