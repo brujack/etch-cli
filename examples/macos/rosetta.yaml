@@ -5,6 +5,7 @@
 # already exists. Runs softwareupdate --install-rosetta --agree-to-license.
 #
 # Gate with where: so this only runs on macOS (no-op on Linux).
+# To restrict to Apple Silicon only: where: 'os.name == "macos" and os.arch == "aarch64"'
 
 actions:
   - action: macos.rosetta

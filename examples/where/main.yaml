@@ -1,9 +1,13 @@
 # where: a Rhai expression that gates the entire manifest. If it evaluates to
 # false the manifest is skipped entirely. Common patterns:
-#   os.name == "macos"         — macOS only
-#   os.family == "linux"       — any Linux
-#   variables.has_devtools     — custom variable defined in etch.yaml
-#   os.name == "macos" && variables.has_gui  — compound condition
+#   os.name == "macos"                          — macOS only
+#   os.family == "linux"                        — any Linux
+#   os.arch == "aarch64"                        — ARM64 (Apple Silicon, Linux aarch64)
+#   os.arch == "x86_64"                         — Intel/AMD 64-bit
+#   os.name == "macos" && os.arch == "aarch64"  — Apple Silicon only
+#   os.family == "linux" && os.arch == "aarch64" — Linux on ARM64
+#   variables.has_devtools                       — custom variable defined in etch.yaml
+#   os.name == "macos" && variables.has_gui      — compound condition
 where: 'os.name == "macos"'
 
 actions:
