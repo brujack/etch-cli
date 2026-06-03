@@ -24,7 +24,7 @@ etch-cli/
 │   └── tests/                # Integration tests (assert_cmd)
 │       ├── integration.rs    # 16 e2e tests: file.link, file.copy, command.run, directory.create, file.flags
 │       ├── snapshots.rs      # 5 snapshot tests locking etch -h, etch apply --help, etch version, --dry-run output
-│       ├── cli_commands.rs   # 7 tests: version, gen-completions, contexts, plugin
+│       ├── cli_commands.rs   # 11 tests: version, gen-completions, contexts, plugin, help-all
 │       ├── status.rs         # 7 tests: etch status exit codes, --json, --missing-only, stdout structure
 │       ├── error_paths.rs    # error path integration tests
 │       └── basic_usage.rs
@@ -291,7 +291,7 @@ The test suite covers unit tests in `lib/src/` and integration tests in `app/tes
 
 `app/tests/snapshots.rs` — 5 snapshot tests using `insta` that lock the exact stdout format of `etch -h`, `etch apply --help`, `etch version`, `etch apply --dry-run`, and `etch apply -v --dry-run`. Version strings and tmpdir paths are scrubbed with filters. Any accidental format change fails CI. To update snapshots intentionally: run `INSTA_UPDATE=new cargo test --test snapshots`, then `cargo insta accept`, commit updated `.snap` files.
 
-`app/tests/cli_commands.rs` — 7 tests exercising CLI commands end-to-end: `version`, `gen-completions` (bash/zsh/fish), `contexts` (exits + contains "os"), and `plugin` (fails without subcommand). Uses `assert_cmd`.
+`app/tests/cli_commands.rs` — 11 tests exercising CLI commands end-to-end: `version`, `gen-completions` (bash/zsh/fish), `contexts` (exits + contains "os"), `plugin` (fails without subcommand), and `help-all` (exits 0, contains apply flags, no recursion). Uses `assert_cmd`.
 
 `app/tests/plugin.rs` — 4 integration tests for `etch plugin`: list fails on empty dir, remove nonexistent exits success, remove installed deletes dir, path traversal in name is rejected. Uses `TempDir` + `env("HOME", ...)` to isolate the plugin data directory.
 
