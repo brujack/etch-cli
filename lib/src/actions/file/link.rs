@@ -668,6 +668,40 @@ mod tests {
     }
 
     #[test]
+    fn glob_with_privileged_produces_exec_steps() {
+        let tmp = tempfile::tempdir().unwrap();
+        let real_tmp = tmp.path().canonicalize().unwrap();
+        let files_dir = real_tmp.join("files").join("conf");
+        std::fs::create_dir_all(&files_dir).unwrap();
+        std::fs::write(files_dir.join("a.conf"), b"a").unwrap();
+        std::fs::write(files_dir.join("b.conf"), b"b").unwrap();
+
+        let manifest = crate::manifests::Manifest {
+            root_dir: Some(real_tmp.clone()),
+            ..Default::default()
+        };
+        let contexts = build_contexts(&Config::default());
+        let dest = real_tmp.join("etc");
+        let action = FileLink {
+            glob: Some("conf/*.conf".to_string()),
+            target: Some(dest.display().to_string()),
+            config: crate::actions::file::FileActionConfig { privileged: true },
+            ..Default::default()
+        };
+        let steps = action.plan(&manifest, &contexts).unwrap();
+        // 2 files × 2 steps each (mkdir + ln) = 4 steps
+        assert_eq!(4, steps.len());
+        // All steps are Exec atoms (privileged path)
+        for step in &steps {
+            let s = step.atom.to_string();
+            assert!(
+                s.contains("mkdir") || s.contains("ln"),
+                "expected exec atom, got: {s}"
+            );
+        }
+    }
+
+    #[test]
     fn glob_deserialization() {
         let yaml = r#"
 - action: file.link

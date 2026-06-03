@@ -1124,4 +1124,40 @@ actions:
         let m: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
         assert_eq!(m.actions[0].notify(), &["restart-dock"]);
     }
+
+    #[test]
+    fn all_remaining_action_variants_notify_returns_slice() {
+        // Covers notify() arms for variants not exercised elsewhere:
+        // BinaryUrl, MacOSRosetta, MacOSService, SystemdService,
+        // PackageUpgrade, RubyInstall, Plugin
+        let yaml = r#"
+actions:
+  - action: binary.url
+    name: tool
+    directory: /usr/local/bin
+    url: https://example.com/tool.tar.gz
+  - action: macos.rosetta
+  - action: macos.service
+    plist: /Library/LaunchAgents/com.example.plist
+    state: loaded
+  - action: systemd.service
+    unit: sshd.service
+    enabled: true
+  - action: package.upgrade
+    provider: apt
+  - action: ruby.install
+    version: "3.2.0"
+  - action: plugin
+    dir: /tmp/fake
+    actions:
+      myaction:
+        key: val
+"#;
+        let m: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
+        assert_eq!(7, m.actions.len());
+        for action in &m.actions {
+            // Each notify() call exercises a match arm; all should return empty slice
+            assert!(action.notify().is_empty());
+        }
+    }
 }

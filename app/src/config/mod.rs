@@ -272,4 +272,41 @@ mod tests {
         let result = lib_config(&args);
         assert!(result.is_ok());
     }
+
+    #[test]
+    fn lib_config_malformed_yaml_returns_err() {
+        let dir = tempfile::tempdir().unwrap();
+        let config_path = dir.path().join("etch.yaml");
+        std::fs::write(&config_path, "manifest_paths: [unclosed bracket").unwrap();
+
+        let args = GlobalArgs {
+            config_path: Some(config_path.to_string_lossy().to_string()),
+            ..Default::default()
+        };
+
+        let result = lib_config(&args);
+        assert!(result.is_err(), "expected Err for malformed YAML");
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("couldn't deserialize"),
+            "expected deserialization error message"
+        );
+    }
+
+    #[test]
+    fn lib_config_empty_yaml_returns_default_config() {
+        let dir = tempfile::tempdir().unwrap();
+        let config_path = dir.path().join("etch.yaml");
+        std::fs::write(&config_path, "").unwrap();
+
+        let args = GlobalArgs {
+            config_path: Some(config_path.to_string_lossy().to_string()),
+            ..Default::default()
+        };
+
+        let result = lib_config(&args);
+        assert!(result.is_ok(), "empty YAML should produce a default config");
+    }
 }

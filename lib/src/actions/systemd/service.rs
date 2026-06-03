@@ -150,4 +150,81 @@ started: false
             "expected helpful error message, got: {msg}"
         );
     }
+
+    #[test]
+    fn summarize_enabled_true() {
+        let action = SystemdService {
+            unit: "sshd.service".to_string(),
+            enabled: Some(true),
+            started: None,
+            privileged: false,
+        };
+        let s = action.summarize();
+        assert!(s.contains("enable"), "got: {s}");
+        assert!(s.contains("sshd.service"), "got: {s}");
+    }
+
+    #[test]
+    fn summarize_enabled_false() {
+        let action = SystemdService {
+            unit: "bluetooth.service".to_string(),
+            enabled: Some(false),
+            started: None,
+            privileged: false,
+        };
+        let s = action.summarize();
+        assert!(s.contains("disable"), "got: {s}");
+    }
+
+    #[test]
+    fn summarize_started_true() {
+        let action = SystemdService {
+            unit: "cups.service".to_string(),
+            enabled: None,
+            started: Some(true),
+            privileged: false,
+        };
+        let s = action.summarize();
+        assert!(s.contains("start"), "got: {s}");
+        assert!(s.contains("cups.service"), "got: {s}");
+    }
+
+    #[test]
+    fn summarize_started_false() {
+        let action = SystemdService {
+            unit: "cups.service".to_string(),
+            enabled: None,
+            started: Some(false),
+            privileged: false,
+        };
+        let s = action.summarize();
+        assert!(s.contains("stop"), "got: {s}");
+    }
+
+    #[test]
+    fn summarize_both_enabled_and_started() {
+        let action = SystemdService {
+            unit: "sshd.service".to_string(),
+            enabled: Some(true),
+            started: Some(true),
+            privileged: false,
+        };
+        let s = action.summarize();
+        assert!(s.contains("enable"), "got: {s}");
+        assert!(s.contains("start"), "got: {s}");
+        assert!(s.contains('+'), "expected '+' separator, got: {s}");
+    }
+
+    #[test]
+    fn summarize_neither_enabled_nor_started() {
+        let action = SystemdService {
+            unit: "sshd.service".to_string(),
+            enabled: None,
+            started: None,
+            privileged: false,
+        };
+        let s = action.summarize();
+        assert!(s.contains("systemd service"), "got: {s}");
+        assert!(s.contains("sshd.service"), "got: {s}");
+    }
 }
