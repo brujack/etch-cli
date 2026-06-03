@@ -11,4 +11,5 @@ Options:
       --dry-run                Performs a dry-run without changing the system
   -l, --label <LABEL>          Define label selector
       --json                   Output results as JSON
+  -v, --verbose                Show all actions including those with nothing to do
   -h, --help                   Print help

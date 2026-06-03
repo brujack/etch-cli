@@ -62,6 +62,15 @@ fn array_add_shell_cmd(domain: &str, key: &str, kind: &str, value: &str) -> Stri
 }
 
 impl Action for MacOSDefault {
+    fn summarize(&self) -> String {
+        format!(
+            "macos.default {} {} = {:?}",
+            self.domain,
+            self.key,
+            self.value.as_deref().unwrap_or("<delete>")
+        )
+    }
+
     fn plan(&self, _: &Manifest, _: &Contexts) -> anyhow::Result<Vec<Step>> {
         match self.operation {
             MacOSDefaultOperation::Write => {
@@ -453,5 +462,32 @@ mod tests {
             "defaults read 'com.example.app' 'key' 2>/dev/null | grep -qF 'it'\\''s a value' || defaults write 'com.example.app' 'key' -array-add -string 'it'\\''s a value'",
             cmd
         );
+    }
+
+    #[test]
+    fn summarize_includes_domain_key_and_value() {
+        let action = MacOSDefault {
+            domain: "com.apple.dock".into(),
+            key: "autohide".into(),
+            value: Some("true".into()),
+            ..Default::default()
+        };
+        let s = action.summarize();
+        assert!(s.contains("com.apple.dock"), "missing domain: {s}");
+        assert!(s.contains("autohide"), "missing key: {s}");
+        assert!(s.contains("true"), "missing value: {s}");
+    }
+
+    #[test]
+    fn summarize_delete_operation_shows_placeholder() {
+        let action = MacOSDefault {
+            domain: "com.apple.dock".into(),
+            key: "autohide".into(),
+            value: None,
+            operation: MacOSDefaultOperation::Delete,
+            ..Default::default()
+        };
+        let s = action.summarize();
+        assert!(s.contains("<delete>"), "missing delete placeholder: {s}");
     }
 }
