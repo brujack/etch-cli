@@ -29,6 +29,10 @@ pub(crate) struct Apply {
     /// Output results as JSON
     #[arg(long)]
     pub json: bool,
+
+    /// Show all actions including those with nothing to do
+    #[arg(short = 'v', long)]
+    verbose: bool,
 }
 
 impl Apply {
@@ -259,7 +263,11 @@ impl EtchCommand for Apply {
                         .peekable();
 
                     if steps.peek().is_none() {
-                        info!("{}: nothing to be done", action.summarize());
+                        if self.verbose || dry_run {
+                            info!("{}: nothing to be done", action.summarize());
+                        } else {
+                            debug!("{}: nothing to be done", action.summarize());
+                        }
                         span_action.exit();
                         continue;
                     }
