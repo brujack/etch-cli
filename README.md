@@ -39,6 +39,9 @@ etch -d ./manifests apply
 
 # Dry run — show what would change without applying
 etch apply --dry-run
+
+# Show all actions, including those with nothing to do
+etch apply --verbose
 ```
 
 ## Manifest format

@@ -64,7 +64,7 @@ fn array_add_shell_cmd(domain: &str, key: &str, kind: &str, value: &str) -> Stri
 impl Action for MacOSDefault {
     fn summarize(&self) -> String {
         format!(
-            "macos.default {} {} = {:?}",
+            "macos.default {} {} = {}",
             self.domain,
             self.key,
             self.value.as_deref().unwrap_or("<delete>")
