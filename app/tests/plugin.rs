@@ -36,6 +36,17 @@ fn plugin_remove_nonexistent_exits_success() {
 }
 
 #[test]
+fn plugin_remove_dotdot_traversal_rejected() {
+    let home = TempDir::new().unwrap();
+    etch()
+        .env("HOME", home.path())
+        .args(["plugin", "remove", "../../etc"])
+        .assert()
+        .failure()
+        .stderr(contains("invalid plugin name"));
+}
+
+#[test]
 fn plugin_remove_installed_deletes_directory() {
     let home = TempDir::new().unwrap();
     let plugin_dir = fake_plugin_path(home.path()).join("my-plugin");
