@@ -3,6 +3,9 @@ pub(crate) use apply::Apply;
 
 pub(crate) mod status;
 
+mod help_all;
+pub(crate) use help_all::HelpAll;
+
 mod version;
 pub(crate) use version::Version;
 

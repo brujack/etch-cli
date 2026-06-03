@@ -58,3 +58,35 @@ fn contexts_output_contains_os_keys() {
 fn plugin_without_subcommand_prints_help() {
     etch().arg("plugin").assert().failure();
 }
+
+#[test]
+fn help_all_exits_successfully() {
+    etch().arg("help-all").assert().success();
+}
+
+#[test]
+fn help_all_contains_apply_flags() {
+    etch()
+        .arg("help-all")
+        .assert()
+        .success()
+        .stdout(predicates::str::contains("--dry-run"))
+        .stdout(predicates::str::contains("--verbose"));
+}
+
+#[test]
+fn help_all_contains_update_subcommand_flags() {
+    etch()
+        .arg("help-all")
+        .assert()
+        .success()
+        .stdout(predicates::str::contains("Update installed tools"));
+}
+
+#[test]
+fn help_all_does_not_recurse() {
+    let out = etch().arg("help-all").output().unwrap().stdout;
+    let text = String::from_utf8_lossy(&out);
+    // "help-all" appears at most once in the output (its own section header)
+    assert!(text.matches("help-all").count() <= 1);
+}

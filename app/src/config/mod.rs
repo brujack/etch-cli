@@ -64,6 +64,10 @@ pub enum Commands {
 
     /// Manage etch plugins
     Plugin(commands::PluginCommands),
+
+    /// Print help for all subcommands
+    #[clap(name = "help-all")]
+    HelpAll(commands::HelpAll),
 }
 
 impl Default for Commands {
