@@ -158,6 +158,23 @@ mod tests {
         assert_eq!(atom.get_path(), &path);
     }
 
+    #[test]
+    fn execute_on_deleted_file_returns_err() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("target.txt");
+        std::fs::write(&path, "content").unwrap();
+
+        let mut atom = Remove {
+            target: path.clone(),
+        };
+        // plan() sees the file and says should_run = true
+        assert!(atom.plan().unwrap().should_run);
+        // delete the file before execute()
+        std::fs::remove_file(&path).unwrap();
+        // execute() now fails because the file is gone
+        assert!(atom.execute().is_err());
+    }
+
     #[cfg(unix)]
     #[test]
     fn plan_returns_false_when_parent_dir_is_readonly() {

@@ -256,4 +256,15 @@ mod tests {
         };
         assert_eq!(atom.get_path(), &path);
     }
+
+    #[test]
+    fn execute_on_nonexistent_path_returns_err() {
+        // plan() returns should_run=true for nonexistent files (assume another atom provides it)
+        // but execute() fails because the path doesn't exist
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("nonexistent.txt");
+        let mut atom = Chmod { path, mode: 0o644 };
+        assert!(atom.plan().unwrap().should_run);
+        assert!(atom.execute().is_err());
+    }
 }

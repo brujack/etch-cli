@@ -581,6 +581,74 @@ mod tests {
     }
 
     #[test]
+    fn plan_privileged_with_passphrase_uses_decrypt_step() {
+        use super::FileCopy;
+        use crate::actions::file::FileActionConfig;
+        use crate::actions::Action;
+
+        let tmp = tempfile::tempdir().unwrap();
+        let real_tmp = tmp.path().canonicalize().unwrap();
+        let files_dir = real_tmp.join("files");
+        std::fs::create_dir_all(&files_dir).unwrap();
+        std::fs::write(files_dir.join("secret.enc"), b"encrypted content").unwrap();
+
+        let manifest = crate::manifests::Manifest {
+            root_dir: Some(real_tmp.clone()),
+            ..Default::default()
+        };
+
+        let action = FileCopy {
+            from: "secret.enc".to_string(),
+            to: real_tmp.join("out.txt").display().to_string(),
+            passphrase: Some("hunter2".to_string()),
+            config: FileActionConfig { privileged: true },
+            ..Default::default()
+        };
+        let steps = action
+            .plan(&manifest, &crate::contexts::Contexts::default())
+            .unwrap();
+        // Decrypt(tempfile) + mkdir + cp + chmod + rm = 5 steps
+        assert_eq!(5, steps.len());
+        // First step is a Decrypt atom (tempfile has "etch-" in path)
+        assert!(steps[0].atom.to_string().contains("etch-"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn plan_privileged_with_owner_adds_chown_step() {
+        use super::FileCopy;
+        use crate::actions::file::FileActionConfig;
+        use crate::actions::Action;
+
+        let tmp = tempfile::tempdir().unwrap();
+        let real_tmp = tmp.path().canonicalize().unwrap();
+        let files_dir = real_tmp.join("files");
+        std::fs::create_dir_all(&files_dir).unwrap();
+        std::fs::write(files_dir.join("source.txt"), b"content").unwrap();
+
+        let manifest = crate::manifests::Manifest {
+            root_dir: Some(real_tmp.clone()),
+            ..Default::default()
+        };
+
+        let action = FileCopy {
+            from: "source.txt".to_string(),
+            to: real_tmp.join("dest.txt").display().to_string(),
+            owner_user: Some("root".to_string()),
+            owner_group: Some("root".to_string()),
+            config: FileActionConfig { privileged: true },
+            ..Default::default()
+        };
+        let steps = action
+            .plan(&manifest, &crate::contexts::Contexts::default())
+            .unwrap();
+        // SetContents(tempfile) + mkdir + cp + chmod + chown + rm = 6 steps
+        assert_eq!(6, steps.len());
+        // chown step contains "chown"
+        assert!(steps[4].atom.to_string().contains("chown"));
+    }
+
+    #[test]
     fn plan_errors_when_source_is_directory() {
         // fs::read() on a directory returns an OS error (not NotFound), covering
         // the _ => branch in FileAction::load()
