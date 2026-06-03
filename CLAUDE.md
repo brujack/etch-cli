@@ -297,6 +297,8 @@ The test suite covers unit tests in `lib/src/` and integration tests in `app/tes
 
 `app/tests/status.rs` — 7 integration tests for `etch status`: exit code 0 with no config, `--json` output structure, `--missing-only` flag, stdout contains expected fields. Added in PR #73 (previously 0% covered).
 
+`app/tests/verbose_apply.rs` — 4 integration tests for `etch apply --verbose`: suppression without flag, show with flag, action result shown unconditionally, dry-run implies verbose.
+
 `app/tests/error_paths.rs` — integration tests covering error propagation paths (bad manifests, missing files, etc.).
 
 Coverage ceiling is approximately 83% due to hard-to-cover code:

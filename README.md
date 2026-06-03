@@ -243,14 +243,19 @@ Plugins are stored in the platform data directory (`~/Library/Application Suppor
 
 ### Verbose output
 
-`RUST_LOG` is not used. Verbosity is a **global flag** — it must come before the subcommand:
+Two separate verbosity mechanisms exist:
 
 ```bash
-etch -v apply    # DEBUG level — shows command exit codes and captured stdout/stderr
-etch -vv apply   # TRACE level
+# Apply-level: show all actions including those with nothing to do
+etch apply --verbose        # or: etch apply -v
+etch apply --dry-run        # dry-run implies --verbose automatically
+
+# Global debug logging: show command exit codes, captured stdout/stderr
+etch -v apply               # DEBUG level
+etch -vv apply              # TRACE level
 ```
 
-**Common mistake:** `etch apply -v` fails with `error: unexpected argument '-v' found`.
+`RUST_LOG` is not used. The global flag (`-v`) must come **before** the subcommand — `etch -v apply`, not `etch apply -v` (that activates the apply-level verbose flag).
 
 ### Linux: logs go to journald
 
