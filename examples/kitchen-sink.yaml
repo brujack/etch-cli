@@ -115,6 +115,15 @@ actions:
     id: 937984704
     where: 'os.name == "macos"'
 
+  # Install multiple App Store apps in one action using list:.
+  - action: mas.install
+    where: 'os.name == "macos"'
+    list:
+      - name: "Better Rename 9"
+        id: 414209656
+      - name: "Flycut"
+        id: 442160987
+
   - action: mas.upgrade
     where: 'os.name == "macos"'
 
