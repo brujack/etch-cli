@@ -285,7 +285,7 @@ Invoke `caveman:caveman-commit` skill to generate the commit message before runn
 
 **Run tests:** `make test`
 
-The test suite covers unit tests in `lib/src/` and integration tests in `app/tests/`. Current coverage is ~82% locally (macOS) and ~78% on Linux CI (77.64% measured in PR #80) — the gap is macOS provider tests gated with `#[cfg(target_os = "macos")]` that don't run on ubuntu-latest. Practical ceiling is ~82% due to network operations, package managers, privilege escalation, and dead code that cannot be unit-tested.
+The test suite covers unit tests in `lib/src/` and integration tests in `app/tests/`. Current coverage is ~82% locally (macOS) and ~78% on Linux CI (77.67% measured in PR #82) — the gap is macOS provider tests gated with `#[cfg(target_os = "macos")]` that don't run on ubuntu-latest. Practical ceiling is ~82% due to network operations, package managers, privilege escalation, and dead code that cannot be unit-tested.
 
 `app/tests/integration.rs` — 16 end-to-end tests spawning the real `etch` binary. Covers the core `etch apply` path for `file.link`, `file.copy`, `command.run`, `directory.create` (happy path + idempotency each), and `file.flags` (macOS only: set hidden, idempotent, clear hidden). These do not contribute to tarpaulin coverage (subprocess invocation) but verify behavioral correctness.
 
