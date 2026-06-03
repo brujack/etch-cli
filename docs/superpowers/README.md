@@ -73,6 +73,7 @@ Master status index for all specs and implementation plans in this directory.
 | 2026-06-03 | os.arch context field                                                                    | —                                                                                                                         | Done    |
 | 2026-06-03 | verbose apply output (--verbose flag)                                                    | —                                                                                                                         | Done    |
 | 2026-06-03 | subcommand help discoverability (help-all)                                               | —                                                                                                                         | Done    |
+| 2026-06-03 | mas.install list: support                                                                | —                                                                                                                         | Done    |
 
 ---
 
@@ -93,7 +94,6 @@ Known defects to fix before implementing backlog features.
 | ntfy notification action                  | Matches existing notification infra                                                                                                                                                                                                                                                    |
 | package.install progress output           | `INFO Installing packages` gives no visibility into which packages are being installed or progress. Stream apt/brew output (package names + count) to the terminal during install so long runs don't appear hung.                                                                      |
 | powershell.module                         | No action for installing PowerShell modules from PSGallery. Dotfiles install 10 modules (Az, AWSPowerShell.NetCore, Microsoft.Graph, oh-my-posh, etc.) via script. Needs `powershell.module` with `name:`, `scope: CurrentUser\|AllUsers`, idempotent via `Get-Module -ListAvailable`. |
-| mas.install list: support                 | `mas.install` only accepts a single `id:`/`name:` pair. Add a `list:` field (vec of `{id, name}` structs) so multiple App Store apps can be installed in one action, matching the pattern in `pip.install`, `gem.install`, `npm.install`.                                              |
 | coverage: apply.rs error paths            | `app/src/commands/apply.rs` at 69% (58 lines). Uncovered: DAG cycle panic branch, manifest dependency resolution error, handler failure propagation. Add unit tests injecting a manifest with a circular dependency; add handler test where the handler action fails.                  |
 | coverage: actions/mod.rs condition branch | `lib/src/actions/mod.rs` — the false-condition early-return path is still uncovered. Add unit test with an `Actions` node whose `condition` evaluates to `false` — verify action is skipped. (`notify()` coverage for all variants was fixed in #80.)                                  |
 
