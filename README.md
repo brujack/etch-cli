@@ -222,6 +222,20 @@ variables:
 
 `git_tools.ai_config` and `git_tools.dotfiles` accept any non-null string (the value is unused; only presence is checked). Both require `variables.dotfiles_dir` — ai-config is assumed at `<dotfiles_dir>/../ai-config`.
 
+## etch plugin
+
+Manage etch plugins — community or local collections of custom actions.
+
+```shell
+etch plugin add username/repo          # install latest
+etch plugin add username/repo:v1.2.0   # pin to a tag
+etch plugin list                       # list installed plugins and sync status
+etch plugin remove name                # remove a plugin by name
+etch plugin update [name]              # update one or all plugins
+```
+
+Plugins are stored in the platform data directory (`~/Library/Application Support/etch/plugins` on macOS, `~/.local/share/etch/plugins` on Linux). Each plugin is a cloned git repository. Plugin names in `remove` and `update` are the bare repo name (the part after `/`).
+
 ## Debugging
 
 ### Verbose output

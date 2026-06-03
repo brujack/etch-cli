@@ -293,6 +293,8 @@ The test suite covers unit tests in `lib/src/` and integration tests in `app/tes
 
 `app/tests/cli_commands.rs` — 7 tests exercising CLI commands end-to-end: `version`, `gen-completions` (bash/zsh/fish), `contexts` (exits + contains "os"), and `plugin` (fails without subcommand). Uses `assert_cmd`.
 
+`app/tests/plugin.rs` — 4 integration tests for `etch plugin`: list fails on empty dir, remove nonexistent exits success, remove installed deletes dir, path traversal in name is rejected. Uses `TempDir` + `env("HOME", ...)` to isolate the plugin data directory.
+
 `app/tests/status.rs` — 7 integration tests for `etch status`: exit code 0 with no config, `--json` output structure, `--missing-only` flag, stdout contains expected fields. Added in PR #73 (previously 0% covered).
 
 `app/tests/error_paths.rs` — integration tests covering error propagation paths (bad manifests, missing files, etc.).
