@@ -29,6 +29,7 @@ pub(crate) fn execute(runtime: Runtime) -> anyhow::Result<()> {
         Commands::GenCompletions(gen_completions) => gen_completions.execute(&runtime),
         Commands::Update(update) => update.execute(&runtime),
         Commands::Plugin(plugin) => plugin.execute(&runtime),
+        Commands::HelpAll(h) => h.execute(&runtime),
     }
 }
 
