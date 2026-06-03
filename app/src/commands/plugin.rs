@@ -55,6 +55,11 @@ fn add_plugin(name: &str) -> Result<()> {
         .map(|(n, t)| (n, plugin_path().join(n), Some(t)))
         .unwrap_or((repo, plugin_path().join(repo), None));
 
+    anyhow::ensure!(
+        !plugin_name.contains(".."),
+        "invalid plugin name: {plugin_name}"
+    );
+
     if path.exists() {
         return Err(anyhow!("Plugin {} already loaded", name));
     }
@@ -124,6 +129,10 @@ fn list_plugins() -> Result<()> {
 }
 
 fn remove_plugin(name: &str) -> Result<()> {
+    anyhow::ensure!(
+        !name.contains("..") && !name.contains('/'),
+        "invalid plugin name: {name}"
+    );
     let path = plugin_path().join(name);
 
     if path.exists() {

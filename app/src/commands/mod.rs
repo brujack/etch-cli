@@ -12,6 +12,9 @@ pub(crate) use contexts::Contexts;
 mod gen_completions;
 pub(crate) use gen_completions::GenCompletions;
 
+mod plugin;
+pub(crate) use plugin::PluginCommands;
+
 mod update;
 pub(crate) use update::Update;
 

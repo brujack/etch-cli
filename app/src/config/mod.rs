@@ -61,6 +61,9 @@ pub enum Commands {
 
     /// Update installed tools and packages
     Update(commands::Update),
+
+    /// Manage etch plugins
+    Plugin(commands::PluginCommands),
 }
 
 impl Default for Commands {
