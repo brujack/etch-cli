@@ -8,15 +8,17 @@ actions:
     id: 1365531024
     where: 'os.name == "macos"'
 
+  # Install multiple App Store apps in one action using list:.
+  # Mutually exclusive with name: + id: (use one form or the other).
   - action: mas.install
-    name: "Amphetamine"
-    id: 937984704
     where: 'os.name == "macos"'
-
-  - action: mas.install
-    name: "Better Rename 9"
-    id: 414209656
-    where: 'os.name == "macos"'
+    list:
+      - name: "Amphetamine"
+        id: 937984704
+      - name: "Better Rename 9"
+        id: 414209656
+      - name: "Flycut"
+        id: 442160987
 
   # To find an app's numeric ID: mas search "App Name"
   # or look at the app's App Store URL: .../id<number>
