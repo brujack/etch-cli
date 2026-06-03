@@ -312,12 +312,12 @@ Coverage ceiling is approximately 83% due to hard-to-cover code:
 cargo test                                                          # all tests
 cargo test -p etch-lib                                              # lib tests only
 cargo test -p etch-cli                                              # integration tests only
-cargo tarpaulin --exclude-files 'jsonschemagen/*' --fail-under 70  # coverage check (matches CI)
+cargo tarpaulin --exclude-files 'jsonschemagen/*' --fail-under 80  # coverage check (matches CI)
 ```
 
-**Coverage floor: 70%** (Linux CI gate; Linux measures ~77%, local macOS measures ~82% due to platform-specific tests).
+**Coverage floor: 80%** (Linux CI gate; Linux measures ~80%, local macOS measures ~82% due to platform-specific tests).
 
-**Exception to the global tdd.md ≥90% standard:** The global standard (`~/.claude/standards/tdd.md`) requires ≥90% line coverage. This repo operates at 70% CI gate due to structurally uncoverable code (network ops, package manager calls, privilege escalation, CLI binary dispatch). This is a documented exception — not a gap. Do not attempt to raise the gate above 76% (Linux ceiling) without verifying actual CI output first.
+**Exception to the global tdd.md ≥90% standard:** The global standard (`~/.claude/standards/tdd.md`) requires ≥90% line coverage. This repo operates at 80% CI gate due to structurally uncoverable code (network ops, package manager calls, privilege escalation, CLI binary dispatch). This is a documented exception — not a gap. Do not attempt to raise the gate above 80% without verifying actual CI output first.
 
 ## CI
 
@@ -325,7 +325,7 @@ Single workflow `.github/workflows/ci.yml`, triggers on `pull_request` to `main`
 
 | Job            | What it does                                                                                                   |
 | -------------- | -------------------------------------------------------------------------------------------------------------- |
-| `test`         | `make test` (fmt check + clippy + cargo test) + tarpaulin ≥70% (excluding jsonschemagen)                       |
+| `test`         | `make test` (fmt check + clippy + cargo test) + tarpaulin ≥80% (excluding jsonschemagen)                       |
 | `cargo-audit`  | `cargo audit` — advisory scan (non-blocking)                                                                   |
 | `secret-scan`  | gitleaks v8.30.1 binary (advisory, non-blocking)                                                               |
 | `snyk-scan`    | Snyk code test (advisory, non-blocking)                                                                        |
