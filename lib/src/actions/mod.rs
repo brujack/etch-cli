@@ -1160,4 +1160,28 @@ actions:
             assert!(action.notify().is_empty());
         }
     }
+
+    #[test]
+    fn conditional_variant_action_false_condition_direct() {
+        // Direct call on ConditionalVariantAction (not via Actions::Deref vtable) so
+        // tarpaulin instruments the Ok(false) => Ok(vec![]) branch in plan().
+        use super::Action;
+        use crate::actions::command::run::RunCommand;
+        use crate::config::Config;
+        use crate::contexts::build_contexts;
+
+        let action = super::ConditionalVariantAction::<RunCommand> {
+            action: RunCommand {
+                command: "echo".into(),
+                ..Default::default()
+            },
+            condition: Some("false".to_string()),
+            variants: vec![],
+            notify: vec![],
+        };
+        let manifest = crate::manifests::Manifest::default();
+        let contexts = build_contexts(&Config::default());
+        let steps = action.plan(&manifest, &contexts).unwrap();
+        assert_eq!(steps.len(), 0);
+    }
 }

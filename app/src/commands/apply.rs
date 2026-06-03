@@ -403,3 +403,125 @@ impl EtchCommand for Apply {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::Apply;
+    use crate::commands::EtchCommand;
+    use crate::config::{Config, GlobalArgs};
+    use crate::Runtime;
+    use etch_lib::contexts::build_contexts;
+    use std::path::Path;
+    use tempfile::tempdir;
+
+    fn make_runtime(dir: &Path) -> Runtime {
+        let config = Config {
+            manifest_paths: vec![dir.to_string_lossy().to_string()],
+            ..Config::default()
+        };
+        let contexts = build_contexts(&config);
+        Runtime {
+            args: GlobalArgs::default(),
+            config,
+            contexts,
+        }
+    }
+
+    fn make_apply() -> Apply {
+        Apply {
+            manifests: vec![],
+            dry_run: false,
+            label: None,
+            json: false,
+            verbose: false,
+        }
+    }
+
+    #[test]
+    fn unresolved_dependency_logs_but_does_not_fail() {
+        let dir = tempdir().unwrap();
+        let real_dir = dir.path().canonicalize().unwrap();
+        std::fs::write(
+            real_dir.join("main.yaml"),
+            "depends: [nonexistent]\nactions: []\n",
+        )
+        .unwrap();
+
+        let runtime = make_runtime(&real_dir);
+        let apply = make_apply();
+        // Unresolved dependency logs an error but does not cause apply to return Err.
+        assert!(apply.execute(&runtime).is_ok());
+    }
+
+    #[test]
+    fn action_plan_failure_returns_err() {
+        let dir = tempdir().unwrap();
+        let real_dir = dir.path().canonicalize().unwrap();
+        // mas.install with no name/id/list: plan() returns bail!("mas.install requires...")
+        let yaml = "actions:\n  - action: mas.install\n";
+        std::fs::write(real_dir.join("main.yaml"), yaml).unwrap();
+
+        let runtime = make_runtime(&real_dir);
+        let apply = make_apply();
+        let result = apply.execute(&runtime);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("manifests failed"));
+    }
+
+    #[test]
+    fn handler_plan_failure_returns_err() {
+        let dir = tempdir().unwrap();
+        let real_dir = dir.path().canonicalize().unwrap();
+        // echo executes successfully, notifying the handler. The handler is
+        // mas.install with no fields → plan() returns bail!() → successful=false → Err.
+        let yaml = concat!(
+            "actions:\n",
+            "  - action: command.run\n",
+            "    command: echo\n",
+            "    args: [test]\n",
+            "    notify: [broken]\n",
+            "handlers:\n",
+            "  - name: broken\n",
+            "    action: mas.install\n",
+        );
+        std::fs::write(real_dir.join("main.yaml"), yaml).unwrap();
+
+        let runtime = make_runtime(&real_dir);
+        let apply = make_apply();
+        let result = apply.execute(&runtime);
+        assert!(result.is_err(), "expected Err, got: {:?}", result);
+        assert!(
+            result.unwrap_err().to_string().contains("manifests failed"),
+            "expected 'manifests failed' in error"
+        );
+    }
+
+    #[test]
+    fn handler_execute_failure_returns_err() {
+        let dir = tempdir().unwrap();
+        let real_dir = dir.path().canonicalize().unwrap();
+        // echo executes successfully, notifying the handler. The handler command
+        // does not exist, so execute() fails → successful=false → Err return.
+        let yaml = concat!(
+            "actions:\n",
+            "  - action: command.run\n",
+            "    command: echo\n",
+            "    args: [test]\n",
+            "    notify: [broken]\n",
+            "handlers:\n",
+            "  - name: broken\n",
+            "    action: command.run\n",
+            "    command: etch-test-nonexistent-cmd-xyz\n",
+        );
+        std::fs::write(real_dir.join("main.yaml"), yaml).unwrap();
+
+        let runtime = make_runtime(&real_dir);
+        let apply = make_apply();
+        let result = apply.execute(&runtime);
+        assert!(result.is_err(), "expected Err, got: {:?}", result);
+        assert!(
+            result.unwrap_err().to_string().contains("manifests failed"),
+            "expected 'manifests failed' in error"
+        );
+    }
+}
