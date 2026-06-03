@@ -96,13 +96,13 @@ actions:
 
 Available context namespaces inside templates:
 
-| Namespace      | Examples                                                        |
-| -------------- | --------------------------------------------------------------- |
-| `user.*`       | `{{ user.username }}`, `{{ user.home_dir }}`                    |
-| `os.*`         | `{{ os.name }}` (`macos`/`linux`), `{{ os.hostname }}`          |
-| `variables.*`  | `{{ variables.my_var }}` — values from `etch.yaml` `variables:` |
-| `env.*`        | `{{ env.HOME }}`                                                |
-| `manifest_dir` | absolute path to the manifest directory                         |
+| Namespace      | Examples                                                                                     |
+| -------------- | -------------------------------------------------------------------------------------------- |
+| `user.*`       | `{{ user.username }}`, `{{ user.home_dir }}`                                                 |
+| `os.*`         | `{{ os.name }}` (`macos`/`linux`), `{{ os.arch }}` (`aarch64`/`x86_64`), `{{ os.hostname }}` |
+| `variables.*`  | `{{ variables.my_var }}` — values from `etch.yaml` `variables:`                              |
+| `env.*`        | `{{ env.HOME }}`                                                                             |
+| `manifest_dir` | absolute path to the manifest directory                                                      |
 
 **Common mistake:** using `{{ my_var }}` (bare) instead of `{{ variables.my_var }}`. Bare names render empty without error.
 
