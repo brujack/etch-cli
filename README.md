@@ -42,6 +42,9 @@ etch apply --dry-run
 
 # Show all actions, including those with nothing to do
 etch apply --verbose
+
+# Show flags for every subcommand in one shot
+etch help-all
 ```
 
 ## Manifest format
