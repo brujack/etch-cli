@@ -1,6 +1,6 @@
 [package]
 name = "etch-lib"
-version = "0.10.1"
+version = "0.11.0"
 authors = ["David McKay <david@rawkode.dev>"]
 edition = "2021"
 license = "MIT"
