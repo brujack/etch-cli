@@ -256,7 +256,7 @@ cargo test -p etch-cli                                              # integratio
 cargo tarpaulin --exclude-files 'jsonschemagen/*' --fail-under 81  # coverage (matches CI)
 ```
 
-**Coverage floor: 80%** (Linux CI gate). **Exception to global ≥90% standard** — structurally uncoverable code: network ops, package managers, privilege escalation, CLI binary dispatch. Do not raise the gate above 80% without verifying actual CI output.
+**Coverage floor: 81%** (Linux CI gate). **Exception to global ≥90% standard** — structurally uncoverable code: network ops, package managers, privilege escalation, CLI binary dispatch. Do not raise the gate above 81% without verifying actual CI output.
 
 ## CI
 
@@ -264,7 +264,7 @@ Single workflow `.github/workflows/ci.yml`, triggers on `pull_request` to `main`
 
 | Job            | What it does                                                                                                   |
 | -------------- | -------------------------------------------------------------------------------------------------------------- |
-| `test`         | `make test` (fmt check + clippy + cargo test) + tarpaulin ≥80% (excluding jsonschemagen)                       |
+| `test`         | `make test` (fmt check + clippy + cargo test) + tarpaulin ≥81% (excluding jsonschemagen)                       |
 | `cargo-audit`  | `cargo audit` — advisory scan (non-blocking)                                                                   |
 | `secret-scan`  | gitleaks v8.30.1 binary (advisory, non-blocking)                                                               |
 | `snyk-scan`    | Snyk code test (advisory, non-blocking)                                                                        |
@@ -317,13 +317,9 @@ gh pr create --repo brujack/etch-cli
 
 ## Definition of Done
 
-A PR or direct master commit is complete when **all** of the following are true:
+The universal DoD in `behavior.md` applies. etch-cli adds:
 
-- [ ] `make test` passes (`cargo fmt --check` + `cargo clippy -D warnings` + `cargo test`)
-- [ ] Coverage ≥80% on Linux CI — verify from CI output, not local macOS measurement
-- [ ] `gh pr checks --repo brujack/etch-cli <number> --watch` passes (or commit is docs-only)
-- [ ] `pr-review` skill PASS verdict obtained before push
+- [ ] Coverage ≥81% on Linux CI — verify from CI output, not local macOS measurement (exception to global ≥90% — structurally uncoverable code)
 - [ ] Plan index updated (`docs/cursor/README.md`) if this PR implements a tracked spec
 - [ ] Action catalog updated in `README.md` if a new action was added
 - [ ] `examples/<action>/` updated when a new action or field variant is added — at minimum one `.yaml` per option combination, with inline comments on every field
-- [ ] Learning analysis complete (session-end or post-merge)
