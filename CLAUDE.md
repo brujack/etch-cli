@@ -285,7 +285,7 @@ Invoke `caveman:caveman-commit` skill to generate the commit message before runn
 
 **Run tests:** `make test`
 
-The test suite covers unit tests in `lib/src/` and integration tests in `app/tests/`. Current coverage is ~82% locally (macOS) and ~80% on Linux CI (80.17% measured in PR #83) — the gap is macOS provider tests gated with `#[cfg(target_os = "macos")]` that don't run on ubuntu-latest. Practical ceiling is ~82% due to network operations, package managers, privilege escalation, and dead code that cannot be unit-tested.
+The test suite covers unit tests in `lib/src/` and integration tests in `app/tests/`. Current coverage is ~82% locally (macOS) and ~80% on Linux CI (80.28% measured in PR #84) — the gap is macOS provider tests gated with `#[cfg(target_os = "macos")]` that don't run on ubuntu-latest. Practical ceiling is ~82% due to network operations, package managers, privilege escalation, and dead code that cannot be unit-tested.
 
 `app/tests/integration.rs` — 16 end-to-end tests spawning the real `etch` binary. Covers the core `etch apply` path for `file.link`, `file.copy`, `command.run`, `directory.create` (happy path + idempotency each), and `file.flags` (macOS only: set hidden, idempotent, clear hidden). These do not contribute to tarpaulin coverage (subprocess invocation) but verify behavioral correctness.
 
@@ -381,7 +381,7 @@ gh pr create --repo brujack/etch-cli
 A PR or direct master commit is complete when **all** of the following are true:
 
 - [ ] `make test` passes (`cargo fmt --check` + `cargo clippy -D warnings` + `cargo test`)
-- [ ] Coverage ≥70% on Linux CI — verify from CI output, not local macOS measurement
+- [ ] Coverage ≥80% on Linux CI — verify from CI output, not local macOS measurement
 - [ ] `gh pr checks --repo brujack/etch-cli <number> --watch` passes (or commit is docs-only)
 - [ ] `pr-review` skill PASS verdict obtained before push
 - [ ] Plan index updated (`docs/cursor/README.md`) if this PR implements a tracked spec
