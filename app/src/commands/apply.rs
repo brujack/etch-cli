@@ -246,7 +246,7 @@ impl EtchCommand for Apply {
                     let plan = match action.plan(m1, contexts) {
                         Ok(steps) => steps,
                         Err(err) => {
-                            info!("Action failed to get plan: {:?}", err);
+                            info!("{}: FAILED \u{2014} {:#}", action.summarize(), err);
                             successful = false;
                             span_action.exit();
                             continue;
@@ -275,6 +275,7 @@ impl EtchCommand for Apply {
                     let mut dry_run_count = 0usize;
                     let mut steps_ran = 0usize;
                     let mut all_succeeded = true;
+                    let mut execute_error: Option<String> = None;
                     for mut step in steps {
                         if dry_run {
                             dry_run_count += 1;
@@ -289,7 +290,7 @@ impl EtchCommand for Apply {
                                 steps_ran += 1;
                             }
                             Err(err) => {
-                                debug!("Atom failed to execute: {:?}", err);
+                                execute_error = Some(format!("{err:#}"));
                                 successful = false;
                                 all_succeeded = false;
                                 break;
@@ -315,7 +316,11 @@ impl EtchCommand for Apply {
                             }
                         }
                     } else {
-                        info!("{}", action.summarize());
+                        if let Some(ref err_msg) = execute_error {
+                            info!("{}: FAILED \u{2014} {}", action.summarize(), err_msg);
+                        } else {
+                            info!("{}", action.summarize());
+                        }
                         if all_succeeded && steps_ran > 0 {
                             for name in raw_action.notify() {
                                 notified.insert(name.clone());
@@ -523,5 +528,41 @@ mod tests {
             result.unwrap_err().to_string().contains("manifests failed"),
             "expected 'manifests failed' in error"
         );
+    }
+
+    #[test]
+    #[tracing_test::traced_test]
+    fn action_plan_failure_includes_error_in_summary() {
+        let dir = tempdir().unwrap();
+        let real_dir = dir.path().canonicalize().unwrap();
+        // mas.install with no fields → plan() returns bail!()
+        std::fs::write(
+            real_dir.join("main.yaml"),
+            "actions:\n  - action: mas.install\n",
+        )
+        .unwrap();
+        let runtime = make_runtime(&real_dir);
+        let apply = make_apply();
+        let result = apply.execute(&runtime);
+        assert!(result.is_err());
+        assert!(logs_contain("FAILED \u{2014}"));
+    }
+
+    #[test]
+    #[tracing_test::traced_test]
+    fn action_execute_failure_includes_error_in_summary() {
+        let dir = tempdir().unwrap();
+        let real_dir = dir.path().canonicalize().unwrap();
+        let yaml = concat!(
+            "actions:\n",
+            "  - action: command.run\n",
+            "    command: etch-test-nonexistent-cmd-xyz\n",
+        );
+        std::fs::write(real_dir.join("main.yaml"), yaml).unwrap();
+        let runtime = make_runtime(&real_dir);
+        let apply = make_apply();
+        let result = apply.execute(&runtime);
+        assert!(result.is_err());
+        assert!(logs_contain("FAILED \u{2014}"));
     }
 }

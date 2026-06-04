@@ -47,6 +47,7 @@ assert_cmd = "2.1"
 insta = { version = "1", features = ["filters"] }
 predicates = "3.1"
 tempfile = "3.26"
+tracing-test = "0.2"
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(tarpaulin_include)'] }
