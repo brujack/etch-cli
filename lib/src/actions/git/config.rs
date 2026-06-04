@@ -59,38 +59,27 @@ impl Action for GitConfig {
         format!("Set {count} git.{scope} config values")
     }
 
+    #[rustfmt::skip]
     fn plan(&self, _manifest: &Manifest, contexts: &Contexts) -> anyhow::Result<Vec<Step>> {
         use anyhow::anyhow;
 
         if self.key.is_some() && self.settings.is_some() {
-            return Err(anyhow!(
-                "git.config: 'key' and 'settings' are mutually exclusive"
-            ));
+            return Err(anyhow!("git.config: 'key' and 'settings' are mutually exclusive"));
         }
         if self.key.is_none() && self.settings.is_none() {
-            return Err(anyhow!(
-                "git.config: one of 'key' or 'settings' is required"
-            ));
+            return Err(anyhow!("git.config: one of 'key' or 'settings' is required"));
         }
         if self.unset == Some(true) && self.settings.is_some() {
-            return Err(anyhow!(
-                "git.config: 'unset' cannot be used with 'settings'"
-            ));
+            return Err(anyhow!("git.config: 'unset' cannot be used with 'settings'"));
         }
         if self.unset == Some(true) && self.value.is_some() {
-            return Err(anyhow!(
-                "git.config: 'unset' and 'value' are mutually exclusive"
-            ));
+            return Err(anyhow!("git.config: 'unset' and 'value' are mutually exclusive"));
         }
         if matches!(self.scope, GitConfigScope::Local) && self.directory.is_none() {
-            return Err(anyhow!(
-                "git.config: 'directory' is required for scope 'local'"
-            ));
+            return Err(anyhow!("git.config: 'directory' is required for scope 'local'"));
         }
         if self.key.is_some() && self.value.is_none() && self.unset != Some(true) {
-            return Err(anyhow!(
-                "git.config: 'key' requires either 'value' (to set) or 'unset: true'"
-            ));
+            return Err(anyhow!("git.config: 'key' requires either 'value' (to set) or 'unset: true'"));
         }
 
         let config_args = self.config_args();
