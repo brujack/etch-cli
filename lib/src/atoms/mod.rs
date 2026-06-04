@@ -119,4 +119,28 @@ mod tests {
         let echo = Echo("test");
         assert_eq!(echo.status().unwrap(), AtomStatus::Unchecked);
     }
+
+    #[test]
+    fn trait_default_output_string_returns_empty() {
+        // Tests the default Atom::output_string() impl — Echo overrides it,
+        // so we need a minimal implementor that doesn't.
+        struct Minimal;
+        impl std::fmt::Display for Minimal {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(f, "minimal")
+            }
+        }
+        impl Atom for Minimal {
+            fn plan(&self) -> anyhow::Result<Outcome> {
+                Ok(Outcome {
+                    side_effects: vec![],
+                    should_run: false,
+                })
+            }
+            fn execute(&mut self) -> anyhow::Result<()> {
+                Ok(())
+            }
+        }
+        assert_eq!(Minimal.output_string(), "");
+    }
 }

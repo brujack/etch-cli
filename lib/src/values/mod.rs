@@ -1033,6 +1033,32 @@ mod test {
     }
 
     #[test]
+    fn deserialize_visit_i64_via_serde_json() -> anyhow::Result<()> {
+        // serde_json calls visit_i64 for negative integers
+        let v: Value = serde_json::from_str("-42")?;
+        assert_eq!(
+            v,
+            Value::Number(Number {
+                inner: NumberVariant::Signed(-42)
+            })
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn deserialize_visit_f64_via_serde_json() -> anyhow::Result<()> {
+        // serde_json calls visit_f64 for floating-point numbers
+        let v: Value = serde_json::from_str("1.5")?;
+        assert_eq!(
+            v,
+            Value::Number(Number {
+                inner: NumberVariant::Float(1.5)
+            })
+        );
+        Ok(())
+    }
+
+    #[test]
     fn from_numeric_types_tests() -> anyhow::Result<()> {
         let v: Value = 42i64.into();
         assert_eq!(

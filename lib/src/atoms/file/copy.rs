@@ -19,13 +19,9 @@ impl FileAtom for Copy {
 }
 
 impl std::fmt::Display for Copy {
+    #[rustfmt::skip]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "The file {} contents needs to be copied from {}",
-            self.to.display(),
-            self.from.display(),
-        )
+        write!(f, "The file {} contents needs to be copied from {}", self.to.display(), self.from.display())
     }
 }
 

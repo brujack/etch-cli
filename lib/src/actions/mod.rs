@@ -1162,6 +1162,158 @@ actions:
     }
 
     #[test]
+    fn all_action_variants_display() {
+        // Exercises every arm of the Display match (lines 409–447) by calling
+        // to_string() on each variant.
+        let yaml = r#"
+actions:
+  - action: command.run
+    command: echo
+  - action: directory.copy
+    from: a
+    to: b
+  - action: directory.create
+    path: /tmp/d
+  - action: directory.remove
+    target: /tmp/d
+  - action: file.chmod
+    path: /tmp/f
+    mode: "700"
+  - action: file.flags
+    path: /tmp/f
+    flags: [hidden]
+  - action: file.copy
+    from: a
+    to: b
+  - action: file.chown
+    path: /tmp/f
+  - action: file.download
+    from: https://example.com/file
+    to: /tmp/file
+  - action: file.link
+    source: a
+    target: b
+  - action: file.remove
+    target: /tmp/f
+  - action: file.unarchive
+    from: a.tar.gz
+    to: /tmp/dest
+  - action: binary.github
+    name: tool
+    directory: /usr/local/bin
+    repository: owner/repo
+  - action: binary.url
+    name: tool
+    directory: /usr/local/bin
+    url: https://example.com/tool.tar.gz
+  - action: brew.bundle
+    file: /tmp/Brewfile
+  - action: brew.cleanup
+  - action: brew.upgrade
+  - action: git.clone
+    repo_url: https://github.com/example/repo.git
+    directory: /tmp/repo
+  - action: git.config
+    scope: global
+    key: user.email
+    value: test@example.com
+  - action: git.pull
+    repo_url: https://github.com/example/repo.git
+    directory: /tmp/repo
+  - action: group.add
+    group_name: mygroup
+  - action: macos.default
+    domain: com.example
+    key: k
+    kind: string
+    value: v
+  - action: macos.rosetta
+  - action: macos.service
+    plist: /Library/LaunchAgents/com.example.plist
+    state: loaded
+  - action: systemd.service
+    unit: sshd.service
+    enabled: true
+  - action: mas.install
+    name: "Better Rename 9"
+    id: 414209656
+  - action: mas.upgrade
+  - action: package.install
+    name: htop
+  - action: package.repository
+    name: myrepo
+  - action: package.autoremove
+  - action: package.upgrade
+    provider: apt
+  - action: user.add
+    username: alice
+  - action: user.group
+    username: alice
+  - action: plugin
+    dir: /tmp/fake
+    actions:
+      myaction:
+        key: val
+  - action: ruby.install
+    version: "3.2.0"
+  - action: gem.install
+    name: bundler
+  - action: pip.install
+    name: requests
+  - action: npm.install
+    name: typescript
+  - action: pyenv.install
+    version: "3.12.0"
+  - action: pyenv.virtualenv
+    python_version: "3.12.0"
+    name: myproject
+"#;
+        let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
+        assert_eq!(40, manifest.actions.len());
+        let names: Vec<String> = manifest.actions.iter().map(|a| a.to_string()).collect();
+        assert!(names.contains(&"command.run".to_string()));
+        assert!(names.contains(&"directory.copy".to_string()));
+        assert!(names.contains(&"directory.create".to_string()));
+        assert!(names.contains(&"directory.remove".to_string()));
+        assert!(names.contains(&"file.chmod".to_string()));
+        assert!(names.contains(&"file.flags".to_string()));
+        assert!(names.contains(&"file.copy".to_string()));
+        assert!(names.contains(&"file.chown".to_string()));
+        assert!(names.contains(&"file.download".to_string()));
+        assert!(names.contains(&"file.link".to_string()));
+        assert!(names.contains(&"file.remove".to_string()));
+        assert!(names.contains(&"file.unarchive".to_string()));
+        assert!(names.contains(&"github.binary".to_string()));
+        assert!(names.contains(&"url.binary".to_string()));
+        assert!(names.contains(&"brew.bundle".to_string()));
+        assert!(names.contains(&"brew.cleanup".to_string()));
+        assert!(names.contains(&"brew.upgrade".to_string()));
+        assert!(names.contains(&"git.clone".to_string()));
+        assert!(names.contains(&"git.config".to_string()));
+        assert!(names.contains(&"git.pull".to_string()));
+        assert!(names.contains(&"group.add".to_string()));
+        assert!(names.contains(&"macos.default".to_string()));
+        assert!(names.contains(&"macos.rosetta".to_string()));
+        assert!(names.contains(&"macos.service".to_string()));
+        assert!(names.contains(&"systemd.service".to_string()));
+        assert!(names.contains(&"mas.install".to_string()));
+        assert!(names.contains(&"mas.upgrade".to_string()));
+        assert!(names.contains(&"package.install".to_string()));
+        assert!(names.contains(&"package.repository".to_string()));
+        assert!(names.contains(&"package.autoremove".to_string()));
+        assert!(names.contains(&"package.upgrade".to_string()));
+        assert!(names.contains(&"user.add".to_string()));
+        assert!(names.contains(&"user.group".to_string()));
+        assert!(names.contains(&"plugin".to_string()));
+        assert!(names.contains(&"ruby.install".to_string()));
+        assert!(names.contains(&"gem.install".to_string()));
+        assert!(names.contains(&"pip.install".to_string()));
+        assert!(names.contains(&"npm.install".to_string()));
+        assert!(names.contains(&"pyenv.install".to_string()));
+        assert!(names.contains(&"pyenv.virtualenv".to_string()));
+    }
+
+    #[test]
     fn conditional_variant_action_false_condition_direct() {
         // Direct call on ConditionalVariantAction (not via Actions::Deref vtable) so
         // tarpaulin instruments the Ok(false) => Ok(vec![]) branch in plan().
