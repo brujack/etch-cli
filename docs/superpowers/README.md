@@ -74,6 +74,7 @@ Master status index for all specs and implementation plans in this directory.
 | 2026-06-03 | verbose apply output (--verbose flag)                                                    | —                                                                                                                         | Done    |
 | 2026-06-03 | subcommand help discoverability (help-all)                                               | —                                                                                                                         | Done    |
 | 2026-06-03 | mas.install list: support                                                                | —                                                                                                                         | Done    |
+| 2026-06-04 | apply error summary includes actual error                                                | —                                                                                                                         | Done    |
 
 ---
 
@@ -89,12 +90,11 @@ Known defects to fix before implementing backlog features.
 
 ## Backlog
 
-| Feature                             | Notes                                                                                                                                                                                                                                                                                    |
-| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| error summary includes actual error | Apply summary output currently says "look above for details" on failure. dotfiles changed this pattern to embed the actual error message in the summary line. etch-cli should do the same — when an action fails, the summary line should include the error, not a pointer to scroll up. |
-| ntfy notification action            | Matches existing notification infra                                                                                                                                                                                                                                                      |
-| package.install progress output     | `INFO Installing packages` gives no visibility into which packages are being installed or progress. Stream apt/brew output (package names + count) to the terminal during install so long runs don't appear hung.                                                                        |
-| powershell.module                   | No action for installing PowerShell modules from PSGallery. Dotfiles install 10 modules (Az, AWSPowerShell.NetCore, Microsoft.Graph, oh-my-posh, etc.) via script. Needs `powershell.module` with `name:`, `scope: CurrentUser\|AllUsers`, idempotent via `Get-Module -ListAvailable`.   |
+| Feature                         | Notes                                                                                                                                                                                                                                                                                  |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ntfy notification action        | Matches existing notification infra                                                                                                                                                                                                                                                    |
+| package.install progress output | `INFO Installing packages` gives no visibility into which packages are being installed or progress. Stream apt/brew output (package names + count) to the terminal during install so long runs don't appear hung.                                                                      |
+| powershell.module               | No action for installing PowerShell modules from PSGallery. Dotfiles install 10 modules (Az, AWSPowerShell.NetCore, Microsoft.Graph, oh-my-posh, etc.) via script. Needs `powershell.module` with `name:`, `scope: CurrentUser\|AllUsers`, idempotent via `Get-Module -ListAvailable`. |
 
 ---
 
