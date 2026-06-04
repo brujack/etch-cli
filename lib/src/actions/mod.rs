@@ -974,18 +974,38 @@ actions:
   - action: pyenv.virtualenv
     python_version: "3.12.0"
     name: myproject
+  - action: binary.url
+    name: mytool
+    url: https://example.com/mytool
+    directory: /usr/local/bin
+  - action: macos.rosetta
+  - action: macos.service
+    plist: /Library/LaunchDaemons/com.example.plist
+    state: loaded
+  - action: systemd.service
+    unit: nginx
+  - action: package.upgrade
+    provider: apt
+  - action: plugin
+    dir: /tmp/fake-plugin
+    actions:
+      myaction:
+        key: val
+  - action: ruby.install
+    version: "3.3.0"
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(33, manifest.actions.len());
+        assert_eq!(40, manifest.actions.len());
 
         for action in &manifest.actions {
-            // Exercise inner_ref() for every variant
+            // Exercise inner_ref(), Deref, and notify() for every variant
             let inner = action.inner_ref();
             let _ = inner.summarize();
 
-            // Exercise Deref for every variant
             let deref_action = action.deref();
             let _ = deref_action.summarize();
+
+            let _ = action.notify();
         }
     }
 
