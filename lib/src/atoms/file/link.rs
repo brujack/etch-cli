@@ -18,13 +18,9 @@ impl FileAtom for Link {
 }
 
 impl std::fmt::Display for Link {
+    #[rustfmt::skip]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "The file {} contents needs to be linked from {}",
-            self.target.display(),
-            self.source.display(),
-        )
+        write!(f, "The file {} contents needs to be linked from {}", self.target.display(), self.source.display())
     }
 }
 

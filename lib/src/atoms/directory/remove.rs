@@ -9,12 +9,9 @@ pub struct Remove {
 }
 
 impl std::fmt::Display for Remove {
+    #[rustfmt::skip]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "The directory {} needs to be removed",
-            self.target.display(),
-        )
+        write!(f, "The directory {} needs to be removed", self.target.display())
     }
 }
 
