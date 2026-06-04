@@ -51,7 +51,7 @@ jobs:
         # Coverage gate: 80% on Linux CI (ubuntu-latest). Linux measured 80.17% in PR #83.
         # Local macOS measures ~82% because macOS provider tests (#[cfg(target_os = "macos")])
         # add coverage locally but don't run in CI.
-        run: cargo tarpaulin --exclude-files 'jsonschemagen/*' --fail-under 80 --out Json
+        run: cargo tarpaulin --exclude-files 'jsonschemagen/*' --fail-under 81 --out Json
       - name: Publish coverage badge
         working-directory: ${{ github.workspace }}
         run: |

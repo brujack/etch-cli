@@ -285,7 +285,7 @@ Invoke `caveman:caveman-commit` skill to generate the commit message before runn
 
 **Run tests:** `make test`
 
-The test suite covers unit tests in `lib/src/` and integration tests in `app/tests/`. Current coverage is ~82% locally (macOS) and ~80% on Linux CI (80.28% measured in PR #84) — the gap is macOS provider tests gated with `#[cfg(target_os = "macos")]` that don't run on ubuntu-latest. Practical ceiling is ~82% due to network operations, package managers, privilege escalation, and dead code that cannot be unit-tested.
+The test suite covers unit tests in `lib/src/` and integration tests in `app/tests/`. Current coverage is ~86% locally (macOS) and ~81% on Linux CI (81.29% measured in PR #85) — the gap is macOS provider tests gated with `#[cfg(target_os = "macos")]` that don't run on ubuntu-latest. Practical ceiling is ~83% on Linux CI due to network operations, package managers, privilege escalation, and dead code that cannot be unit-tested.
 
 `app/tests/integration.rs` — 16 end-to-end tests spawning the real `etch` binary. Covers the core `etch apply` path for `file.link`, `file.copy`, `command.run`, `directory.create` (happy path + idempotency each), and `file.flags` (macOS only: set hidden, idempotent, clear hidden). These do not contribute to tarpaulin coverage (subprocess invocation) but verify behavioral correctness.
 
@@ -312,7 +312,7 @@ Coverage ceiling is approximately 83% due to hard-to-cover code:
 cargo test                                                          # all tests
 cargo test -p etch-lib                                              # lib tests only
 cargo test -p etch-cli                                              # integration tests only
-cargo tarpaulin --exclude-files 'jsonschemagen/*' --fail-under 80  # coverage check (matches CI)
+cargo tarpaulin --exclude-files 'jsonschemagen/*' --fail-under 81  # coverage check (matches CI)
 ```
 
 **Coverage floor: 80%** (Linux CI gate; Linux measures ~80%, local macOS measures ~82% due to platform-specific tests).
