@@ -28,6 +28,7 @@ impl PackageProvider for Homebrew {
                 String::from("-c"),
                 String::from("$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)")
             ],
+            streaming: true,
             ..Default::default()
         }), initializers: vec![], finalizers: vec![] },]
     }
@@ -48,6 +49,7 @@ impl PackageProvider for Homebrew {
             atom: Box::new(Exec {
                 command: String::from("brew"),
                 arguments: vec![String::from("tap"), repository.name.clone()],
+                streaming: true,
                 ..Default::default()
             }),
             initializers: vec![],
@@ -118,6 +120,7 @@ impl PackageProvider for Homebrew {
             atom: Box::new(Exec {
                 command: String::from("brew"),
                 arguments: [base, package.extra_args.clone(), need_installed].concat(),
+                streaming: true,
                 ..Default::default()
             }),
             initializers: vec![],
@@ -144,6 +147,7 @@ impl Homebrew {
                     atom: Box::new(Exec {
                         command: String::from("brew"),
                         arguments: vec![String::from("install"), formula],
+                        streaming: true,
                         ..Default::default()
                     }),
                     initializers: vec![],
