@@ -275,14 +275,9 @@ journalctl -n 100 | grep -A5 "etch\|exit code\|stdout\|stderr"
 
 ### Diagnosing package.install and package.upgrade failures
 
-When `package.install` or `package.upgrade` fails silently, etch has captured apt's stdout/stderr but only emits them at DEBUG level. To see the actual apt error:
+Package install, upgrade, and autoremove operations stream output directly to the terminal in real time — apt/brew/snap progress appears as it runs. If a package operation fails, the error message is visible inline.
 
-```bash
-etch -v apply 2>&1 | tee /tmp/etch-debug.log
-grep -A5 "exit code\|stderr\|stdout" /tmp/etch-debug.log
-```
-
-Or run the apt command directly to reproduce outside etch:
+To reproduce a failure outside etch:
 
 ```bash
 # package.install

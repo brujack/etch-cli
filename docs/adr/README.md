@@ -7,7 +7,7 @@ Repo-specific decisions for etch-cli. Cross-cutting decisions that apply across 
 | [0001](0001-fork-comtrya-as-etch-cli.md)                 | Fork comtrya as etch-cli                                  | 2026-05-02 | Accepted |
 | [0002](0002-platform-pruning.md)                         | Prune to macOS and Ubuntu 24.04/26.04 only                | 2026-05-02 | Accepted |
 | [0003](0003-file-action-config-shared-struct.md)         | FileActionConfig shared struct for file actions           | 2026-05-15 | Accepted |
-| [0004](0004-ci-coverage-floor.md)                        | CI coverage floor at 70% (not global 90% standard)        | 2026-05-16 | Accepted |
+| [0004](0004-ci-coverage-floor.md)                        | CI coverage floor exception to global 90% standard        | 2026-05-16 | Accepted |
 | [0005](0005-codeql-sast-advisory.md)                     | CodeQL SAST is advisory                                   | 2026-05-19 | Accepted |
 | [0006](0006-native-action-expansion-strategy.md)         | Native action expansion strategy                          | 2026-05-19 | Accepted |
 | [0007](0007-etch-status-drift-detection-subcommand.md)   | etch status drift detection subcommand                    | 2026-05-19 | Accepted |
