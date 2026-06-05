@@ -1327,9 +1327,14 @@ actions:
   - action: pyenv.virtualenv
     python_version: "3.12.0"
     name: myproject
+  - action: claude.marketplace
+    name: caveman
+    source: juliusbrussee/caveman
+  - action: claude.marketplace.remove
+    name: caveman
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(40, manifest.actions.len());
+        assert_eq!(42, manifest.actions.len());
         let names: Vec<String> = manifest.actions.iter().map(|a| a.to_string()).collect();
         assert!(names.contains(&"command.run".to_string()));
         assert!(names.contains(&"directory.copy".to_string()));
@@ -1371,6 +1376,8 @@ actions:
         assert!(names.contains(&"npm.install".to_string()));
         assert!(names.contains(&"pyenv.install".to_string()));
         assert!(names.contains(&"pyenv.virtualenv".to_string()));
+        assert!(names.contains(&"claude.marketplace".to_string()));
+        assert!(names.contains(&"claude.marketplace.remove".to_string()));
     }
 
     #[test]
