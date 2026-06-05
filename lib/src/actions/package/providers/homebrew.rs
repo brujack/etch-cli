@@ -96,6 +96,16 @@ impl PackageProvider for Homebrew {
         Ok(version)
     }
 
+    fn remove(
+        &self,
+        names: &[String],
+        _purge: bool,
+        _contexts: &Contexts,
+    ) -> anyhow::Result<Vec<Step>> {
+        let _ = names;
+        Ok(vec![]) // stub — full implementation in next task
+    }
+
     fn install(&self, package: &PackageVariant, _contexts: &Contexts) -> anyhow::Result<Vec<Step>> {
         // Does not require privilege escalation
 

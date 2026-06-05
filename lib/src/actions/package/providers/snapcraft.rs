@@ -75,6 +75,16 @@ impl PackageProvider for Snapcraft {
         Ok(Self::parse_snap_tracking(&text))
     }
 
+    fn remove(
+        &self,
+        names: &[String],
+        _purge: bool,
+        _contexts: &Contexts,
+    ) -> anyhow::Result<Vec<Step>> {
+        let _ = names;
+        Ok(vec![]) // stub — full implementation in next task
+    }
+
     fn install(&self, package: &PackageVariant, contexts: &Contexts) -> anyhow::Result<Vec<Step>> {
         let privilege_provider =
             utilities::get_privilege_provider(contexts).unwrap_or_else(|| "sudo".to_string());
