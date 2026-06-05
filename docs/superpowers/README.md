@@ -82,9 +82,9 @@ Master status index for all specs and implementation plans in this directory.
 
 Known defects to fix before implementing backlog features.
 
-| Bug    | Notes |
-| ------ | ----- |
-| (none) |       |
+| Bug                                           | Notes                                                                                                                                                                                                                |
+| --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `package.install` snap passes `--yes` to snap | `snap install` rejects `--yes` (exit 64 `EX_USAGE`). Valid flags: `--channel`, `--classic`, `--devmode`. `package.upgrade` snap works — `snap refresh` accepts `--yes`. Remove `--yes` from snap install invocation. |
 
 ---
 
