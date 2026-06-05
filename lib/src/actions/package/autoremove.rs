@@ -30,6 +30,7 @@ impl Action for PackageAutoremove {
                 )],
                 privileged: true,
                 privilege_provider,
+                streaming: true,
                 ..Default::default()
             }),
             initializers: vec![],
