@@ -80,6 +80,7 @@ pub(crate) fn plan_from_output(
             environment: env,
             privileged: true,
             privilege_provider,
+            streaming: true,
             ..Default::default()
         }),
         initializers: vec![],

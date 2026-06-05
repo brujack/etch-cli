@@ -42,6 +42,7 @@ impl PackageProvider for Snapcraft {
                 ],
                 privileged: true,
                 privilege_provider: privilege_provider.clone(),
+                streaming: true,
                 ..Default::default()
             }),
             initializers: vec![],
@@ -99,6 +100,7 @@ impl PackageProvider for Snapcraft {
                     .collect(),
                 privileged: true,
                 privilege_provider: privilege_provider.clone(),
+                streaming: true,
                 ..Default::default()
             }),
             initializers: vec![],
@@ -130,6 +132,7 @@ impl Snapcraft {
                     ],
                     privileged: true,
                     privilege_provider: privilege_provider.to_string(),
+                    streaming: true,
                     ..Default::default()
                 }),
                 initializers: vec![],

@@ -55,6 +55,7 @@ impl PackageProvider for Aptitude {
                 environment: self.env(),
                 privileged: true,
                 privilege_provider: privilege_provider.clone(),
+                streaming: true,
                 ..Default::default()
             }),
             initializers: vec![],
@@ -117,6 +118,7 @@ impl PackageProvider for Aptitude {
                     environment: self.env(),
                     privileged: true,
                     privilege_provider: privilege_provider.clone(),
+                    streaming: true,
                     ..Default::default()
                 }),
                 initializers: vec![],
@@ -129,6 +131,7 @@ impl PackageProvider for Aptitude {
                     environment: self.env(),
                     privileged: true,
                     privilege_provider: privilege_provider.clone(),
+                    streaming: true,
                     ..Default::default()
                 }),
                 initializers: vec![],
@@ -185,6 +188,7 @@ impl PackageProvider for Aptitude {
                 environment: self.env(),
                 privileged: true,
                 privilege_provider: privilege_provider.clone(),
+                streaming: true,
                 ..Default::default()
             }),
             initializers: vec![],
@@ -218,6 +222,7 @@ impl Aptitude {
                     environment: env.to_vec(),
                     privileged: true,
                     privilege_provider: privilege_provider.to_string(),
+                    streaming: true,
                     ..Default::default()
                 }),
                 initializers: vec![],

@@ -30,6 +30,7 @@ pub(crate) fn plan_from_output(
             atom: Box::new(Exec {
                 command: String::from("snap"),
                 arguments: vec![String::from("refresh"), n.to_string()],
+                streaming: true,
                 ..Default::default()
             }),
             initializers: vec![],
@@ -40,6 +41,7 @@ pub(crate) fn plan_from_output(
             atom: Box::new(Exec {
                 command: String::from("snap"),
                 arguments: vec![String::from("refresh")],
+                streaming: true,
                 ..Default::default()
             }),
             initializers: vec![],

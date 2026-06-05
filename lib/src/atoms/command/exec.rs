@@ -13,6 +13,7 @@ pub struct Exec {
     pub environment: Vec<(String, String)>,
     pub privileged: bool,
     pub privilege_provider: String,
+    pub streaming: bool,
     pub(crate) status: ExecStatus,
 }
 
@@ -137,41 +138,68 @@ impl Atom for Exec {
             }
         }
 
-        match std::process::Command::new(&command)
-            .envs(self.environment.clone())
-            .args(&arguments)
-            .current_dir(self.working_dir.clone().unwrap_or_else(|| {
-                std::env::current_dir()
-                    .map(|current_dir| current_dir.display().to_string())
-                    .expect("Failed to get current directory")
-            }))
-            .output()
-        {
-            Ok(output) if output.status.success() => {
-                self.status.stdout = String::from_utf8(output.stdout)?;
-                self.status.stderr = String::from_utf8(output.stderr)?;
+        if self.streaming {
+            let mut child = std::process::Command::new(&command)
+                .envs(self.environment.clone())
+                .args(&arguments)
+                .current_dir(self.working_dir.clone().unwrap_or_else(|| {
+                    std::env::current_dir()
+                        .map(|current_dir| current_dir.display().to_string())
+                        .expect("Failed to get current directory")
+                }))
+                .stdout(std::process::Stdio::inherit())
+                .stderr(std::process::Stdio::inherit())
+                .spawn()
+                .map_err(|err| anyhow!(err))?;
 
-                debug!("stdout: {}", &self.status.stdout);
-
-                Ok(())
+            match child.wait() {
+                Ok(status) if status.success() => Ok(()),
+                Ok(status) => {
+                    self.status.code = status.code().unwrap_or(1);
+                    Err(anyhow!(
+                        "Command failed with exit code: {}",
+                        self.status.code
+                    ))
+                }
+                Err(err) => Err(anyhow!(err)),
             }
+        } else {
+            match std::process::Command::new(&command)
+                .envs(self.environment.clone())
+                .args(&arguments)
+                .current_dir(self.working_dir.clone().unwrap_or_else(|| {
+                    std::env::current_dir()
+                        .map(|current_dir| current_dir.display().to_string())
+                        .expect("Failed to get current directory")
+                }))
+                .output()
+            {
+                Ok(output) if output.status.success() => {
+                    self.status.stdout = String::from_utf8(output.stdout)?;
+                    self.status.stderr = String::from_utf8(output.stderr)?;
 
-            Ok(output) => {
-                self.status.code = output.status.code().unwrap_or(1);
-                self.status.stdout = String::from_utf8(output.stdout)?;
-                self.status.stderr = String::from_utf8(output.stderr)?;
+                    debug!("stdout: {}", &self.status.stdout);
 
-                debug!("exit code: {}", &self.status.code);
-                debug!("stdout: {}", &self.status.stdout);
-                debug!("stderr: {}", &self.status.stderr);
+                    Ok(())
+                }
 
-                Err(anyhow!(
-                    "Command failed with exit code: {}",
-                    self.status.code
-                ))
+                Ok(output) => {
+                    self.status.code = output.status.code().unwrap_or(1);
+                    self.status.stdout = String::from_utf8(output.stdout)?;
+                    self.status.stderr = String::from_utf8(output.stderr)?;
+
+                    debug!("exit code: {}", &self.status.code);
+                    debug!("stdout: {}", &self.status.stdout);
+                    debug!("stderr: {}", &self.status.stderr);
+
+                    Err(anyhow!(
+                        "Command failed with exit code: {}",
+                        self.status.code
+                    ))
+                }
+
+                Err(err) => Err(anyhow!(err)),
             }
-
-            Err(err) => Err(anyhow!(err)),
         }
     }
 
@@ -202,6 +230,7 @@ mod tests {
         assert_eq!(None, command_run.working_dir);
         assert_eq!(0, command_run.environment.len());
         assert_eq!(false, command_run.privileged);
+        assert_eq!(false, command_run.streaming);
 
         let command_run = new_run_command(String::from("echo"));
 
@@ -210,6 +239,7 @@ mod tests {
         assert_eq!(None, command_run.working_dir);
         assert_eq!(0, command_run.environment.len());
         assert_eq!(false, command_run.privileged);
+        assert_eq!(false, command_run.streaming);
     }
 
     #[test]
@@ -422,5 +452,59 @@ mod tests {
         let result = exec.execute();
         assert!(result.is_ok());
         assert!(exec.output_string().contains("MY_TEST_VAR=test_value"));
+    }
+
+    #[test]
+    #[serial]
+    fn streaming_false_captures_output() {
+        let mut exec = Exec {
+            command: String::from("echo"),
+            arguments: vec![String::from("hello")],
+            streaming: false,
+            ..Default::default()
+        };
+        exec.execute().unwrap();
+        assert!(exec.output_string().contains("hello"));
+    }
+
+    #[test]
+    #[serial]
+    fn streaming_true_output_string_empty() {
+        let mut exec = Exec {
+            command: String::from("echo"),
+            arguments: vec![String::from("hello")],
+            streaming: true,
+            ..Default::default()
+        };
+        exec.execute().unwrap();
+        assert_eq!(exec.output_string(), "");
+        assert_eq!(exec.error_message(), "");
+    }
+
+    #[test]
+    #[serial]
+    fn streaming_true_succeeds() {
+        let mut exec = Exec {
+            command: String::from("true"),
+            streaming: true,
+            ..Default::default()
+        };
+        assert!(exec.execute().is_ok());
+    }
+
+    #[test]
+    #[serial]
+    fn streaming_true_fails_on_nonzero() {
+        let mut exec = Exec {
+            command: String::from("false"),
+            streaming: true,
+            ..Default::default()
+        };
+        let err = exec.execute().unwrap_err();
+        assert!(
+            err.to_string().contains("exit code"),
+            "expected exit code in error, got: {err}"
+        );
+        assert_eq!(exec.status.code, 1);
     }
 }
