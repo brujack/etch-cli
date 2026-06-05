@@ -102,8 +102,15 @@ impl PackageProvider for Homebrew {
         _purge: bool,
         _contexts: &Contexts,
     ) -> anyhow::Result<Vec<Step>> {
-        let _ = names;
-        Ok(vec![]) // stub — full implementation in next task
+        let steps = names
+            .iter()
+            .filter_map(|name| match self.installed_version(name) {
+                Ok(Some(_)) => Some(Ok(Self::build_remove_step(name))),
+                Ok(None) => None,
+                Err(e) => Some(Err(e)),
+            })
+            .collect::<anyhow::Result<Vec<Step>>>()?;
+        Ok(steps)
     }
 
     fn install(&self, package: &PackageVariant, _contexts: &Contexts) -> anyhow::Result<Vec<Step>> {
@@ -140,6 +147,19 @@ impl PackageProvider for Homebrew {
 }
 
 impl Homebrew {
+    fn build_remove_step(name: &str) -> Step {
+        Step {
+            atom: Box::new(Exec {
+                command: String::from("brew"),
+                arguments: vec![String::from("uninstall"), name.to_string()],
+                streaming: true,
+                ..Default::default()
+            }),
+            initializers: vec![],
+            finalizers: vec![],
+        }
+    }
+
     fn brew_version_step(
         name: &str,
         declared: &str,
@@ -310,6 +330,53 @@ mod test {
         assert!(
             !display.contains("--cask"),
             "did not expect '--cask' in brew install args: {display}"
+        );
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn remove_skips_package_not_installed() {
+        let homebrew = Homebrew {};
+        if !homebrew.available() {
+            return;
+        }
+        let contexts = Contexts::default();
+        let steps = homebrew
+            .remove(
+                &[String::from("__etch_nonexistent_pkg__")],
+                false,
+                &contexts,
+            )
+            .unwrap();
+        assert!(
+            steps.is_empty(),
+            "expected no steps for uninstalled formula"
+        );
+    }
+
+    #[test]
+    fn remove_step_contains_brew_uninstall_and_name() {
+        let step = Homebrew::build_remove_step("htop");
+        let display = step.atom.to_string();
+        assert!(display.contains("brew"), "got: {display}");
+        assert!(display.contains("uninstall"), "got: {display}");
+        assert!(display.contains("htop"), "got: {display}");
+    }
+
+    #[test]
+    fn remove_step_is_not_privileged() {
+        let step = Homebrew::build_remove_step("htop");
+        let display = step.atom.to_string();
+        assert!(display.contains("privileged=false"), "got: {display}");
+    }
+
+    #[test]
+    fn remove_ignores_purge_flag() {
+        let step = Homebrew::build_remove_step("htop");
+        let display = step.atom.to_string();
+        assert!(
+            !display.contains("purge"),
+            "brew uninstall must not pass purge: {display}"
         );
     }
 }
