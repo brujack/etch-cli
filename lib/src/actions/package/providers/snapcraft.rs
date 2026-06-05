@@ -81,8 +81,15 @@ impl PackageProvider for Snapcraft {
         _purge: bool,
         _contexts: &Contexts,
     ) -> anyhow::Result<Vec<Step>> {
-        let _ = names;
-        Ok(vec![]) // stub — full implementation in next task
+        let steps = names
+            .iter()
+            .filter_map(|name| match self.installed_version(name) {
+                Ok(Some(_)) => Some(Ok(Self::build_remove_step(name))),
+                Ok(None) => None,
+                Err(e) => Some(Err(e)),
+            })
+            .collect::<anyhow::Result<Vec<Step>>>()?;
+        Ok(steps)
     }
 
     fn install(&self, package: &PackageVariant, contexts: &Contexts) -> anyhow::Result<Vec<Step>> {
@@ -120,6 +127,20 @@ impl PackageProvider for Snapcraft {
 }
 
 impl Snapcraft {
+    fn build_remove_step(name: &str) -> Step {
+        Step {
+            atom: Box::new(Exec {
+                command: String::from("snap"),
+                arguments: vec![String::from("remove"), name.to_string()],
+                privileged: true,
+                streaming: true,
+                ..Default::default()
+            }),
+            initializers: vec![],
+            finalizers: vec![],
+        }
+    }
+
     fn snap_version_step(
         name: &str,
         declared: &str,
@@ -303,5 +324,46 @@ mod test {
         assert!(msg.contains("latest/edge"), "msg: {msg}");
         assert!(msg.contains("latest/stable"), "msg: {msg}");
         assert!(msg.contains("manually upgrade/downgrade"), "msg: {msg}");
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn remove_skips_package_not_installed() {
+        let snapcraft = Snapcraft {};
+        let contexts = Contexts::default();
+        let steps = snapcraft
+            .remove(
+                &[String::from("__etch_nonexistent_pkg__")],
+                false,
+                &contexts,
+            )
+            .unwrap();
+        assert!(steps.is_empty(), "expected no steps for uninstalled snap");
+    }
+
+    #[test]
+    fn remove_step_contains_snap_remove_and_name() {
+        let step = Snapcraft::build_remove_step("htop");
+        let display = step.atom.to_string();
+        assert!(display.contains("snap"), "got: {display}");
+        assert!(display.contains("remove"), "got: {display}");
+        assert!(display.contains("htop"), "got: {display}");
+    }
+
+    #[test]
+    fn remove_step_is_privileged() {
+        let step = Snapcraft::build_remove_step("htop");
+        let display = step.atom.to_string();
+        assert!(display.contains("privileged=true"), "got: {display}");
+    }
+
+    #[test]
+    fn remove_ignores_purge_flag() {
+        let step = Snapcraft::build_remove_step("htop");
+        let display = step.atom.to_string();
+        assert!(
+            !display.contains("purge"),
+            "snap remove must not pass purge: {display}"
+        );
     }
 }
