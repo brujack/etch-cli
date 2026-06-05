@@ -154,10 +154,13 @@ impl Atom for Exec {
 
             match child.wait() {
                 Ok(status) if status.success() => Ok(()),
-                Ok(status) => Err(anyhow!(
-                    "Command failed with exit code: {}",
-                    status.code().unwrap_or(1)
-                )),
+                Ok(status) => {
+                    self.status.code = status.code().unwrap_or(1);
+                    Err(anyhow!(
+                        "Command failed with exit code: {}",
+                        self.status.code
+                    ))
+                }
                 Err(err) => Err(anyhow!(err)),
             }
         } else {
@@ -502,5 +505,6 @@ mod tests {
             err.to_string().contains("exit code"),
             "expected exit code in error, got: {err}"
         );
+        assert_eq!(exec.status.code, 1);
     }
 }
