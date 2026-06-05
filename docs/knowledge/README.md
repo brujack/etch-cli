@@ -26,6 +26,10 @@ Curated findings from the web-research skill (Exa + Firecrawl) worth preserving 
 
 Use file names like `research-<topic>.md` to distinguish from architecture docs.
 
+### Retrospectives
+
+Periodic process reviews covering trends, recurring gotchas, skill usage, and actions for the next period. Filed under `retrospectives/YYYY-MM-DD.md`.
+
 ### Other reference material
 
 Reference sheets for the YAML manifest schema, action catalog summaries, or cross-cutting patterns that don't fit the above categories.
@@ -48,6 +52,9 @@ Reference sheets for the YAML manifest schema, action catalog summaries, or cros
 
 Add a row to this table when you create a file:
 
-| File         | Category | Contents |
-| ------------ | -------- | -------- |
-| _(none yet)_ | —        | —        |
+| File                                                                               | Category      | Contents                                                                                                |
+| ---------------------------------------------------------------------------------- | ------------- | ------------------------------------------------------------------------------------------------------- |
+| [action-catalog.md](action-catalog.md)                                             | Reference     | Full field reference for all 40 actions                                                                 |
+| [retrospectives/2026-05-17.md](retrospectives/2026-05-17.md)                       | Retrospective | Period: 2026-05-06 – 2026-05-17; PRs #1–#18; fork setup, CI, first actions                              |
+| [retrospectives/2026-06-retrospective.md](retrospectives/2026-06-retrospective.md) | Retrospective | Period: 2026-05-17 – 2026-06-01; PRs #19–#69; testing infra, release pipeline, new actions              |
+| [retrospectives/2026-06-05.md](retrospectives/2026-06-05.md)                       | Retrospective | Period: 2026-06-01 – 2026-06-05; PRs #70–#89; coverage sprint, streaming output, claude.install/upgrade |
