@@ -27,6 +27,7 @@ use crate::{contexts::Contexts, manifests::Manifest, steps::Step};
 use anyhow::anyhow;
 use binary::{BinaryGitHub, BinaryUrl};
 use brew::{BrewBundle, BrewCleanup, BrewUpgrade};
+use claude::{ClaudeInstall, ClaudeUpgrade};
 use command::run::RunCommand;
 use directory::{DirectoryCopy, DirectoryCreate, DirectoryRemove};
 use file::chmod::FileChmod;
@@ -191,6 +192,12 @@ pub enum Actions {
     #[serde(rename = "brew.upgrade")]
     BrewUpgrade(ConditionalVariantAction<BrewUpgrade>),
 
+    #[serde(rename = "claude.install")]
+    ClaudeInstall(ConditionalVariantAction<ClaudeInstall>),
+
+    #[serde(rename = "claude.upgrade")]
+    ClaudeUpgrade(ConditionalVariantAction<ClaudeUpgrade>),
+
     #[serde(rename = "mas.upgrade")]
     MasUpgrade(ConditionalVariantAction<MasUpgrade>),
 
@@ -269,6 +276,8 @@ impl Actions {
             Actions::BrewBundle(a) => a,
             Actions::BrewCleanup(a) => a,
             Actions::BrewUpgrade(a) => a,
+            Actions::ClaudeInstall(a) => a,
+            Actions::ClaudeUpgrade(a) => a,
             Actions::CommandRun(a) => a,
             Actions::DirectoryCopy(a) => a,
             Actions::DirectoryCreate(a) => a,
@@ -314,6 +323,8 @@ impl Actions {
             Actions::BrewBundle(a) => &a.notify,
             Actions::BrewCleanup(a) => &a.notify,
             Actions::BrewUpgrade(a) => &a.notify,
+            Actions::ClaudeInstall(a) => &a.notify,
+            Actions::ClaudeUpgrade(a) => &a.notify,
             Actions::CommandRun(a) => &a.notify,
             Actions::DirectoryCopy(a) => &a.notify,
             Actions::DirectoryCreate(a) => &a.notify,
@@ -362,6 +373,8 @@ impl Deref for Actions {
             Actions::BrewBundle(a) => a,
             Actions::BrewCleanup(a) => a,
             Actions::BrewUpgrade(a) => a,
+            Actions::ClaudeInstall(a) => a,
+            Actions::ClaudeUpgrade(a) => a,
             Actions::CommandRun(a) => a,
             Actions::DirectoryCopy(a) => a,
             Actions::DirectoryCreate(a) => a,
@@ -421,6 +434,8 @@ impl Display for Actions {
             Actions::BrewBundle(_) => "brew.bundle",
             Actions::BrewCleanup(_) => "brew.cleanup",
             Actions::BrewUpgrade(_) => "brew.upgrade",
+            Actions::ClaudeInstall(_) => "claude.install",
+            Actions::ClaudeUpgrade(_) => "claude.upgrade",
             Actions::GitClone(_) => "git.clone",
             Actions::GitConfig(_) => "git.config",
             Actions::GitPull(_) => "git.pull",

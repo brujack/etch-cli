@@ -1,14 +1,11 @@
 pub mod install;
 pub mod upgrade;
 
-#[allow(unused_imports)]
 pub(crate) use install::ClaudeInstall;
-#[allow(unused_imports)]
 pub(crate) use upgrade::ClaudeUpgrade;
 
 /// Parse installed plugin tokens from `claude plugins list` stdout.
 /// Returns full `name@marketplace` tokens from lines starting with `❯ `.
-#[allow(dead_code)]
 pub(crate) fn parse_plugin_list(output: &str) -> Vec<String> {
     output
         .lines()
