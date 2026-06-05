@@ -1,5 +1,6 @@
 mod binary;
 mod brew;
+mod claude;
 mod command;
 mod directory;
 mod file;
