@@ -27,7 +27,7 @@ use crate::{contexts::Contexts, manifests::Manifest, steps::Step};
 use anyhow::anyhow;
 use binary::{BinaryGitHub, BinaryUrl};
 use brew::{BrewBundle, BrewCleanup, BrewUpgrade};
-use claude::{ClaudeInstall, ClaudeUpgrade};
+use claude::{ClaudeInstall, ClaudeMarketplace, ClaudeMarketplaceRemove, ClaudeUpgrade};
 use command::run::RunCommand;
 use directory::{DirectoryCopy, DirectoryCreate, DirectoryRemove};
 use file::chmod::FileChmod;
@@ -195,6 +195,12 @@ pub enum Actions {
     #[serde(rename = "claude.install")]
     ClaudeInstall(ConditionalVariantAction<ClaudeInstall>),
 
+    #[serde(rename = "claude.marketplace")]
+    ClaudeMarketplace(ConditionalVariantAction<ClaudeMarketplace>),
+
+    #[serde(rename = "claude.marketplace.remove")]
+    ClaudeMarketplaceRemove(ConditionalVariantAction<ClaudeMarketplaceRemove>),
+
     #[serde(rename = "claude.upgrade")]
     ClaudeUpgrade(ConditionalVariantAction<ClaudeUpgrade>),
 
@@ -277,6 +283,8 @@ impl Actions {
             Actions::BrewCleanup(a) => a,
             Actions::BrewUpgrade(a) => a,
             Actions::ClaudeInstall(a) => a,
+            Actions::ClaudeMarketplace(a) => a,
+            Actions::ClaudeMarketplaceRemove(a) => a,
             Actions::ClaudeUpgrade(a) => a,
             Actions::CommandRun(a) => a,
             Actions::DirectoryCopy(a) => a,
@@ -324,6 +332,8 @@ impl Actions {
             Actions::BrewCleanup(a) => &a.notify,
             Actions::BrewUpgrade(a) => &a.notify,
             Actions::ClaudeInstall(a) => &a.notify,
+            Actions::ClaudeMarketplace(a) => &a.notify,
+            Actions::ClaudeMarketplaceRemove(a) => &a.notify,
             Actions::ClaudeUpgrade(a) => &a.notify,
             Actions::CommandRun(a) => &a.notify,
             Actions::DirectoryCopy(a) => &a.notify,
@@ -374,6 +384,8 @@ impl Deref for Actions {
             Actions::BrewCleanup(a) => a,
             Actions::BrewUpgrade(a) => a,
             Actions::ClaudeInstall(a) => a,
+            Actions::ClaudeMarketplace(a) => a,
+            Actions::ClaudeMarketplaceRemove(a) => a,
             Actions::ClaudeUpgrade(a) => a,
             Actions::CommandRun(a) => a,
             Actions::DirectoryCopy(a) => a,
@@ -435,6 +447,8 @@ impl Display for Actions {
             Actions::BrewCleanup(_) => "brew.cleanup",
             Actions::BrewUpgrade(_) => "brew.upgrade",
             Actions::ClaudeInstall(_) => "claude.install",
+            Actions::ClaudeMarketplace(_) => "claude.marketplace",
+            Actions::ClaudeMarketplaceRemove(_) => "claude.marketplace.remove",
             Actions::ClaudeUpgrade(_) => "claude.upgrade",
             Actions::GitClone(_) => "git.clone",
             Actions::GitConfig(_) => "git.config",
@@ -623,6 +637,11 @@ actions:
     file: /tmp/Brewfile
   - action: brew.upgrade
   - action: brew.cleanup
+  - action: claude.install
+    name: superpowers
+  - action: claude.marketplace
+    name: caveman
+    source: juliusbrussee/caveman
   - action: mas.upgrade
   - action: git.config
     scope: global
@@ -642,7 +661,7 @@ actions:
     provider: apt
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(27, manifest.actions.len());
+        assert_eq!(29, manifest.actions.len());
     }
 
     #[test]
@@ -1009,9 +1028,14 @@ actions:
         key: val
   - action: ruby.install
     version: "3.3.0"
+  - action: claude.install
+    name: superpowers
+  - action: claude.marketplace
+    name: caveman
+    source: juliusbrussee/caveman
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(40, manifest.actions.len());
+        assert_eq!(42, manifest.actions.len());
 
         for action in &manifest.actions {
             // Exercise inner_ref(), Deref, and notify() for every variant
