@@ -1,7 +1,11 @@
 pub mod install;
+pub mod marketplace;
+pub mod marketplace_remove;
 pub mod upgrade;
 
 pub(crate) use install::ClaudeInstall;
+pub(crate) use marketplace::ClaudeMarketplace;
+pub(crate) use marketplace_remove::ClaudeMarketplaceRemove;
 pub(crate) use upgrade::ClaudeUpgrade;
 
 /// Parse installed plugin tokens from `claude plugins list` stdout.
@@ -19,7 +23,6 @@ pub(crate) fn parse_plugin_list(output: &str) -> Vec<String> {
         .collect()
 }
 
-#[allow(dead_code)] // used by marketplace.rs (added in next commit)
 pub(crate) fn parse_marketplace_list(output: &str) -> Vec<String> {
     output
         .lines()
