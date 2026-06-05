@@ -152,21 +152,35 @@ where
 {
     match name {
         Some(name) => {
-            update_plugin(name)?;
-            println!("No plugins found");
+            let path = plugin_path().join(name.as_ref());
+            update_plugin(path)?;
+            println!("{}Updated: {}", " ".green(), name.as_ref());
         }
         None => {
             let plugins_dir = plugin_path();
+
+            if fs::metadata(&plugins_dir).is_err() {
+                println!("No plugins found");
+                return Ok(());
+            }
+
             let mut plugin_dir = fs::read_dir(&plugins_dir)?.peekable();
 
-            if fs::metadata(&plugins_dir).is_ok() || plugin_dir.peek().is_none() {
+            if plugin_dir.peek().is_none() {
                 println!("No plugins found");
                 return Ok(());
             }
 
             for entry in fs::read_dir(plugins_dir)?.filter_map(Result::ok) {
-                let path = entry.path();
-                println!("Updated {:?}", path.file_name().unwrap_or_default())
+                if entry.file_type()?.is_dir() {
+                    let path = entry.path();
+                    let plugin_name = path
+                        .file_name()
+                        .and_then(OsStr::to_str)
+                        .unwrap_or("unknown");
+                    update_plugin(entry.path())?;
+                    println!("{}Updated: {}", " ".green(), plugin_name);
+                }
             }
         }
     }
@@ -176,11 +190,11 @@ where
 
 fn update_plugin(path: impl Into<PathBuf>) -> Result<()> {
     let repo = open_repo(path.into())?;
-    let fetch = repo.remote_at("main")?;
-    let _ = fetch
+    let remote = repo.find_fetch_remote(None)?;
+    remote
         .connect(Direction::Fetch)?
         .prepare_fetch(Discard, GixOptions::default())?
-        .receive(Discard, &IS_INTERRUPTED);
+        .receive(Discard, &IS_INTERRUPTED)?;
     Ok(())
 }
 
