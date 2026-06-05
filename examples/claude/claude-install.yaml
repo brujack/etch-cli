@@ -1,0 +1,17 @@
+actions:
+    # Install a single Claude Code plugin by name. Idempotent: skips if the
+    # base name is already in `claude plugins list`. Requires claude on PATH.
+    - action: claude.install
+      name: superpowers
+
+    # Install with a marketplace suffix — base-name dedup still applies,
+    # so this is skipped if 'superpowers' is already installed under any source.
+    - action: claude.install
+      name: superpowers@claude-plugins-official
+
+    # Install multiple plugins. Each plugin is checked individually; only
+    # those not already installed generate a step.
+    - action: claude.install
+      list:
+          - superpowers@claude-plugins-official
+          - context7@upstash-context7

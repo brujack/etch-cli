@@ -1,0 +1,5 @@
+actions:
+    # Upgrade all installed Claude Code plugins. Discovers installed plugins
+    # at plan time via `claude plugins list`; generates one streaming
+    # `claude plugins update <name>` step per plugin. No-op when none installed.
+    - action: claude.upgrade
