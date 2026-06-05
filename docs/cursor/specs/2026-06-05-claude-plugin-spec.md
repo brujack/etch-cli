@@ -1,4 +1,4 @@
-# Spec: claude.plugin — Claude Code Plugin Management
+# Spec: claude.install / claude.upgrade — Claude Code Plugin Management
 
 **Date:** 2026-06-05  
 **Status:** In Progress
@@ -9,29 +9,31 @@
 
 ## Solution
 
-Two changes shipped together:
+Two new actions shipped together:
 
-1. **`claude.plugin` action** — declarative, idempotent install of Claude Code plugins. At plan time, checks which are already installed and skips them. Mirrors the `npm.install` pattern.
+1. **`claude.install` action** — declarative, idempotent install of Claude Code plugins. At plan time, checks which are already installed and skips them. Mirrors the `npm.install` / `package.install` pattern.
 
-2. **`etch update --claude` auto-discovery** — remove `ClaudeUpdateConfig.plugins` (now unused). `update_claude()` discovers all installed plugins from `claude plugins list` at update time and runs `claude plugins update <name>` for each. No more duplicate list in `etch.yaml`.
+2. **`claude.upgrade` action** — upgrades all currently installed Claude Code plugins. Discovers installed plugins at plan time via `claude plugins list` and generates one upgrade step per plugin. Mirrors the `package.upgrade` pattern.
+
+3. **`etch update --claude` auto-discovery** — remove `ClaudeUpdateConfig.plugins` (now unused). `update_claude()` discovers all installed plugins from `claude plugins list` at update time and runs `claude plugins update <name>` for each. No more duplicate list in `etch.yaml`.
 
 ---
 
-## Action: `claude.plugin`
+## Action: `claude.install`
 
 ### YAML Schema
 
 ```yaml
 # Single plugin
-- action: claude.plugin
+- action: claude.install
   name: superpowers
 
 # Single plugin with explicit marketplace
-- action: claude.plugin
+- action: claude.install
   name: superpowers@claude-plugins-official
 
 # Multiple plugins
-- action: claude.plugin
+- action: claude.install
   list:
       - superpowers
       - code-review
@@ -63,7 +65,7 @@ At apply time: `claude plugins install` is run for each missing plugin. Output s
 
 **Bail conditions:**
 
-- Neither `name` nor `list` specified → `bail!("claude.plugin requires either 'name' or 'list'")`
+- Neither `name` nor `list` specified → `bail!("claude.install requires either 'name' or 'list'")`
 
 **Idempotency guarantee:** calling `.plan()` twice with the same inputs produces the same steps. Re-running `etch apply` is a no-op if all listed plugins are already installed.
 
@@ -77,20 +79,11 @@ No `SkipIf` initializer. Idempotency is handled at plan time by filtering instal
 
 No `where:` clause needed. Claude CLI is available on both macOS and Linux.
 
-### File Locations
-
-```
-lib/src/actions/claude/           # new namespace
-lib/src/actions/claude/plugin.rs  # ClaudePlugin struct + impl
-lib/src/actions/claude/mod.rs     # pub mod plugin; pub use plugin::ClaudePlugin;
-lib/src/actions/mod.rs            # 7 registration points
-```
-
 ### Struct
 
 ```rust
 #[derive(JsonSchema, Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ClaudePlugin {
+pub struct ClaudeInstall {
     pub name: Option<String>,
     #[serde(default)]
     pub list: Vec<String>,
@@ -99,7 +92,64 @@ pub struct ClaudePlugin {
 
 ### Action Catalog Entry
 
-> `claude.plugin` — Ensure Claude Code plugins are installed. Skips already-installed plugins at plan time. Use `etch update --claude` to upgrade.
+> `claude.install` — Ensure Claude Code plugins are installed. Skips already-installed plugins at plan time. Use `etch update --claude` or `claude.upgrade` to upgrade.
+
+---
+
+## Action: `claude.upgrade`
+
+### YAML Schema
+
+```yaml
+- action: claude.upgrade
+```
+
+No fields. Always upgrades all currently installed Claude Code plugins.
+
+### Behavior
+
+At plan time:
+
+1. Run `claude plugins list` and capture stdout.
+2. Parse output: extract full `name@marketplace` tokens from lines matching `❯ <name>@<marketplace>`.
+3. For each installed plugin, generate one `Exec` step — `claude plugins update <name@marketplace>` — with `streaming: true`.
+
+At apply time: `claude plugins update` is run for each installed plugin. Output streams to terminal.
+
+**Empty case:** if `claude plugins list` returns no plugins (or fails), generate zero steps. No error — nothing installed means nothing to upgrade.
+
+**Idempotency guarantee:** calling `.plan()` twice with the same inputs produces the same steps.
+
+### Step Initializer
+
+No `SkipIf` initializer. Each run upgrades whatever is currently installed.
+
+### Platform Constraints
+
+No `where:` clause needed.
+
+### Struct
+
+```rust
+#[derive(JsonSchema, Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ClaudeUpgrade {}
+```
+
+### Action Catalog Entry
+
+> `claude.upgrade` — Upgrade all installed Claude Code plugins. Discovers installed plugins at plan time via `claude plugins list`.
+
+---
+
+## File Locations
+
+```
+lib/src/actions/claude/             # new namespace
+lib/src/actions/claude/install.rs   # ClaudeInstall struct + impl
+lib/src/actions/claude/upgrade.rs   # ClaudeUpgrade struct + impl
+lib/src/actions/claude/mod.rs       # pub mod install; pub mod upgrade; pub use ...
+lib/src/actions/mod.rs              # 14 registration points (7 per action)
+```
 
 ---
 
@@ -121,7 +171,7 @@ pub struct ClaudePlugin {
 
 Remove `plugins: Vec<String>` from `ClaudeUpdateConfig`. Keep `npm_globals: Vec<String>` (unrelated).
 
-**Implementation note:** verify whether `ClaudeUpdateConfig` (or any parent config struct) uses `#[serde(deny_unknown_fields)]`. If it does, removing the field will cause existing `etch.yaml` files with `plugins:` to fail deserialization. In that case: retain the field as `#[serde(default, skip_serializing)]` so it is accepted and silently ignored rather than removed. If `deny_unknown_fields` is not set, the field can be deleted outright.
+**Implementation note:** verify whether `ClaudeUpdateConfig` (or any parent config struct) uses `#[serde(deny_unknown_fields)]`. If it does, removing the field will cause existing `etch.yaml` files with `plugins:` to fail deserialization. In that case: retain the field as `#[serde(default, skip_serializing)]` so it is accepted and silently ignored rather than removed outright. If `deny_unknown_fields` is not set, the field can be deleted outright.
 
 ```rust
 // Before
@@ -130,7 +180,14 @@ pub struct ClaudeUpdateConfig {
     pub npm_globals: Vec<String>,
 }
 
-// After
+// After (if deny_unknown_fields is set on parent)
+pub struct ClaudeUpdateConfig {
+    #[serde(default, skip_serializing)]
+    pub plugins: Vec<String>,   // retained for backwards compat, silently ignored
+    pub npm_globals: Vec<String>,
+}
+
+// After (if deny_unknown_fields is NOT set — can delete outright)
 pub struct ClaudeUpdateConfig {
     pub npm_globals: Vec<String>,
 }
@@ -140,11 +197,11 @@ pub struct ClaudeUpdateConfig {
 
 ## Testing
 
-### `claude/plugin.rs` unit tests
+### `claude/install.rs` unit tests
 
 | Test                                          | Verifies                                                    |
 | --------------------------------------------- | ----------------------------------------------------------- |
-| `it_can_be_deserialized`                      | YAML with `name:` round-trips to `ClaudePlugin`             |
+| `it_can_be_deserialized`                      | YAML with `name:` round-trips to `ClaudeInstall`            |
 | `it_can_be_deserialized_with_list`            | YAML with `list:` round-trips                               |
 | `plan_errors_without_name_or_list`            | bail when both absent                                       |
 | `summarize_includes_plugin_name`              | name appears in summary                                     |
@@ -159,12 +216,24 @@ pub struct ClaudeUpdateConfig {
 
 All tests using fake binaries or PATH manipulation: `#[serial]`.
 
+### `claude/upgrade.rs` unit tests
+
+| Test                                          | Verifies                                                       |
+| --------------------------------------------- | -------------------------------------------------------------- |
+| `it_can_be_deserialized`                      | Empty YAML round-trips to `ClaudeUpgrade`                      |
+| `summarize_returns_generic_string`            | summary doesn't panic                                          |
+| `plan_returns_exec_for_each_installed_plugin` | two installed plugins → two steps with full `name@marketplace` |
+| `plan_returns_empty_when_none_installed`      | no installed plugins → no steps (no error)                     |
+| `plan_returns_empty_when_claude_not_in_path`  | fail-safe: claude missing → empty steps (no error)             |
+
+All tests using fake binaries or PATH manipulation: `#[serial]`.
+
 ### `config/mod.rs` tests
 
-| Test                                                   | Verifies                                             |
-| ------------------------------------------------------ | ---------------------------------------------------- |
-| `claude_update_config_has_no_plugins_field`            | `ClaudeUpdateConfig` deserializes without `plugins:` |
-| existing `claude_update_config_default_has_empty_vecs` | update to remove `plugins` assertion                 |
+| Test                                                   | Verifies                                                                 |
+| ------------------------------------------------------ | ------------------------------------------------------------------------ |
+| `claude_update_config_accepts_plugins_field`           | `ClaudeUpdateConfig` deserializes with `plugins:` key (backwards compat) |
+| existing `claude_update_config_default_has_empty_vecs` | update to reflect removal or skip_serializing                            |
 
 ### `update.rs` tests
 
