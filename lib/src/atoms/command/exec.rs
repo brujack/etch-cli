@@ -227,6 +227,7 @@ mod tests {
         assert_eq!(None, command_run.working_dir);
         assert_eq!(0, command_run.environment.len());
         assert_eq!(false, command_run.privileged);
+        assert_eq!(false, command_run.streaming);
 
         let command_run = new_run_command(String::from("echo"));
 
@@ -235,6 +236,7 @@ mod tests {
         assert_eq!(None, command_run.working_dir);
         assert_eq!(0, command_run.environment.len());
         assert_eq!(false, command_run.privileged);
+        assert_eq!(false, command_run.streaming);
     }
 
     #[test]
@@ -473,6 +475,7 @@ mod tests {
         };
         exec.execute().unwrap();
         assert_eq!(exec.output_string(), "");
+        assert_eq!(exec.error_message(), "");
     }
 
     #[test]
@@ -494,6 +497,10 @@ mod tests {
             streaming: true,
             ..Default::default()
         };
-        assert!(exec.execute().is_err());
+        let err = exec.execute().unwrap_err();
+        assert!(
+            err.to_string().contains("exit code"),
+            "expected exit code in error, got: {err}"
+        );
     }
 }
