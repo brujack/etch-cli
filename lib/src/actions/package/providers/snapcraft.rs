@@ -93,7 +93,7 @@ impl PackageProvider for Snapcraft {
         Ok(vec![Step {
             atom: Box::new(Exec {
                 command: String::from("snap"),
-                arguments: vec![String::from("install"), String::from("--yes")]
+                arguments: vec![String::from("install")]
                     .into_iter()
                     .chain(package.extra_args.clone())
                     .chain(package.packages())
@@ -177,6 +177,32 @@ mod test {
         );
 
         assert_eq!(steps.unwrap().len(), 1);
+    }
+
+    #[test]
+    fn install_does_not_pass_yes_flag() {
+        // snap install rejects --yes with exit 64 (EX_USAGE); only snap refresh accepts it
+        let snapcraft = Snapcraft {};
+        let contexts = Contexts::default();
+        let steps = snapcraft
+            .install(
+                &PackageVariant {
+                    name: Some(String::from("htop")),
+                    list: vec![],
+                    extra_args: vec![],
+                    provider: PackageProviders::Snapcraft,
+                    file: false,
+                    cask: false,
+                    version: None,
+                },
+                &contexts,
+            )
+            .unwrap();
+        let display = steps[0].atom.to_string();
+        assert!(
+            !display.contains("--yes"),
+            "snap install must not pass --yes; got: {display}"
+        );
     }
 
     #[test]
