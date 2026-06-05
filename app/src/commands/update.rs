@@ -392,19 +392,45 @@ fn update_mas() -> UpdateStepResult {
     }
 }
 
+/// Extract full `name@marketplace` tokens from `claude plugins list` stdout.
+/// Lines matching `❯ <token>` are kept; everything else is ignored.
+fn parse_claude_plugin_tokens(output: &str) -> Vec<String> {
+    output
+        .lines()
+        .filter_map(|line| {
+            let trimmed = line.trim();
+            trimmed
+                .strip_prefix('❯')
+                .map(|rest| rest.trim().to_string())
+                .filter(|s| !s.is_empty())
+        })
+        .collect()
+}
+
 #[cfg(not(tarpaulin_include))]
-fn update_claude(config: &ClaudeUpdateConfig) -> UpdateStepResult {
+fn update_claude(_config: &ClaudeUpdateConfig) -> UpdateStepResult {
     if !has_cmd("claude") {
         return skip_result("claude", "claude not installed");
     }
 
-    let pre_versions: Vec<String> = capture("claude", &["plugins", "list"])
-        .into_iter()
+    let list_lines = capture("claude", &["plugins", "list"]);
+    let plugins = parse_claude_plugin_tokens(&list_lines.join("\n"));
+
+    if plugins.is_empty() {
+        return UpdateStepResult {
+            name: "claude",
+            status: StepStatus::Ok("no plugins installed".to_string()),
+        };
+    }
+
+    let pre_versions: Vec<String> = list_lines
+        .iter()
         .filter(|l| l.contains("Version:"))
+        .cloned()
         .collect();
 
     let mut fail_count = 0usize;
-    for plugin in &config.plugins {
+    for plugin in &plugins {
         let exit = run_cmd("claude", &["plugins", "update", plugin.as_str()]);
         if exit != 0 {
             warn!("claude plugin update failed for {plugin}");
@@ -979,6 +1005,18 @@ impl EtchCommand for Update {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn parse_claude_plugin_tokens_extracts_tokens() {
+        let output = "❯ superpowers@official\n❯ context7@upstash\nsome other line\n";
+        let tokens = parse_claude_plugin_tokens(output);
+        assert_eq!(tokens, vec!["superpowers@official", "context7@upstash"]);
+    }
+
+    #[test]
+    fn parse_claude_plugin_tokens_empty_output() {
+        assert!(parse_claude_plugin_tokens("").is_empty());
+    }
 
     #[test]
     fn any_flag_set_false_when_all_default() {

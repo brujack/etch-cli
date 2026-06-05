@@ -42,8 +42,6 @@ pub struct GitToolsConfig {
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct ClaudeUpdateConfig {
     #[serde(default)]
-    pub plugins: Vec<String>,
-    #[serde(default)]
     pub npm_globals: Vec<String>,
 }
 
@@ -62,7 +60,6 @@ mod tests {
     #[test]
     fn claude_update_config_default_has_empty_vecs() {
         let c = ClaudeUpdateConfig::default();
-        assert!(c.plugins.is_empty());
         assert!(c.npm_globals.is_empty());
     }
 
@@ -76,8 +73,6 @@ update:
         tpm: true
         tfenv: false
     claude:
-        plugins:
-            - superpowers@claude-plugins-official
         npm_globals:
             - firecrawl-cli
     log_path: "/tmp/etch-update.log"
@@ -93,10 +88,25 @@ update:
         assert_eq!(git.tpm, Some(true));
         assert_eq!(git.tfenv, Some(false));
         let claude = update.claude.as_ref().unwrap();
-        assert_eq!(claude.plugins.len(), 1);
-        assert_eq!(claude.plugins[0], "superpowers@claude-plugins-official");
         assert_eq!(claude.npm_globals, vec!["firecrawl-cli"]);
         assert_eq!(update.log_path.as_deref(), Some("/tmp/etch-update.log"));
+    }
+
+    #[test]
+    fn claude_update_config_accepts_unknown_plugins_field() {
+        // Existing etch.yaml files may have plugins: — should not fail deserialization
+        // since ClaudeUpdateConfig does not use deny_unknown_fields.
+        let yaml = r#"
+update:
+    claude:
+        plugins:
+            - superpowers@claude-plugins-official
+        npm_globals:
+            - firecrawl-cli
+"#;
+        let config: Config = serde_yaml_ng::from_str(yaml).unwrap();
+        let claude = config.update.claude.as_ref().unwrap();
+        assert_eq!(claude.npm_globals, vec!["firecrawl-cli"]);
     }
 
     #[test]
