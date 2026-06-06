@@ -1,0 +1,21 @@
+actions:
+    # Update a single plugin by name
+    - action: claude.plugin.update
+      name: superpowers
+
+    # Update a single plugin with explicit marketplace
+    - action: claude.plugin.update
+      name: superpowers@claude-plugins-official
+
+    # Update multiple plugins at once
+    - action: claude.plugin.update
+      list:
+          - superpowers
+          - context7
+          - context-mode
+          - caveman
+
+    # Update only on macOS
+    - action: claude.plugin.update
+      name: superpowers
+      where: 'os.name == "macos"'
