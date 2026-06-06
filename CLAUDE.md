@@ -93,7 +93,7 @@ Every new action requires changes in exactly these places:
     - Match arm in `notify` accessor
     - Match arm in `Deref` impl
     - Match arm in `Display` impl (`=> "name.action"`)
-4. **Update the two test YAML lists** in `all_major_action_variants_can_be_deserialized` and `all_action_variants_inner_ref_and_deref` — add a YAML entry for the new action to each
+4. **Update the three test YAML lists** in `all_major_action_variants_can_be_deserialized`, `all_action_variants_inner_ref_and_deref`, and `all_action_variants_display` — add a YAML entry for the new action to each, update the action count in the `assert_eq!`, and add a `names.contains` assertion in the display test
 5. **Add `examples/<name>/<name>-install.yaml`** with one entry per option combination
 6. **Update the Action Catalog table** in this file and in `README.md`
 
