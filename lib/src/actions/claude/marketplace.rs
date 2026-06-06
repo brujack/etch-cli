@@ -42,6 +42,8 @@ impl ClaudeMarketplace {
             args.push(s.to_string());
         }
         if !sparse.is_empty() {
+            // claude CLI accepts multiple paths after a single --sparse flag:
+            // `claude plugins marketplace add <src> --sparse path1 path2`
             args.push(String::from("--sparse"));
             args.extend(sparse.iter().cloned());
         }
@@ -93,12 +95,45 @@ mod tests {
     }
 
     #[test]
-    fn plan_skips_when_marketplace_already_present() {
+    fn build_step_generates_marketplace_add_command() {
         let step = ClaudeMarketplace::build_step("owner/repo", None, &[]);
         let display = step.atom.to_string();
         assert!(display.contains("marketplace"), "got: {display}");
         assert!(display.contains("add"), "got: {display}");
         assert!(display.contains("owner/repo"), "got: {display}");
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn plan_skips_when_marketplace_already_present() {
+        use std::os::unix::fs::PermissionsExt;
+
+        // Fake claude that reports "caveman" as already-installed marketplace
+        let tmp = tempfile::tempdir().unwrap();
+        let fake = tmp.path().join("claude");
+        std::fs::write(&fake, "#!/bin/sh\nprintf '❯ caveman\\n'\nexit 0\n").unwrap();
+        std::fs::set_permissions(&fake, std::fs::Permissions::from_mode(0o755)).unwrap();
+
+        let old = std::env::var("PATH").unwrap_or_default();
+        std::env::set_var("PATH", format!("{}:{old}", tmp.path().display()));
+
+        let action = ClaudeMarketplace {
+            name: String::from("caveman"),
+            source: String::from("juliusbrussee/caveman"),
+            ..Default::default()
+        };
+        let steps = action
+            .plan(
+                &crate::manifests::Manifest::default(),
+                &crate::contexts::Contexts::default(),
+            )
+            .unwrap();
+        std::env::set_var("PATH", old);
+
+        assert!(
+            steps.is_empty(),
+            "expected no steps — marketplace already installed"
+        );
     }
 
     #[test]

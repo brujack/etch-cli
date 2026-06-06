@@ -56,6 +56,9 @@ impl Action for ClaudeMarketplaceRemove {
     }
 
     fn plan(&self, _: &Manifest, _: &Contexts) -> anyhow::Result<Vec<Step>> {
+        if self.name.is_empty() {
+            anyhow::bail!("claude.marketplace.remove requires 'name'");
+        }
         let installed = Self::installed_marketplaces();
         if !installed.contains(&self.name) {
             return Ok(vec![]);
@@ -114,5 +117,23 @@ mod tests {
         let yaml = "name: caveman\nscope: user\n";
         let r: ClaudeMarketplaceRemove = serde_yaml_ng::from_str(yaml).unwrap();
         assert_eq!(r.scope, Some(String::from("user")));
+    }
+
+    #[test]
+    fn plan_errors_when_name_is_empty() {
+        let action = ClaudeMarketplaceRemove {
+            name: String::new(),
+            scope: None,
+        };
+        let result = action.plan(
+            &crate::manifests::Manifest::default(),
+            &crate::contexts::Contexts::default(),
+        );
+        assert!(result.is_err());
+        assert!(result
+            .err()
+            .unwrap()
+            .to_string()
+            .contains("requires 'name'"));
     }
 }
