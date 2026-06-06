@@ -1,11 +1,13 @@
 pub mod install;
 pub mod marketplace;
 pub mod marketplace_remove;
+pub mod plugin_update;
 pub mod upgrade;
 
 pub(crate) use install::ClaudeInstall;
 pub(crate) use marketplace::ClaudeMarketplace;
 pub(crate) use marketplace_remove::ClaudeMarketplaceRemove;
+pub(crate) use plugin_update::ClaudePluginUpdate;
 pub(crate) use upgrade::ClaudeUpgrade;
 
 /// Parse installed plugin tokens from `claude plugins list` stdout.
