@@ -8,7 +8,6 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::ops::Deref;
 
-#[allow(dead_code)] // registered in Actions dispatch in next commit
 #[derive(JsonSchema, Clone, Debug, Default, Serialize, Deserialize)]
 pub struct PackageRemove {
     pub name: Option<String>,

@@ -41,7 +41,9 @@ use gem::GemInstall;
 use git::{GitClone, GitConfig, GitPull};
 use group::add::GroupAdd;
 use npm::NpmInstall;
-use package::{PackageAutoremove, PackageInstall, PackageRepository, PackageUpgrade};
+use package::{
+    PackageAutoremove, PackageInstall, PackageRemove, PackageRepository, PackageUpgrade,
+};
 use pip::PipInstall;
 use plugin::Plugin;
 use pyenv::{PyenvInstall, PyenvVirtualenv};
@@ -246,6 +248,9 @@ pub enum Actions {
     #[serde(rename = "package.upgrade")]
     PackageUpgrade(ConditionalVariantAction<PackageUpgrade>),
 
+    #[serde(rename = "package.remove")]
+    PackageRemove(ConditionalVariantAction<PackageRemove>),
+
     #[serde(rename = "user.add")]
     UserAdd(ConditionalVariantAction<UserAdd>),
 
@@ -310,6 +315,7 @@ impl Actions {
             Actions::PackageRepository(a) => a,
             Actions::PackageAutoremove(a) => a,
             Actions::PackageUpgrade(a) => a,
+            Actions::PackageRemove(a) => a,
             Actions::UserAdd(a) => a,
             Actions::UserAddGroup(a) => a,
             Actions::FileRemove(a) => a,
@@ -361,6 +367,7 @@ impl Actions {
             Actions::PackageRepository(a) => &a.notify,
             Actions::PackageAutoremove(a) => &a.notify,
             Actions::PackageUpgrade(a) => &a.notify,
+            Actions::PackageRemove(a) => &a.notify,
             Actions::UserAdd(a) => &a.notify,
             Actions::UserAddGroup(a) => &a.notify,
             Actions::Plugin(a) => &a.notify,
@@ -411,6 +418,7 @@ impl Deref for Actions {
             Actions::PackageRepository(a) => a,
             Actions::PackageAutoremove(a) => a,
             Actions::PackageUpgrade(a) => a,
+            Actions::PackageRemove(a) => a,
             Actions::UserAdd(a) => a,
             Actions::UserAddGroup(a) => a,
             Actions::FileRemove(a) => a,
@@ -464,6 +472,7 @@ impl Display for Actions {
             Actions::PackageRepository(_) => "package.repository",
             Actions::PackageAutoremove(_) => "package.autoremove",
             Actions::PackageUpgrade(_) => "package.upgrade",
+            Actions::PackageRemove(_) => "package.remove",
             Actions::UserAdd(_) => "user.add",
             Actions::UserAddGroup(_) => "user.group",
             Actions::Plugin(_) => "plugin",
@@ -659,9 +668,11 @@ actions:
     name: requests
   - action: package.upgrade
     provider: apt
+  - action: package.remove
+    name: htop
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(29, manifest.actions.len());
+        assert_eq!(30, manifest.actions.len());
     }
 
     #[test]
@@ -1033,9 +1044,11 @@ actions:
   - action: claude.marketplace
     name: caveman
     source: juliusbrussee/caveman
+  - action: package.remove
+    name: htop
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(42, manifest.actions.len());
+        assert_eq!(43, manifest.actions.len());
 
         for action in &manifest.actions {
             // Exercise inner_ref(), Deref, and notify() for every variant
@@ -1332,9 +1345,11 @@ actions:
     source: juliusbrussee/caveman
   - action: claude.marketplace.remove
     name: caveman
+  - action: package.remove
+    name: htop
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(42, manifest.actions.len());
+        assert_eq!(43, manifest.actions.len());
         let names: Vec<String> = manifest.actions.iter().map(|a| a.to_string()).collect();
         assert!(names.contains(&"command.run".to_string()));
         assert!(names.contains(&"directory.copy".to_string()));
@@ -1378,6 +1393,7 @@ actions:
         assert!(names.contains(&"pyenv.virtualenv".to_string()));
         assert!(names.contains(&"claude.marketplace".to_string()));
         assert!(names.contains(&"claude.marketplace.remove".to_string()));
+        assert!(names.contains(&"package.remove".to_string()));
     }
 
     #[test]

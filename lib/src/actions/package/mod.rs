@@ -8,7 +8,6 @@ mod upgrade;
 pub(crate) use autoremove::PackageAutoremove;
 pub(crate) use install::PackageInstall;
 use providers::PackageProviders;
-#[allow(unused_imports)] // used in Actions dispatch in next commit
 pub(crate) use remove::PackageRemove;
 pub(crate) use repository::PackageRepository;
 use schemars::JsonSchema;
