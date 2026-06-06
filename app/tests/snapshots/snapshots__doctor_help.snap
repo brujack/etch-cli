@@ -1,0 +1,12 @@
+---
+source: app/tests/snapshots.rs
+expression: "String::from_utf8_lossy(&output.stdout)"
+---
+Check system health
+
+Usage: etch doctor [OPTIONS]
+
+Options:
+      --json          Output results as JSON
+      --missing-only  Only show failing checks
+  -h, --help          Print help
