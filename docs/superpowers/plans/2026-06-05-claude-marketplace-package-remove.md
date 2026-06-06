@@ -1,5 +1,7 @@
 # claude.marketplace, claude.marketplace.remove, package.remove Implementation Plan
 
+> **Status: DONE** — merged via PR #91 (2026-06-06)
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add `claude.marketplace`, `claude.marketplace.remove`, and `package.remove` actions to etch-cli.
