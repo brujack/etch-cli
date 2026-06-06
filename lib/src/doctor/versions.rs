@@ -7,8 +7,20 @@ use std::process::Command;
 
 pub struct VersionsCheck;
 
-fn run_version_command(cmd: &str) -> Option<String> {
+/// Run a shell command string (for explicit config pins — user-authored in etch.yaml).
+fn run_shell_command(cmd: &str) -> Option<String> {
     let output = Command::new("sh").args(["-c", cmd]).output().ok()?;
+    capture_output(output)
+}
+
+/// Run a binary directly without shell interpretation (for manifest-derived binary atoms).
+/// Avoids command injection from manifest-controlled `name` fields.
+fn run_binary_version(binary_name: &str) -> Option<String> {
+    let output = Command::new(binary_name).arg("--version").output().ok()?;
+    capture_output(output)
+}
+
+fn capture_output(output: std::process::Output) -> Option<String> {
     let combined = format!(
         "{}{}",
         String::from_utf8_lossy(&output.stdout),
@@ -69,7 +81,7 @@ impl DoctorCheck for VersionsCheck {
                 }
 
                 let label = format!("{binary_name} {version}");
-                let output = run_version_command(&format!("{binary_name} --version"));
+                let output = run_binary_version(binary_name);
                 results.push(version_result(label, output, version));
             }
         }
@@ -77,7 +89,7 @@ impl DoctorCheck for VersionsCheck {
         if let Some(ref doctor) = config.doctor {
             for pin in &doctor.versions {
                 let label = format!("{} {}", pin.tool, pin.expected);
-                let output = run_version_command(&pin.command);
+                let output = run_shell_command(&pin.command);
                 results.push(version_result(label, output, &pin.expected));
             }
         }
