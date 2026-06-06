@@ -30,6 +30,7 @@ pub(crate) fn execute(runtime: Runtime) -> anyhow::Result<()> {
         Commands::Update(update) => update.execute(&runtime),
         Commands::Plugin(plugin) => plugin.execute(&runtime),
         Commands::HelpAll(h) => h.execute(&runtime),
+        Commands::Doctor(d) => d.execute(&runtime),
     }
 }
 

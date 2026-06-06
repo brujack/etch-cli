@@ -21,6 +21,9 @@ pub(crate) use plugin::PluginCommands;
 mod update;
 pub(crate) use update::Update;
 
+mod doctor;
+pub(crate) use doctor::Doctor;
+
 use crate::Runtime;
 
 pub trait EtchCommand {

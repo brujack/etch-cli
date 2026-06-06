@@ -62,6 +62,9 @@ pub enum Commands {
     /// Update installed tools and packages
     Update(commands::Update),
 
+    /// Check system health
+    Doctor(commands::Doctor),
+
     /// Manage etch plugins
     Plugin(commands::PluginCommands),
 
