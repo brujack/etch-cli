@@ -42,6 +42,9 @@ impl Action for ClaudePluginUpdate {
             bail!("claude.plugin.update requires either 'name' or 'list'");
         }
 
+        // No idempotency check — update always runs. Caller is responsible for
+        // ensuring the plugin is installed (use claude.install for that).
+
         let steps = names
             .into_iter()
             .map(|name| Step {
@@ -118,7 +121,7 @@ mod tests {
     #[test]
     fn summarize_with_no_plugins_returns_generic() {
         let s = ClaudePluginUpdate::default().summarize();
-        assert!(!s.is_empty(), "expected non-empty summarize");
+        assert!(s.to_lowercase().contains("claude"), "got: {s}");
     }
 
     #[test]
@@ -141,6 +144,7 @@ mod tests {
         assert_eq!(1, steps.len());
         let display = steps[0].atom.to_string();
         assert!(display.contains("claude"), "got: {display}");
+        assert!(display.contains("plugins"), "got: {display}");
         assert!(display.contains("update"), "got: {display}");
         assert!(display.contains("superpowers"), "got: {display}");
     }
@@ -159,6 +163,8 @@ mod tests {
         let d1 = steps[1].atom.to_string();
         assert!(d0.contains("superpowers"), "got: {d0}");
         assert!(d1.contains("context7"), "got: {d1}");
+        assert!(d0.contains("plugins"), "got: {d0}");
+        assert!(d1.contains("plugins"), "got: {d1}");
         assert!(d0.contains("update"), "got: {d0}");
         assert!(d1.contains("update"), "got: {d1}");
     }
