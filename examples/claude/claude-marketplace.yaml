@@ -1,0 +1,45 @@
+---
+# claude.marketplace — ensure a Claude Code plugin marketplace is registered
+# claude.marketplace.remove — remove a registered marketplace
+#
+# Idempotent: add skips if marketplace already present;
+# remove skips if marketplace already absent.
+#
+# Fields:
+#   name:    marketplace handle (used for idempotency check)
+#   source:  GitHub "owner/repo" or full git URL
+#   scope:   optional — user (default) | project | local
+#   sparse:  optional — list of paths for monorepo sparse checkout
+
+actions:
+    # Add a marketplace from a GitHub repo (shorthand: owner/repo)
+    - action: claude.marketplace
+      name: caveman
+      source: juliusbrussee/caveman
+
+    # Add with explicit user scope
+    - action: claude.marketplace
+      name: firecrawl
+      source: firecrawl/firecrawl-claude-plugin
+      scope: user
+
+    # Add a marketplace from a full git URL
+    - action: claude.marketplace
+      name: my-internal-marketplace
+      source: https://github.com/my-org/my-marketplace.git
+
+    # Add from a monorepo using sparse checkout
+    - action: claude.marketplace
+      name: warp-plugins
+      source: warpdotdev/warp-plugins
+      sparse:
+          - claude-plugins
+
+    # Remove a marketplace from all scopes
+    - action: claude.marketplace.remove
+      name: caveman
+
+    # Remove from a specific scope only
+    - action: claude.marketplace.remove
+      name: caveman
+      scope: user

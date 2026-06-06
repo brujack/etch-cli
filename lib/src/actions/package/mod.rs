@@ -1,12 +1,14 @@
 mod autoremove;
 mod install;
 mod providers;
+mod remove;
 mod repository;
 mod upgrade;
 
 pub(crate) use autoremove::PackageAutoremove;
 pub(crate) use install::PackageInstall;
 use providers::PackageProviders;
+pub(crate) use remove::PackageRemove;
 pub(crate) use repository::PackageRepository;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};

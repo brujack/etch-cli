@@ -62,6 +62,14 @@ pub trait PackageProvider {
     fn install(&self, package: &PackageVariant, contexts: &Contexts) -> anyhow::Result<Vec<Step>>;
     /// Returns the installed version of a single named package, or None if not installed.
     fn installed_version(&self, name: &str) -> anyhow::Result<Option<String>>;
+    /// Remove installed packages. `purge` is apt-only (removes config files);
+    /// snap and homebrew implementations silently ignore it.
+    fn remove(
+        &self,
+        names: &[String],
+        purge: bool,
+        contexts: &Contexts,
+    ) -> anyhow::Result<Vec<Step>>;
 }
 
 /// Outcome of comparing a declared version against what is currently installed.

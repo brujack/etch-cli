@@ -161,6 +161,31 @@ impl PackageProvider for Aptitude {
         }
     }
 
+    fn remove(
+        &self,
+        names: &[String],
+        purge: bool,
+        contexts: &Contexts,
+    ) -> anyhow::Result<Vec<Step>> {
+        let privilege_provider =
+            utilities::get_privilege_provider(contexts).unwrap_or_else(|| "sudo".to_string());
+        let env = self.env();
+        let steps = names
+            .iter()
+            .filter_map(|name| match self.installed_version(name) {
+                Ok(Some(_)) => Some(Ok(Self::build_remove_step(
+                    name,
+                    purge,
+                    &privilege_provider,
+                    &env,
+                ))),
+                Ok(None) => None,
+                Err(e) => Some(Err(e)),
+            })
+            .collect::<anyhow::Result<Vec<Step>>>()?;
+        Ok(steps)
+    }
+
     fn install(&self, package: &PackageVariant, contexts: &Contexts) -> anyhow::Result<Vec<Step>> {
         let privilege_provider =
             utilities::get_privilege_provider(contexts).unwrap_or_else(|| "sudo".to_string());
@@ -198,6 +223,28 @@ impl PackageProvider for Aptitude {
 }
 
 impl Aptitude {
+    fn build_remove_step(
+        name: &str,
+        purge: bool,
+        privilege_provider: &str,
+        env: &[(String, String)],
+    ) -> Step {
+        let verb = if purge { "purge" } else { "remove" };
+        Step {
+            atom: Box::new(Exec {
+                command: String::from("apt-get"),
+                arguments: vec![String::from(verb), String::from("--yes"), name.to_string()],
+                environment: env.to_vec(),
+                privileged: true,
+                privilege_provider: privilege_provider.to_string(),
+                streaming: true,
+                ..Default::default()
+            }),
+            initializers: vec![],
+            finalizers: vec![],
+        }
+    }
+
     fn apt_version_step(
         name: &str,
         declared: &str,
@@ -389,6 +436,60 @@ mod test {
         let variant = PackageVariant::default();
         let steps = aptitude.install(&variant, &contexts).unwrap();
         assert_eq!(steps.len(), 1);
+    }
+
+    #[test]
+    #[cfg(target_os = "linux")]
+    fn remove_skips_package_not_installed() {
+        let apt = Aptitude {};
+        let contexts = Contexts::default();
+        let steps = apt
+            .remove(
+                &[String::from("__etch_nonexistent_pkg__")],
+                false,
+                &contexts,
+            )
+            .unwrap();
+        assert!(
+            steps.is_empty(),
+            "expected no steps for uninstalled package"
+        );
+    }
+
+    #[test]
+    fn remove_uses_purge_verb_when_purge_true() {
+        let step = Aptitude::build_remove_step("nginx", true, "sudo", &[]);
+        let display = step.atom.to_string();
+        assert!(display.contains("purge"), "expected purge: {display}");
+        assert!(
+            !display.contains("remove"),
+            "should not say 'remove': {display}"
+        );
+    }
+
+    #[test]
+    fn remove_uses_remove_verb_when_purge_false() {
+        let step = Aptitude::build_remove_step("nginx", false, "sudo", &[]);
+        let display = step.atom.to_string();
+        assert!(display.contains("remove"), "expected remove: {display}");
+        assert!(
+            !display.contains("purge"),
+            "should not say 'purge': {display}"
+        );
+    }
+
+    #[test]
+    fn remove_step_is_privileged() {
+        let step = Aptitude::build_remove_step("nginx", false, "sudo", &[]);
+        let display = step.atom.to_string();
+        assert!(display.contains("privileged=true"), "got: {display}");
+    }
+
+    #[test]
+    fn remove_step_includes_yes_flag() {
+        let step = Aptitude::build_remove_step("nginx", false, "sudo", &[]);
+        let display = step.atom.to_string();
+        assert!(display.contains("--yes"), "got: {display}");
     }
 
     #[test]

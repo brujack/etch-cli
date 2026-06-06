@@ -219,3 +219,37 @@ actions:
   # Run after upgrades or package removals to keep the system clean.
   - action: package.autoremove
     where: 'os.family == "linux"'
+
+  # ────────────────────────────────────────────────────
+  # REMOVE — uninstall packages
+  # ────────────────────────────────────────────────────
+
+  # Remove a single package via apt
+  - action: package.remove
+    name: nginx
+    provider: apt
+    where: 'os.family == "linux"'
+
+  # Remove and purge config files (apt only)
+  - action: package.remove
+    name: nginx
+    provider: apt
+    purge: true
+    where: 'os.family == "linux"'
+
+  # Remove multiple packages at once
+  - action: package.remove
+    list: [htop, curl, wget]
+    provider: apt
+    where: 'os.family == "linux"'
+
+  # Remove a snap package
+  - action: package.remove
+    name: htop
+    provider: snap
+    where: "variables.has_snap"
+
+  # Remove a Homebrew formula (works on macOS and Linux)
+  - action: package.remove
+    name: htop
+    provider: homebrew
