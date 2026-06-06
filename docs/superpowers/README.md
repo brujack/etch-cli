@@ -76,6 +76,7 @@ Master status index for all specs and implementation plans in this directory.
 | 2026-06-03 | mas.install list: support                                                                  | —                                                                                                                         | Done    |
 | 2026-06-04 | apply error summary includes actual error                                                  | —                                                                                                                         | Done    |
 | 2026-06-05 | [claude-marketplace-package-remove](plans/2026-06-05-claude-marketplace-package-remove.md) | [claude-marketplace-package-remove](specs/2026-06-05-claude-marketplace-package-remove-design.md)                         | Done    |
+| 2026-06-06 | [claude-plugin-update](plans/2026-06-06-claude-plugin-update.md)                           | [claude-plugin-update](specs/2026-06-06-claude-plugin-update-design.md)                                                   | Done    |
 
 ---
 
