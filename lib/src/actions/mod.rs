@@ -27,7 +27,9 @@ use crate::{contexts::Contexts, manifests::Manifest, steps::Step};
 use anyhow::anyhow;
 use binary::{BinaryGitHub, BinaryUrl};
 use brew::{BrewBundle, BrewCleanup, BrewUpgrade};
-use claude::{ClaudeInstall, ClaudeMarketplace, ClaudeMarketplaceRemove, ClaudeUpgrade};
+use claude::{
+    ClaudeInstall, ClaudeMarketplace, ClaudeMarketplaceRemove, ClaudePluginUpdate, ClaudeUpgrade,
+};
 use command::run::RunCommand;
 use directory::{DirectoryCopy, DirectoryCreate, DirectoryRemove};
 use file::chmod::FileChmod;
@@ -205,6 +207,8 @@ pub enum Actions {
 
     #[serde(rename = "claude.upgrade")]
     ClaudeUpgrade(ConditionalVariantAction<ClaudeUpgrade>),
+    #[serde(rename = "claude.plugin.update")]
+    ClaudePluginUpdate(ConditionalVariantAction<ClaudePluginUpdate>),
 
     #[serde(rename = "mas.upgrade")]
     MasUpgrade(ConditionalVariantAction<MasUpgrade>),
@@ -291,6 +295,7 @@ impl Actions {
             Actions::ClaudeMarketplace(a) => a,
             Actions::ClaudeMarketplaceRemove(a) => a,
             Actions::ClaudeUpgrade(a) => a,
+            Actions::ClaudePluginUpdate(a) => a,
             Actions::CommandRun(a) => a,
             Actions::DirectoryCopy(a) => a,
             Actions::DirectoryCreate(a) => a,
@@ -341,6 +346,7 @@ impl Actions {
             Actions::ClaudeMarketplace(a) => &a.notify,
             Actions::ClaudeMarketplaceRemove(a) => &a.notify,
             Actions::ClaudeUpgrade(a) => &a.notify,
+            Actions::ClaudePluginUpdate(a) => &a.notify,
             Actions::CommandRun(a) => &a.notify,
             Actions::DirectoryCopy(a) => &a.notify,
             Actions::DirectoryCreate(a) => &a.notify,
@@ -394,6 +400,7 @@ impl Deref for Actions {
             Actions::ClaudeMarketplace(a) => a,
             Actions::ClaudeMarketplaceRemove(a) => a,
             Actions::ClaudeUpgrade(a) => a,
+            Actions::ClaudePluginUpdate(a) => a,
             Actions::CommandRun(a) => a,
             Actions::DirectoryCopy(a) => a,
             Actions::DirectoryCreate(a) => a,
@@ -458,6 +465,7 @@ impl Display for Actions {
             Actions::ClaudeMarketplace(_) => "claude.marketplace",
             Actions::ClaudeMarketplaceRemove(_) => "claude.marketplace.remove",
             Actions::ClaudeUpgrade(_) => "claude.upgrade",
+            Actions::ClaudePluginUpdate(_) => "claude.plugin.update",
             Actions::GitClone(_) => "git.clone",
             Actions::GitConfig(_) => "git.config",
             Actions::GitPull(_) => "git.pull",
@@ -648,6 +656,8 @@ actions:
   - action: brew.cleanup
   - action: claude.install
     name: superpowers
+  - action: claude.plugin.update
+    name: superpowers
   - action: claude.marketplace
     name: caveman
     source: juliusbrussee/caveman
@@ -672,7 +682,7 @@ actions:
     name: htop
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(30, manifest.actions.len());
+        assert_eq!(31, manifest.actions.len());
     }
 
     #[test]
@@ -1044,11 +1054,13 @@ actions:
   - action: claude.marketplace
     name: caveman
     source: juliusbrussee/caveman
+  - action: claude.plugin.update
+    name: superpowers
   - action: package.remove
     name: htop
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(43, manifest.actions.len());
+        assert_eq!(44, manifest.actions.len());
 
         for action in &manifest.actions {
             // Exercise inner_ref(), Deref, and notify() for every variant
@@ -1345,11 +1357,13 @@ actions:
     source: juliusbrussee/caveman
   - action: claude.marketplace.remove
     name: caveman
+  - action: claude.plugin.update
+    name: superpowers
   - action: package.remove
     name: htop
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(43, manifest.actions.len());
+        assert_eq!(44, manifest.actions.len());
         let names: Vec<String> = manifest.actions.iter().map(|a| a.to_string()).collect();
         assert!(names.contains(&"command.run".to_string()));
         assert!(names.contains(&"directory.copy".to_string()));
@@ -1393,6 +1407,7 @@ actions:
         assert!(names.contains(&"pyenv.virtualenv".to_string()));
         assert!(names.contains(&"claude.marketplace".to_string()));
         assert!(names.contains(&"claude.marketplace.remove".to_string()));
+        assert!(names.contains(&"claude.plugin.update".to_string()));
         assert!(names.contains(&"package.remove".to_string()));
     }
 
