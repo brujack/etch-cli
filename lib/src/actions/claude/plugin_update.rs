@@ -2,6 +2,7 @@ use crate::actions::Action;
 use crate::contexts::Contexts;
 use crate::manifests::Manifest;
 use crate::steps::Step;
+use anyhow::bail;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -12,13 +13,50 @@ pub struct ClaudePluginUpdate {
     pub list: Vec<String>,
 }
 
+impl ClaudePluginUpdate {
+    fn plugin_names(&self) -> Vec<String> {
+        if !self.list.is_empty() {
+            self.list.clone()
+        } else if let Some(name) = &self.name {
+            vec![name.clone()]
+        } else {
+            vec![]
+        }
+    }
+}
+
 impl Action for ClaudePluginUpdate {
     fn summarize(&self) -> String {
-        todo!()
+        let names = self.plugin_names();
+        if names.is_empty() {
+            return String::from("Updating Claude plugins");
+        }
+        format!("Updating Claude plugin(s): {}", names.join(", "))
     }
 
     fn plan(&self, _: &Manifest, _: &Contexts) -> anyhow::Result<Vec<Step>> {
-        todo!()
+        use crate::atoms::command::Exec;
+
+        let names = self.plugin_names();
+        if names.is_empty() {
+            bail!("claude.plugin.update requires either 'name' or 'list'");
+        }
+
+        let steps = names
+            .into_iter()
+            .map(|name| Step {
+                atom: Box::new(Exec {
+                    command: String::from("claude"),
+                    arguments: vec![String::from("plugins"), String::from("update"), name],
+                    streaming: true,
+                    ..Default::default()
+                }),
+                initializers: vec![],
+                finalizers: vec![],
+            })
+            .collect();
+
+        Ok(steps)
     }
 }
 
