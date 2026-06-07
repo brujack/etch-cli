@@ -1,5 +1,7 @@
 # ruby.chruby Implementation Plan
 
+> **Status: DONE**
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add a `ruby.chruby` action that installs chruby via Homebrew and optionally sets `~/.ruby-version`, and extend `ruby.install` so `version_manager: chruby` writes `~/.ruby-version` after installing the ruby.
