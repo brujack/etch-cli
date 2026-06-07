@@ -50,6 +50,7 @@ use pip::PipInstall;
 use plugin::Plugin;
 use pyenv::{PyenvInstall, PyenvVirtualenv};
 use rhai::Engine;
+use ruby::RubyChruby;
 use ruby::RubyInstall;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -267,6 +268,9 @@ pub enum Actions {
     #[serde(rename = "ruby.install")]
     RubyInstall(ConditionalVariantAction<RubyInstall>),
 
+    #[serde(rename = "ruby.chruby")]
+    RubyChruby(ConditionalVariantAction<RubyChruby>),
+
     #[serde(rename = "gem.install")]
     GemInstall(ConditionalVariantAction<GemInstall>),
 
@@ -327,6 +331,7 @@ impl Actions {
             Actions::DirectoryRemove(a) => a,
             Actions::Plugin(a) => a,
             Actions::RubyInstall(a) => a,
+            Actions::RubyChruby(a) => a,
             Actions::GemInstall(a) => a,
             Actions::PipInstall(a) => a,
             Actions::NpmInstall(a) => a,
@@ -378,6 +383,7 @@ impl Actions {
             Actions::UserAddGroup(a) => &a.notify,
             Actions::Plugin(a) => &a.notify,
             Actions::RubyInstall(a) => &a.notify,
+            Actions::RubyChruby(a) => &a.notify,
             Actions::GemInstall(a) => &a.notify,
             Actions::PipInstall(a) => &a.notify,
             Actions::NpmInstall(a) => &a.notify,
@@ -432,6 +438,7 @@ impl Deref for Actions {
             Actions::DirectoryRemove(a) => a,
             Actions::Plugin(a) => a,
             Actions::RubyInstall(a) => a,
+            Actions::RubyChruby(a) => a,
             Actions::GemInstall(a) => a,
             Actions::PipInstall(a) => a,
             Actions::NpmInstall(a) => a,
@@ -485,6 +492,7 @@ impl Display for Actions {
             Actions::UserAddGroup(_) => "user.group",
             Actions::Plugin(_) => "plugin",
             Actions::RubyInstall(_) => "ruby.install",
+            Actions::RubyChruby(_) => "ruby.chruby",
             Actions::GemInstall(_) => "gem.install",
             Actions::PipInstall(_) => "pip.install",
             Actions::NpmInstall(_) => "npm.install",
@@ -680,9 +688,10 @@ actions:
     provider: apt
   - action: package.remove
     name: htop
+  - action: ruby.chruby
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(31, manifest.actions.len());
+        assert_eq!(32, manifest.actions.len());
     }
 
     #[test]
@@ -1049,6 +1058,7 @@ actions:
         key: val
   - action: ruby.install
     version: "3.3.0"
+  - action: ruby.chruby
   - action: claude.install
     name: superpowers
   - action: claude.marketplace
@@ -1060,7 +1070,7 @@ actions:
     name: htop
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(44, manifest.actions.len());
+        assert_eq!(45, manifest.actions.len());
 
         for action in &manifest.actions {
             // Exercise inner_ref(), Deref, and notify() for every variant
@@ -1341,6 +1351,7 @@ actions:
         key: val
   - action: ruby.install
     version: "3.2.0"
+  - action: ruby.chruby
   - action: gem.install
     name: bundler
   - action: pip.install
@@ -1363,7 +1374,7 @@ actions:
     name: htop
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(44, manifest.actions.len());
+        assert_eq!(45, manifest.actions.len());
         let names: Vec<String> = manifest.actions.iter().map(|a| a.to_string()).collect();
         assert!(names.contains(&"command.run".to_string()));
         assert!(names.contains(&"directory.copy".to_string()));
@@ -1400,6 +1411,7 @@ actions:
         assert!(names.contains(&"user.group".to_string()));
         assert!(names.contains(&"plugin".to_string()));
         assert!(names.contains(&"ruby.install".to_string()));
+        assert!(names.contains(&"ruby.chruby".to_string()));
         assert!(names.contains(&"gem.install".to_string()));
         assert!(names.contains(&"pip.install".to_string()));
         assert!(names.contains(&"npm.install".to_string()));

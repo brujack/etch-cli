@@ -1320,14 +1320,12 @@ dependencies = [
  "serde_json",
  "serde_yaml_ng",
  "strip-ansi-escapes",
- "tealr",
  "tempfile",
  "tracing",
  "tracing-journald",
  "tracing-subscriber",
  "tracing-test",
  "update-informer",
- "walkdir",
 ]
 
 [[package]]
@@ -1344,7 +1342,6 @@ dependencies = [
  "flate2",
  "gethostname",
  "gix",
- "gix-protocol",
  "glob",
  "hickory-resolver",
  "ignore",
@@ -1379,7 +1376,6 @@ dependencies = [
  "tracing-subscriber",
  "tracing-test",
  "uzers",
- "walkdir",
  "which 8.0.2",
  "whoami",
  "xz2",

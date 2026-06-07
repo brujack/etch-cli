@@ -1,0 +1,31 @@
+# ruby.chruby — install chruby and optionally set a default Ruby version
+#
+# chruby is a lightweight Ruby version manager. This action installs it via
+# Homebrew. Shell RC sourcing (source chruby.sh in .zshrc) is left to
+# file.link or file.copy — see examples/file/.
+#
+# Pair with ruby.install to install a ruby and set it as the default.
+
+# Minimal: install chruby only, do not touch ~/.ruby-version
+- action: ruby.chruby
+  where: 'os.name == "macos"'
+
+---
+
+# Install chruby and set a default ruby version in ~/.ruby-version.
+# The value is written verbatim — use the chruby directory-name format.
+- action: ruby.chruby
+  default_version: "ruby-3.3.0"
+  where: 'os.name == "macos"'
+
+---
+
+# Full workflow: install chruby, then install ruby and set as default.
+# ruby.install with version_manager: chruby writes ~/.ruby-version automatically.
+- action: ruby.chruby
+  where: 'os.name == "macos"'
+
+- action: ruby.install
+  version: "3.3.0"
+  version_manager: chruby
+  where: 'os.name == "macos"'
