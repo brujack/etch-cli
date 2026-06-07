@@ -12,6 +12,7 @@ use etch_lib::doctor::{CheckResult, DoctorCheck};
 use etch_lib::manifests::load;
 use serde::Serialize;
 use std::collections::HashMap;
+use tracing::warn;
 
 #[derive(Parser, Debug, Default)]
 pub(crate) struct Doctor {
@@ -28,9 +29,16 @@ pub(crate) fn run_doctor_checks(
     config: &Config,
     contexts: &Contexts,
 ) -> anyhow::Result<Vec<(&'static str, Vec<CheckResult>)>> {
+    // Only the first manifest path is consulted, matching apply.rs behavior.
     let manifests = if let Some(first) = config.manifest_paths.first() {
         match crate::manifests::resolve(first) {
-            Some(path) => load(path, contexts).unwrap_or_default(),
+            Some(path) => match load(path, contexts) {
+                Ok(m) => m,
+                Err(e) => {
+                    warn!("doctor: failed to load manifests: {e}");
+                    HashMap::new()
+                }
+            },
             None => HashMap::new(),
         }
     } else {

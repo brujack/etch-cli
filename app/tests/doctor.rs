@@ -79,9 +79,22 @@ fn doctor_json_flag_outputs_valid_json() {
 
 #[test]
 fn doctor_missing_only_suppresses_passing_checks() {
+    use std::os::unix::fs::PermissionsExt;
     let tmp = tempdir().unwrap();
+
+    // Create a fake binary in a tempdir so it's guaranteed in PATH
+    let bin_dir = tmp.path().join("bin");
+    std::fs::create_dir(&bin_dir).unwrap();
+    let fake = bin_dir.join("etch_test_tool_present_xyz");
+    std::fs::write(&fake, b"#!/bin/sh\nexit 0\n").unwrap();
+    std::fs::set_permissions(&fake, std::fs::Permissions::from_mode(0o755)).unwrap();
+
     let config = tmp.path().join("etch.yaml");
-    std::fs::write(&config, "doctor:\n  tools:\n    - sh\n").unwrap();
+    std::fs::write(
+        &config,
+        "doctor:\n  tools:\n    - etch_test_tool_present_xyz\n",
+    )
+    .unwrap();
 
     let output = etch()
         .args([
@@ -90,12 +103,21 @@ fn doctor_missing_only_suppresses_passing_checks() {
             "doctor",
             "--missing-only",
         ])
+        .env(
+            "PATH",
+            format!(
+                "{}:{}",
+                bin_dir.display(),
+                std::env::var("PATH").unwrap_or_default()
+            ),
+        )
         .output()
         .unwrap();
 
     let stdout = String::from_utf8_lossy(&output.stdout);
+    // Tool is present → its check passes → suppressed by --missing-only
     assert!(
-        !stdout.contains('✓'),
-        "expected no passing checks in --missing-only output, got:\n{stdout}"
+        !stdout.contains("etch_test_tool_present_xyz"),
+        "passing check should be suppressed in --missing-only output, got:\n{stdout}"
     );
 }

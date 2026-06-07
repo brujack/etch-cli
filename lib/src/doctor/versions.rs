@@ -79,6 +79,10 @@ impl DoctorCheck for VersionsCheck {
                 if version == "latest" {
                     continue;
                 }
+                // Guard against path traversal in binary name from manifest-controlled YAML.
+                if binary_name.contains('/') || binary_name.contains('\0') {
+                    continue;
+                }
 
                 let label = format!("{binary_name} {version}");
                 let output = run_binary_version(binary_name);
