@@ -1,5 +1,7 @@
 # etch update --only/--skip Implementation Plan
 
+> **Status: DONE**
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Replace the 10 individual per-category bool flags on `etch update` with `--only <categories>` and `--skip <categories>` comma-separated filter flags.
