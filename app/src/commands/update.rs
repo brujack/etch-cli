@@ -97,7 +97,27 @@ pub(crate) struct Update {
     /// Update cheat.sh binary
     #[arg(long)]
     pub cheatsh: bool,
+    /// Run only these categories (comma-separated: brew,rust)
+    #[arg(long, value_delimiter = ',', conflicts_with = "skip")]
+    pub only: Vec<String>,
+    /// Skip these categories (comma-separated: pip,gems)
+    #[arg(long, value_delimiter = ',', conflicts_with = "only")]
+    pub skip: Vec<String>,
 }
+
+#[allow(dead_code)] // will be used in Task 2 when execute() calls should_run/validate_categories
+const VALID_CATEGORIES: &[&str] = &[
+    "brew",
+    "system",
+    "mas",
+    "claude",
+    "packages",
+    "pip",
+    "rust",
+    "git-tools",
+    "gems",
+    "cheatsh",
+];
 
 impl Update {
     fn any_flag_set(&self) -> bool {
@@ -111,6 +131,31 @@ impl Update {
             || self.git_tools
             || self.gems
             || self.cheatsh
+    }
+
+    #[allow(dead_code)] // will be called from execute() in Task 2
+    fn should_run(&self, category: &str) -> bool {
+        if !self.only.is_empty() {
+            self.only.iter().any(|c| c == category)
+        } else if !self.skip.is_empty() {
+            !self.skip.iter().any(|c| c == category)
+        } else {
+            true
+        }
+    }
+
+    #[allow(dead_code)] // will be called from execute() in Task 2
+    fn validate_categories(&self) -> anyhow::Result<()> {
+        let all = self.only.iter().chain(self.skip.iter());
+        for name in all {
+            if !VALID_CATEGORIES.contains(&name.as_str()) {
+                anyhow::bail!(
+                    "unknown category '{name}'; valid: {}",
+                    VALID_CATEGORIES.join(", ")
+                );
+            }
+        }
+        Ok(())
     }
 }
 
@@ -1374,5 +1419,73 @@ mod tests {
     fn pip_outdated_args_always_includes_format_columns() {
         assert!(pip_outdated_args(&[]).contains(&"--format=columns"));
         assert!(pip_outdated_args(&["--user"]).contains(&"--format=columns"));
+    }
+
+    #[test]
+    fn should_run_all_when_no_filter() {
+        let u = Update::default();
+        for cat in VALID_CATEGORIES {
+            assert!(u.should_run(cat), "expected {cat} to run with no filter");
+        }
+    }
+
+    #[test]
+    fn should_run_only_selected() {
+        let u = Update {
+            only: vec!["brew".to_string(), "rust".to_string()],
+            ..Default::default()
+        };
+        assert!(u.should_run("brew"));
+        assert!(u.should_run("rust"));
+        assert!(!u.should_run("pip"));
+    }
+
+    #[test]
+    fn should_run_skips_excluded() {
+        let u = Update {
+            skip: vec!["pip".to_string(), "gems".to_string()],
+            ..Default::default()
+        };
+        assert!(u.should_run("brew"));
+        assert!(!u.should_run("pip"));
+        assert!(!u.should_run("gems"));
+    }
+
+    #[test]
+    fn validate_categories_accepts_valid() {
+        let u = Update {
+            only: vec!["brew".to_string(), "rust".to_string()],
+            ..Default::default()
+        };
+        assert!(u.validate_categories().is_ok());
+    }
+
+    #[test]
+    fn validate_categories_rejects_unknown_in_only() {
+        let u = Update {
+            only: vec!["foobar".to_string()],
+            ..Default::default()
+        };
+        let err = u.validate_categories().unwrap_err();
+        assert!(err.to_string().contains("unknown category 'foobar'"));
+        assert!(err.to_string().contains("valid:"));
+    }
+
+    #[test]
+    fn validate_categories_rejects_mixed_valid_invalid() {
+        let u = Update {
+            only: vec!["brew".to_string(), "badname".to_string()],
+            ..Default::default()
+        };
+        assert!(u.validate_categories().is_err());
+    }
+
+    #[test]
+    fn validate_categories_rejects_unknown_in_skip() {
+        let u = Update {
+            skip: vec!["notreal".to_string()],
+            ..Default::default()
+        };
+        assert!(u.validate_categories().is_err());
     }
 }
