@@ -67,58 +67,54 @@ pub(crate) struct UpdateStepResult {
 
 #[derive(Parser, Debug, Default)]
 pub(crate) struct Update {
-    /// Update brew formulae and casks
-    #[arg(long)]
-    pub brew: bool,
-    /// Run softwareupdate (macOS)
-    #[arg(long)]
-    pub system: bool,
-    /// Upgrade Mac App Store apps
-    #[arg(long)]
-    pub mas: bool,
-    /// Update Claude plugins and npm globals
-    #[arg(long)]
-    pub claude: bool,
-    /// Upgrade apt/snap packages (Linux)
-    #[arg(long)]
-    pub packages: bool,
-    /// Upgrade pip packages
-    #[arg(long)]
-    pub pip: bool,
-    /// Update rustup toolchain and cargo-nextest
-    #[arg(long)]
-    pub rust: bool,
-    /// Pull ai-config, dotfiles, oh-my-zsh, tpm, tfenv
-    #[arg(long)]
-    pub git_tools: bool,
-    /// Update Ruby gems
-    #[arg(long)]
-    pub gems: bool,
-    /// Update cheat.sh binary
-    #[arg(long)]
-    pub cheatsh: bool,
+    /// Run only these categories (comma-separated: brew,rust)
+    #[arg(long, value_delimiter = ',', conflicts_with = "skip")]
+    pub only: Vec<String>,
+
+    /// Skip these categories (comma-separated: pip,gems)
+    #[arg(long, value_delimiter = ',', conflicts_with = "only")]
+    pub skip: Vec<String>,
 }
 
+const VALID_CATEGORIES: &[&str] = &[
+    "brew",
+    "system",
+    "mas",
+    "claude",
+    "packages",
+    "pip",
+    "rust",
+    "git-tools",
+    "gems",
+    "cheatsh",
+];
+
 impl Update {
-    fn any_flag_set(&self) -> bool {
-        self.brew
-            || self.system
-            || self.mas
-            || self.claude
-            || self.packages
-            || self.pip
-            || self.rust
-            || self.git_tools
-            || self.gems
-            || self.cheatsh
+    fn should_run(&self, category: &str) -> bool {
+        if !self.only.is_empty() {
+            self.only.iter().any(|c| c == category)
+        } else if !self.skip.is_empty() {
+            !self.skip.iter().any(|c| c == category)
+        } else {
+            true
+        }
+    }
+
+    fn validate_categories(&self) -> anyhow::Result<()> {
+        let all = self.only.iter().chain(self.skip.iter());
+        for name in all {
+            if !VALID_CATEGORIES.contains(&name.as_str()) {
+                anyhow::bail!(
+                    "unknown category '{name}'; valid: {}",
+                    VALID_CATEGORIES.join(", ")
+                );
+            }
+        }
+        Ok(())
     }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-fn step_should_run(flag: bool, run_all: bool) -> bool {
-    flag || run_all
-}
 
 fn format_timestamp() -> String {
     Command::new("date")
@@ -868,7 +864,7 @@ fn print_summary<W: Write>(
 impl EtchCommand for Update {
     #[cfg(not(tarpaulin_include))]
     fn execute(&self, runtime: &Runtime) -> anyhow::Result<()> {
-        let run_all = !self.any_flag_set();
+        self.validate_categories()?;
         let update_cfg = &runtime.config.update;
         let vars = &runtime.config.variables;
         let home = home_dir();
@@ -885,7 +881,7 @@ impl EtchCommand for Update {
         let mut results: Vec<UpdateStepResult> = Vec::new();
 
         // git-tools (pull repos before package updates)
-        if step_should_run(self.git_tools, run_all) {
+        if self.should_run("git-tools") {
             if let Some(ref gt) = update_cfg.git_tools {
                 info!("Pulling git repos...");
                 if gt.ai_config.is_some() {
@@ -918,18 +914,18 @@ impl EtchCommand for Update {
         }
 
         // brew
-        if step_should_run(self.brew, run_all) {
+        if self.should_run("brew") {
             info!("Updating Homebrew...");
             results.push(update_brew());
         }
 
         // mas (macOS only — skips on Linux automatically)
-        if step_should_run(self.mas, run_all) {
+        if self.should_run("mas") {
             results.push(update_mas());
         }
 
         // claude plugins + npm globals
-        if step_should_run(self.claude, run_all) {
+        if self.should_run("claude") {
             match &update_cfg.claude {
                 Some(claude_cfg) => {
                     info!("Updating Claude plugins...");
@@ -945,7 +941,7 @@ impl EtchCommand for Update {
         }
 
         // rust
-        if step_should_run(self.rust, run_all) {
+        if self.should_run("rust") {
             if vars.get("has_rust").map(|v| v == "true").unwrap_or(true) {
                 info!("Updating Rust toolchain...");
                 results.push(update_rust());
@@ -955,18 +951,18 @@ impl EtchCommand for Update {
         }
 
         // packages: apt + snap (Linux)
-        if step_should_run(self.packages, run_all) {
+        if self.should_run("packages") {
             results.push(update_apt());
             results.push(update_snap(has_snap));
         }
 
         // softwareupdate (macOS — skips on Linux automatically)
-        if step_should_run(self.system, run_all) {
+        if self.should_run("system") {
             results.push(update_softwareupdate());
         }
 
         // pip
-        if step_should_run(self.pip, run_all) {
+        if self.should_run("pip") {
             if vars
                 .get("has_devtools")
                 .map(|v| v == "true")
@@ -979,12 +975,12 @@ impl EtchCommand for Update {
         }
 
         // gems
-        if step_should_run(self.gems, run_all) {
+        if self.should_run("gems") {
             results.push(update_gems());
         }
 
         // cheat.sh
-        if step_should_run(self.cheatsh, run_all) {
+        if self.should_run("cheatsh") {
             results.push(update_cheatsh());
         }
 
@@ -1016,53 +1012,6 @@ mod tests {
     #[test]
     fn parse_claude_plugin_tokens_empty_output() {
         assert!(parse_claude_plugin_tokens("").is_empty());
-    }
-
-    #[test]
-    fn any_flag_set_false_when_all_default() {
-        assert!(!Update::default().any_flag_set());
-    }
-
-    #[test]
-    fn any_flag_set_true_with_brew() {
-        assert!(Update {
-            brew: true,
-            ..Default::default()
-        }
-        .any_flag_set());
-    }
-
-    #[test]
-    fn any_flag_set_true_with_cheatsh() {
-        assert!(Update {
-            cheatsh: true,
-            ..Default::default()
-        }
-        .any_flag_set());
-    }
-
-    #[test]
-    fn any_flag_set_true_with_git_tools() {
-        assert!(Update {
-            git_tools: true,
-            ..Default::default()
-        }
-        .any_flag_set());
-    }
-
-    #[test]
-    fn step_should_run_when_run_all() {
-        assert!(step_should_run(false, true));
-    }
-
-    #[test]
-    fn step_should_run_when_flag_set() {
-        assert!(step_should_run(true, false));
-    }
-
-    #[test]
-    fn step_should_not_run_when_neither() {
-        assert!(!step_should_run(false, false));
     }
 
     #[test]
@@ -1374,5 +1323,80 @@ mod tests {
     fn pip_outdated_args_always_includes_format_columns() {
         assert!(pip_outdated_args(&[]).contains(&"--format=columns"));
         assert!(pip_outdated_args(&["--user"]).contains(&"--format=columns"));
+    }
+
+    #[test]
+    fn should_run_all_when_no_filter() {
+        let u = Update::default();
+        for cat in VALID_CATEGORIES {
+            assert!(u.should_run(cat), "expected {cat} to run with no filter");
+        }
+    }
+
+    #[test]
+    fn should_run_only_selected() {
+        let u = Update {
+            only: vec!["brew".to_string(), "rust".to_string()],
+            ..Default::default()
+        };
+        assert!(u.should_run("brew"));
+        assert!(u.should_run("rust"));
+        assert!(!u.should_run("pip"));
+        assert!(!u.should_run("system"));
+        assert!(!u.should_run("gems"));
+    }
+
+    #[test]
+    fn should_run_skips_excluded() {
+        let u = Update {
+            skip: vec!["pip".to_string(), "gems".to_string()],
+            ..Default::default()
+        };
+        assert!(u.should_run("brew"));
+        assert!(!u.should_run("pip"));
+        assert!(!u.should_run("gems"));
+    }
+
+    #[test]
+    fn validate_categories_accepts_empty() {
+        assert!(Update::default().validate_categories().is_ok());
+    }
+
+    #[test]
+    fn validate_categories_accepts_valid() {
+        let u = Update {
+            only: vec!["brew".to_string(), "rust".to_string()],
+            ..Default::default()
+        };
+        assert!(u.validate_categories().is_ok());
+    }
+
+    #[test]
+    fn validate_categories_rejects_unknown_in_only() {
+        let u = Update {
+            only: vec!["foobar".to_string()],
+            ..Default::default()
+        };
+        let err = u.validate_categories().unwrap_err();
+        assert!(err.to_string().contains("unknown category 'foobar'"));
+        assert!(err.to_string().contains("valid:"));
+    }
+
+    #[test]
+    fn validate_categories_rejects_mixed_valid_invalid() {
+        let u = Update {
+            only: vec!["brew".to_string(), "badname".to_string()],
+            ..Default::default()
+        };
+        assert!(u.validate_categories().is_err());
+    }
+
+    #[test]
+    fn validate_categories_rejects_unknown_in_skip() {
+        let u = Update {
+            skip: vec!["notreal".to_string()],
+            ..Default::default()
+        };
+        assert!(u.validate_categories().is_err());
     }
 }
