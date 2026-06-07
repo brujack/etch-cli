@@ -150,32 +150,42 @@ See `CLAUDE.md` for the full action catalog with all fields documented. Complete
 
 ## etch update
 
-`etch update` runs an ordered sequence of tool update steps. With no flags it runs all applicable steps; any flag limits the run to only that step.
+`etch update` runs an ordered sequence of tool update steps. With no flags it runs all applicable steps; use `--only` or `--skip` to filter.
 
 ```shell
-etch update            # run all steps
-etch update --brew     # Homebrew only
-etch update --rust     # Rust toolchain only
+etch update                    # run all steps
+etch update --only brew,rust   # Homebrew and Rust only
+etch update --skip pip,gems    # everything except pip and gems
+etch update --only foobar      # error: unknown category 'foobar'
 ```
 
 ### Flags
 
-| Flag          | What it updates                                          | Platform    |
-| ------------- | -------------------------------------------------------- | ----------- |
-| `--brew`      | `brew upgrade` + `brew cleanup`                          | macOS/Linux |
-| `--system`    | `softwareupdate -ia`                                     | macOS only  |
-| `--mas`       | Mac App Store apps via `mas upgrade`                     | macOS only  |
-| `--claude`    | Claude plugins + npm globals (from config)               | any         |
-| `--packages`  | `apt-get upgrade` + `snap refresh`                       | Linux only  |
-| `--pip`       | `pip install --upgrade` outdated packages                | any         |
-| `--rust`      | `rustup update` + `cargo-nextest`                        | any         |
-| `--git-tools` | `git pull` on ai-config, dotfiles, oh-my-zsh, tpm, tfenv | any         |
-| `--gems`      | `gem update`                                             | any         |
-| `--cheatsh`   | Re-downloads `~/bin/cht.sh` via curl                     | any         |
+| Flag                  | Description                                    |
+| --------------------- | ---------------------------------------------- |
+| `--only <categories>` | Run only the listed comma-separated categories |
+| `--skip <categories>` | Run all categories except the listed ones      |
+
+`--only` and `--skip` are mutually exclusive. An unknown category name is a hard error that lists all valid names.
+
+### Categories
+
+| Category    | What it updates                                          | Platform    |
+| ----------- | -------------------------------------------------------- | ----------- |
+| `brew`      | `brew upgrade` + `brew cleanup`                          | macOS/Linux |
+| `system`    | `softwareupdate -ia`                                     | macOS only  |
+| `mas`       | Mac App Store apps via `mas upgrade`                     | macOS only  |
+| `claude`    | Claude plugins + npm globals (from config)               | any         |
+| `packages`  | `apt-get upgrade` + `snap refresh`                       | Linux only  |
+| `pip`       | `pip install --upgrade` outdated packages                | any         |
+| `rust`      | `rustup update` + `cargo-nextest`                        | any         |
+| `git-tools` | `git pull` on ai-config, dotfiles, oh-my-zsh, tpm, tfenv | any         |
+| `gems`      | `gem update`                                             | any         |
+| `cheatsh`   | Re-downloads `~/bin/cht.sh` via curl                     | any         |
 
 Steps that require a tool not present on the machine are automatically skipped. Platform-specific steps (softwareupdate, mas, apt, snap) are silently skipped on the wrong OS.
 
-> **`etch update --packages` vs `package.upgrade` in manifests:** `etch update --packages` is an imperative one-shot upgrade of all apt/snap packages on the machine. `package.upgrade` in a manifest is the declarative equivalent — it checks for upgradeable packages at plan time and generates steps only when needed, so it is safe to include in an `etch apply` run and will no-op if everything is already up to date.
+> **`etch update --only packages` vs `package.upgrade` in manifests:** `etch update --only packages` is an imperative one-shot upgrade of all apt/snap packages on the machine. `package.upgrade` in a manifest is the declarative equivalent — it checks for upgradeable packages at plan time and generates steps only when needed, so it is safe to include in an `etch apply` run and will no-op if everything is already up to date.
 
 ### Summary output
 

@@ -31,9 +31,14 @@ Each step is optional and skipped if the tool is not installed (`command -v` gua
 - Helper functions extracted for testability are unit-tested; the top-level `update` subcommand orchestration is not covered by tarpaulin (excluded as an integration step).
 - Users run `etch update` in place of the previous bash script — no change to workflow, same sequence of operations.
 
+## Interface Evolution
+
+**2026-06-07 (PR #95):** The 10 individual per-category bool flags (`--brew`, `--rust`, etc.) were replaced with two filter flags: `--only <categories>` and `--skip <categories>`, both accepting comma-separated category names. The filter pattern scales better as categories are added and expresses intent more directly ("run only these" vs. listing many flags). `--only` and `--skip` are mutually exclusive; an unknown category name is a hard error.
+
 ## Related
 
 - PR #59 (etch update subcommand)
 - PR #60 (helper function extraction for testability)
+- PR #95 (replace per-category flags with --only/--skip)
 - ADR-0004: CI coverage floor at 70% (explains why step functions are excluded)
 - `etch.yaml` — `update:` configuration key
