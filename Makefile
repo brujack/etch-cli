@@ -8,6 +8,7 @@ test: lint
 lint:
 	cargo fmt --all -- --check
 	cargo clippy --all-targets -- -D warnings
+	cargo machete
 
 build:
 	cargo build --release
