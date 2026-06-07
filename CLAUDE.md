@@ -242,6 +242,8 @@ Invoke `caveman:caveman-commit` skill to generate the commit message before runn
 - **Binary downloads:** the `binary` action trusts GitHub TLS only — no checksum verification on downloaded binaries.
 - **Privilege escalation:** declared per-action via `privileged: true`; provider defaults to `sudo`, configurable via `etch.yaml`.
 - **update-informer:** checks crates.io at startup; disable via `disable_update_check: true` in config or `--no-color` flag has no effect on this.
+- **lib.rs module order:** `pub mod` declarations in `lib/src/lib.rs` must be alphabetical — rustfmt enforces this. Out-of-order additions cause pre-commit failure.
+- **etch doctor security pattern:** binary names from manifest YAML are passed to `Command::new(binary_name)` (no shell), not `sh -c "binary_name --version"`, to prevent injection from hostile `name:` fields. Only explicit `doctor.versions.command` uses `sh -c` (user-authored in etch.yaml).
 
 ## Testing
 
@@ -250,6 +252,8 @@ Invoke `caveman:caveman-commit` skill to generate the commit message before runn
 Unit tests in `lib/src/`, integration tests in `app/tests/` (assert_cmd + insta snapshots). Coverage ~86% macOS / ~81% Linux CI — gap is macOS-only tests gated with `#[cfg(target_os = "macos")]`.
 
 To update insta snapshots: `INSTA_UPDATE=new cargo test --test snapshots`, then `cargo insta accept`.
+
+**Adding a new subcommand changes `etch --help` output** — this breaks the `help` snapshot test. Always run `INSTA_UPDATE=new cargo test --test snapshots && cargo insta accept` after registering any new subcommand in `Commands`.
 
 ```bash
 cargo test                                                          # all tests
