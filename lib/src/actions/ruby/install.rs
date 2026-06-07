@@ -51,6 +51,7 @@ impl Action for RubyInstall {
 
     fn plan(&self, _: &Manifest, _: &Contexts) -> anyhow::Result<Vec<Step>> {
         use crate::atoms::command::Exec;
+        use crate::atoms::file::SetContents;
 
         let ruby_dir =
             self.resolved_rubies_dir()
@@ -81,6 +82,18 @@ impl Action for RubyInstall {
             initializers: vec![],
             finalizers: vec![],
         }];
+
+        if let Some(VersionManager::Chruby) = &self.version_manager {
+            let version_file = PathBuf::from(shellexpand::tilde("~/.ruby-version").into_owned());
+            steps.push(Step {
+                atom: Box::new(SetContents {
+                    path: version_file,
+                    contents: format!("{}-{}\n", self.impl_name(), self.version).into_bytes(),
+                }),
+                initializers: vec![],
+                finalizers: vec![],
+            });
+        }
 
         if let Some(VersionManager::Rbenv) = &self.version_manager {
             steps.push(Step {
@@ -374,7 +387,7 @@ mod tests {
     }
 
     #[test]
-    fn plan_with_chruby_emits_one_step() {
+    fn plan_with_chruby_emits_two_steps() {
         let tmp = tempfile::tempdir().unwrap();
         let action = RubyInstall {
             version: String::from("3.3.0"),
@@ -387,9 +400,29 @@ mod tests {
             .plan(&Manifest::default(), &Contexts::default())
             .unwrap();
         assert_eq!(
-            1,
+            2,
             steps.len(),
-            "chruby should emit only the ruby-install step"
+            "chruby should emit ruby-install step + ~/.ruby-version SetContents step"
+        );
+    }
+
+    #[test]
+    fn plan_with_chruby_and_jruby_impl_emits_two_steps() {
+        let tmp = tempfile::tempdir().unwrap();
+        let action = RubyInstall {
+            version: String::from("9.4.0.0"),
+            implementation: Some(String::from("jruby")),
+            rubies_dir: Some(tmp.path().to_string_lossy().to_string()),
+            version_manager: Some(VersionManager::Chruby),
+            compile_flags: vec![],
+        };
+        let steps = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+        assert_eq!(2, steps.len());
+        assert!(
+            format!("{}", steps[1].atom).contains("ruby-version"),
+            "second step should be the ~/.ruby-version write"
         );
     }
 
