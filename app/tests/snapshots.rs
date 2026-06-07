@@ -66,6 +66,16 @@ fn dry_run() {
 }
 
 #[test]
+fn doctor_help() {
+    let output = etch().args(["doctor", "--help"]).output().unwrap();
+    insta::with_settings!({
+        filters => filters()
+    }, {
+        insta::assert_snapshot!(String::from_utf8_lossy(&output.stdout));
+    });
+}
+
+#[test]
 fn dry_run_verbose() {
     let dir = tempdir().unwrap();
     fs::write(

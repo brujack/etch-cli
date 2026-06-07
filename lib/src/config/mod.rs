@@ -21,6 +21,9 @@ pub struct Config {
 
     #[serde(default)]
     pub update: UpdateConfig,
+
+    #[serde(default)]
+    pub doctor: Option<DoctorConfig>,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
@@ -45,9 +48,65 @@ pub struct ClaudeUpdateConfig {
     pub npm_globals: Vec<String>,
 }
 
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct DoctorConfig {
+    #[serde(default)]
+    pub tools: Vec<String>,
+    #[serde(default)]
+    pub versions: Vec<VersionPin>,
+    #[serde(default)]
+    pub credential_dirs: Vec<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct VersionPin {
+    pub tool: String,
+    pub command: String,
+    pub expected: String,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn doctor_config_default_has_empty_collections() {
+        let c = DoctorConfig::default();
+        assert!(c.tools.is_empty());
+        assert!(c.versions.is_empty());
+        assert!(c.credential_dirs.is_empty());
+    }
+
+    #[test]
+    fn config_deserializes_doctor_section() {
+        let yaml = r#"
+doctor:
+    tools:
+        - kubectl
+        - helm
+    versions:
+        - tool: ripgrep
+          command: "rg --version"
+          expected: "14.1.0"
+    credential_dirs:
+        - ~/.ssh
+        - ~/.tf_creds
+"#;
+        let config: Config = serde_yaml_ng::from_str(yaml).unwrap();
+        let doctor = config.doctor.unwrap();
+        assert_eq!(doctor.tools, vec!["kubectl", "helm"]);
+        assert_eq!(doctor.versions.len(), 1);
+        assert_eq!(doctor.versions[0].tool, "ripgrep");
+        assert_eq!(doctor.versions[0].command, "rg --version");
+        assert_eq!(doctor.versions[0].expected, "14.1.0");
+        assert_eq!(doctor.credential_dirs, vec!["~/.ssh", "~/.tf_creds"]);
+    }
+
+    #[test]
+    fn config_doctor_is_none_when_absent() {
+        let config: Config = serde_yaml_ng::from_str("").unwrap();
+        assert!(config.doctor.is_none());
+    }
 
     #[test]
     fn update_config_default_has_none_fields() {

@@ -1,0 +1,39 @@
+# etch doctor checks system health — configured via etch.yaml, not manifests.
+# Add the doctor: section to ~/.config/etch/etch.yaml on each machine.
+#
+# doctor:
+#   # Explicit tools to verify exist in PATH (in addition to manifest-derived tools)
+#   tools:
+#     - kubectl
+#     - helm
+#     - jq
+#
+#   # Binary version pins — command output is checked for expected substring
+#   versions:
+#     - tool: ripgrep
+#       command: "rg --version"
+#       expected: "14.1.0"
+#     - tool: fd
+#       command: "fd --version"
+#       expected: "9.0"
+#
+#   # Directories verified to have mode 700 (skipped if dir does not exist)
+#   credential_dirs:
+#     - ~/.ssh
+#     - ~/.tf_creds
+#     - ~/.tsh
+#
+# Manifest-derived tool checks (no config needed):
+#   brew.bundle / brew.upgrade / brew.cleanup → brew
+#   gem.install → gem
+#   pip.install → pip
+#   npm.install → npm
+#   mas.install / mas.upgrade → mas
+#   pyenv.install / pyenv.virtualenv → pyenv
+#   ruby.install → ruby-install
+#   claude.install / claude.upgrade / claude.plugin.update → claude
+#
+# binary.github / binary.url atoms with version: set (not "latest"):
+#   runs <name> --version and checks output contains the pinned version
+
+actions: []
