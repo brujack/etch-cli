@@ -1438,6 +1438,8 @@ mod tests {
         assert!(u.should_run("brew"));
         assert!(u.should_run("rust"));
         assert!(!u.should_run("pip"));
+        assert!(!u.should_run("system"));
+        assert!(!u.should_run("gems"));
     }
 
     #[test]
@@ -1449,6 +1451,11 @@ mod tests {
         assert!(u.should_run("brew"));
         assert!(!u.should_run("pip"));
         assert!(!u.should_run("gems"));
+    }
+
+    #[test]
+    fn validate_categories_accepts_empty() {
+        assert!(Update::default().validate_categories().is_ok());
     }
 
     #[test]
