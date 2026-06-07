@@ -22,6 +22,8 @@ jobs:
         with:
           components: clippy
       - uses: Swatinem/rust-cache@v2
+      - name: Install cargo-machete
+        run: cargo install cargo-machete --locked
       - name: Install cargo-nextest
         run: cargo install cargo-nextest --locked
       - name: Run tests

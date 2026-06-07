@@ -30,16 +30,6 @@ dirs-next = "2.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde_yaml_ng = "0.10"
-tealr = { version = "0.10.0", features = [
-    "mlua",
-    "mlua_lua54",
-    "tealr_derive",
-    "mlua_userdata-wrappers",
-    "mlua_serialize",
-    "mlua_macros",
-    "mlua_vendored",
-] }
-walkdir = "2.5.0"
 gix = { version = "0.80.0", features = ["blocking-network-client", "blocking-http-transport-reqwest-rust-tls", "status"] }
 
 [dev-dependencies]
