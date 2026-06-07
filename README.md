@@ -248,6 +248,46 @@ etch plugin update [name]              # update one or all plugins
 
 Plugins are stored in the platform data directory (`~/Library/Application Support/etch/plugins` on macOS, `~/.local/share/etch/plugins` on Linux). Each plugin is a cloned git repository. Plugin names in `remove` and `update` are the bare repo name (the part after `/`).
 
+## etch doctor
+
+`etch doctor` validates system health — symlink integrity, tools in PATH, credential directory permissions, and binary version drift. It complements `etch status` (manifest drift) by covering system-level invariants that manifests don't check.
+
+```shell
+etch doctor              # run all checks, exit 1 if any fail
+etch doctor --json       # machine-readable JSON output
+etch doctor --missing-only  # suppress passing checks, show failures only
+```
+
+### Checks
+
+| Check           | What it validates                                | Source                                                         |
+| --------------- | ------------------------------------------------ | -------------------------------------------------------------- |
+| Symlinks        | `file.link` targets exist and resolve            | Manifest-derived                                               |
+| Tools           | Tools exist in PATH                              | Manifest-derived + `doctor.tools:` config                      |
+| Credential dirs | Directories have mode 700                        | `doctor.credential_dirs:` config                               |
+| Versions        | Binary `--version` output contains pinned string | `binary.github`/`binary.url` atoms + `doctor.versions:` config |
+
+### Configuration
+
+Add a `doctor:` section to `~/.config/etch/etch.yaml`:
+
+```yaml
+doctor:
+    tools: # explicit tools beyond manifest-derived
+        - kubectl
+        - helm
+    versions: # explicit version pins (substring match against command output)
+        - tool: ripgrep
+          command: "rg --version"
+          expected: "14.1.0"
+    credential_dirs: # directories to verify have mode 700
+        - ~/.ssh
+        - ~/.tf_creds
+        - ~/.tsh
+```
+
+Manifest-derived tool checks: `brew.bundle`/`brew.upgrade`/`brew.cleanup` → `brew`, `gem.install` → `gem`, `pip.install` → `pip`, `npm.install` → `npm`, `mas.install`/`mas.upgrade` → `mas`, `pyenv.install`/`pyenv.virtualenv` → `pyenv`, `ruby.install` → `ruby-install`, `claude.install`/`claude.upgrade`/`claude.plugin.update` → `claude`.
+
 ## Debugging
 
 ### Verbose output
