@@ -80,6 +80,7 @@ Master status index for all specs and implementation plans in this directory.
 | 2026-06-06 | [etch-doctor](plans/2026-06-06-etch-doctor.md)                                             | [etch-doctor](specs/2026-06-06-etch-doctor-design.md)                                                                     | Done    |
 | 2026-06-07 | [etch-update-only-skip](plans/2026-06-07-etch-update-only-skip.md)                         | [etch-update-only-skip](specs/2026-06-07-etch-update-only-skip-design.md)                                                 | Done    |
 | 2026-06-07 | [ruby-chruby](plans/2026-06-07-ruby-chruby.md)                                             | [ruby-chruby](specs/2026-06-07-ruby-chruby-design.md)                                                                     | Done    |
+| 2026-06-08 | —                                                                                          | [zsh-oh-my-zsh](specs/2026-06-08-zsh-oh-my-zsh-design.md)                                                                 | Pending |
 
 ---
 
