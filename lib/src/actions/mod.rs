@@ -19,6 +19,7 @@ mod pyenv;
 mod ruby;
 mod systemd;
 mod user;
+mod zsh;
 
 use crate::actions::macos::{MacOSDefault, MacOSRosetta, MacOSService};
 use crate::actions::mas::{MasInstall, MasUpgrade};
@@ -58,6 +59,7 @@ use std::fmt::Display;
 use std::ops::Deref;
 use tracing::{error, warn};
 use user::add::UserAdd;
+use zsh::ZshOhMyZsh;
 
 use self::user::add_group::UserAddGroup;
 
@@ -285,6 +287,9 @@ pub enum Actions {
 
     #[serde(rename = "pyenv.virtualenv")]
     PyenvVirtualenv(ConditionalVariantAction<PyenvVirtualenv>),
+
+    #[serde(rename = "zsh.oh-my-zsh")]
+    ZshOhMyZsh(ConditionalVariantAction<ZshOhMyZsh>),
 }
 
 impl Actions {
@@ -337,6 +342,7 @@ impl Actions {
             Actions::NpmInstall(a) => a,
             Actions::PyenvInstall(a) => a,
             Actions::PyenvVirtualenv(a) => a,
+            Actions::ZshOhMyZsh(a) => a,
         }
     }
 
@@ -389,6 +395,7 @@ impl Actions {
             Actions::NpmInstall(a) => &a.notify,
             Actions::PyenvInstall(a) => &a.notify,
             Actions::PyenvVirtualenv(a) => &a.notify,
+            Actions::ZshOhMyZsh(a) => &a.notify,
         }
     }
 }
@@ -444,6 +451,7 @@ impl Deref for Actions {
             Actions::NpmInstall(a) => a,
             Actions::PyenvInstall(a) => a,
             Actions::PyenvVirtualenv(a) => a,
+            Actions::ZshOhMyZsh(a) => a,
         }
     }
 }
@@ -498,6 +506,7 @@ impl Display for Actions {
             Actions::NpmInstall(_) => "npm.install",
             Actions::PyenvInstall(_) => "pyenv.install",
             Actions::PyenvVirtualenv(_) => "pyenv.virtualenv",
+            Actions::ZshOhMyZsh(_) => "zsh.oh-my-zsh",
         };
 
         write!(f, "{name}")
@@ -689,9 +698,10 @@ actions:
   - action: package.remove
     name: htop
   - action: ruby.chruby
+  - action: zsh.oh-my-zsh
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(32, manifest.actions.len());
+        assert_eq!(33, manifest.actions.len());
     }
 
     #[test]
@@ -1039,6 +1049,7 @@ actions:
   - action: pyenv.virtualenv
     python_version: "3.12.0"
     name: myproject
+  - action: zsh.oh-my-zsh
   - action: binary.url
     name: mytool
     url: https://example.com/mytool
@@ -1070,7 +1081,7 @@ actions:
     name: htop
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(45, manifest.actions.len());
+        assert_eq!(46, manifest.actions.len());
 
         for action in &manifest.actions {
             // Exercise inner_ref(), Deref, and notify() for every variant
@@ -1363,6 +1374,7 @@ actions:
   - action: pyenv.virtualenv
     python_version: "3.12.0"
     name: myproject
+  - action: zsh.oh-my-zsh
   - action: claude.marketplace
     name: caveman
     source: juliusbrussee/caveman
@@ -1374,7 +1386,7 @@ actions:
     name: htop
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(45, manifest.actions.len());
+        assert_eq!(46, manifest.actions.len());
         let names: Vec<String> = manifest.actions.iter().map(|a| a.to_string()).collect();
         assert!(names.contains(&"command.run".to_string()));
         assert!(names.contains(&"directory.copy".to_string()));
@@ -1417,6 +1429,7 @@ actions:
         assert!(names.contains(&"npm.install".to_string()));
         assert!(names.contains(&"pyenv.install".to_string()));
         assert!(names.contains(&"pyenv.virtualenv".to_string()));
+        assert!(names.contains(&"zsh.oh-my-zsh".to_string()));
         assert!(names.contains(&"claude.marketplace".to_string()));
         assert!(names.contains(&"claude.marketplace.remove".to_string()));
         assert!(names.contains(&"claude.plugin.update".to_string()));
