@@ -14,6 +14,10 @@ ignore = [
     # rsa 0.9.10: Marvin Attack timing side-channel. No fix in 0.9.x series (open since
     # 2023). Used only for JWT signing in octocrab GitHub API calls; not a signing oracle.
     "RUSTSEC-2023-0071",
+    # proc-macro-error2 2.0.1: unmaintained (RUSTSEC-2026-0173). Used transitively via
+    # clap_derive. No security impact — proc macro crate only affects compile time.
+    # Will resolve when clap updates its derive machinery.
+    "RUSTSEC-2026-0173",
 ]
 
 [licenses]
