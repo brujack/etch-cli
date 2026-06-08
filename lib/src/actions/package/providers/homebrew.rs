@@ -90,10 +90,7 @@ impl PackageProvider for Homebrew {
             return Ok(None);
         }
         let json: serde_json::Value = serde_json::from_slice(&out.stdout)?;
-        let version = json["formulae"][0]["installed"][0]["version"]
-            .as_str()
-            .map(str::to_owned);
-        Ok(version)
+        Ok(Self::parse_brew_installed_version(&json))
     }
 
     fn remove(
@@ -158,6 +155,20 @@ impl Homebrew {
             initializers: vec![],
             finalizers: vec![],
         }
+    }
+
+    // `brew info --json=v2` returns different shapes for formulae and casks:
+    //   formulae: {"formulae": [{"installed": [{"version": "3.11"}]}]}
+    //   casks:    {"casks":    [{"installed": "135.0.1"}]}  ← plain string, not array
+    // Checking only formulae caused package.remove to silently no-op for casks.
+    pub(crate) fn parse_brew_installed_version(json: &serde_json::Value) -> Option<String> {
+        if let Some(v) = json["formulae"][0]["installed"][0]["version"]
+            .as_str()
+            .map(str::to_owned)
+        {
+            return Some(v);
+        }
+        json["casks"][0]["installed"].as_str().map(str::to_owned)
     }
 
     fn brew_version_step(
@@ -378,5 +389,58 @@ mod test {
             !display.contains("purge"),
             "brew uninstall must not pass purge: {display}"
         );
+    }
+
+    // ── parse_brew_installed_version ──────────────────────────────────────────
+
+    #[test]
+    fn parse_brew_installed_version_formula_installed() {
+        let json = serde_json::json!({
+            "formulae": [{"installed": [{"version": "3.11.0"}]}],
+            "casks": []
+        });
+        assert_eq!(
+            Homebrew::parse_brew_installed_version(&json),
+            Some("3.11.0".to_string())
+        );
+    }
+
+    #[test]
+    fn parse_brew_installed_version_cask_installed() {
+        // Casks use a plain version string, not an array of objects.
+        // This was the missing case that caused package.remove to silently
+        // skip removal of installed casks.
+        let json = serde_json::json!({
+            "formulae": [],
+            "casks": [{"token": "firefox", "installed": "135.0.1"}]
+        });
+        assert_eq!(
+            Homebrew::parse_brew_installed_version(&json),
+            Some("135.0.1".to_string())
+        );
+    }
+
+    #[test]
+    fn parse_brew_installed_version_formula_not_installed() {
+        let json = serde_json::json!({
+            "formulae": [{"installed": []}],
+            "casks": []
+        });
+        assert_eq!(Homebrew::parse_brew_installed_version(&json), None);
+    }
+
+    #[test]
+    fn parse_brew_installed_version_cask_not_installed() {
+        let json = serde_json::json!({
+            "formulae": [],
+            "casks": [{"token": "firefox", "installed": null}]
+        });
+        assert_eq!(Homebrew::parse_brew_installed_version(&json), None);
+    }
+
+    #[test]
+    fn parse_brew_installed_version_empty_response() {
+        let json = serde_json::json!({"formulae": [], "casks": []});
+        assert_eq!(Homebrew::parse_brew_installed_version(&json), None);
     }
 }
