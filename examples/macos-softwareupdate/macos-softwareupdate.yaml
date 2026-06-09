@@ -1,0 +1,7 @@
+# Install all available macOS software updates.
+# Requires admin privileges — uses sudo by default (configure via etch.yaml privilege: field).
+# softwareupdate is self-idempotent: no-ops when nothing to install.
+# Always add where: guard — this action is macOS-only.
+
+- action: macos.softwareupdate
+  where: 'os.name == "macos"'
