@@ -5,6 +5,24 @@ use crate::steps::Step;
 use anyhow::bail;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use std::path::{Path, PathBuf};
+
+/// Resolve the pyenv symlink at `{versions_dir}/{name}` and return the Python
+/// version embedded in its target path (the component immediately before `envs/`).
+/// Returns None when the path is absent, not a symlink, or has an unexpected layout.
+fn installed_python_version(versions_dir: &Path, name: &str) -> Option<String> {
+    let target = std::fs::read_link(versions_dir.join(name)).ok()?;
+    target
+        .components()
+        .zip(target.components().skip(1))
+        .find_map(|(a, b)| {
+            if b.as_os_str() == "envs" {
+                Some(a.as_os_str().to_string_lossy().into_owned())
+            } else {
+                None
+            }
+        })
+}
 
 #[derive(JsonSchema, Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PyenvVirtualenv {
@@ -12,6 +30,10 @@ pub struct PyenvVirtualenv {
     pub python_version: Option<String>,
     /// Name of the virtualenv to create (e.g. "myproject").
     pub name: Option<String>,
+    /// When true, delete and recreate the virtualenv if its Python version
+    /// differs from `python_version`. Default false preserves existing behavior.
+    #[serde(default)]
+    pub recreate: bool,
 }
 
 impl PyenvVirtualenv {
@@ -52,7 +74,41 @@ impl Action for PyenvVirtualenv {
         };
 
         if Self::virtualenv_exists(&name) {
-            return Ok(vec![]);
+            if !self.recreate {
+                return Ok(vec![]);
+            }
+            let versions_dir = PathBuf::from(shellexpand::tilde("~/.pyenv/versions").into_owned());
+            let current = installed_python_version(&versions_dir, &name);
+            if current
+                .as_deref()
+                .is_none_or(|v| v == python_version.as_str())
+            {
+                return Ok(vec![]);
+            }
+            return Ok(vec![
+                Step {
+                    atom: Box::new(Exec {
+                        command: String::from("pyenv"),
+                        arguments: vec![
+                            String::from("uninstall"),
+                            String::from("-f"),
+                            name.clone(),
+                        ],
+                        ..Default::default()
+                    }),
+                    initializers: vec![],
+                    finalizers: vec![],
+                },
+                Step {
+                    atom: Box::new(Exec {
+                        command: String::from("pyenv"),
+                        arguments: vec![String::from("virtualenv"), python_version, name],
+                        ..Default::default()
+                    }),
+                    initializers: vec![],
+                    finalizers: vec![],
+                },
+            ]);
         }
 
         Ok(vec![Step {
@@ -100,6 +156,7 @@ mod tests {
         let action = PyenvVirtualenv {
             python_version: Some(String::from("3.12.0")),
             name: Some(String::from("myproject")),
+            recreate: false,
         };
         let s = action.summarize();
         assert!(s.contains("3.12.0"), "expected version in: {s}");
@@ -112,6 +169,7 @@ mod tests {
         let action = PyenvVirtualenv {
             python_version: None,
             name: Some(String::from("myproject")),
+            recreate: false,
         };
         let s = action.summarize();
         assert!(s.contains("myproject"), "expected name in: {s}");
@@ -130,6 +188,7 @@ mod tests {
         let action = PyenvVirtualenv {
             python_version: None,
             name: Some(String::from("myproject")),
+            recreate: false,
         };
         let result = action.plan(&Manifest::default(), &Contexts::default());
         assert!(result.is_err(), "expected error when python_version absent");
@@ -145,6 +204,7 @@ mod tests {
         let action = PyenvVirtualenv {
             python_version: Some(String::from("3.12.0")),
             name: None,
+            recreate: false,
         };
         let result = action.plan(&Manifest::default(), &Contexts::default());
         assert!(result.is_err(), "expected error when name absent");
@@ -168,6 +228,7 @@ mod tests {
         let action = PyenvVirtualenv {
             python_version: Some(String::from(FAKE_VERSION)),
             name: Some(String::from(FAKE_NAME)),
+            recreate: false,
         };
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
@@ -207,6 +268,7 @@ mod tests {
         let action = PyenvVirtualenv {
             python_version: Some(String::from("3.12.0")),
             name: Some(String::from("myproject")),
+            recreate: false,
         };
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
@@ -241,6 +303,7 @@ mod tests {
         let action = PyenvVirtualenv {
             python_version: Some(String::from("3.12.0")),
             name: Some(String::from("myproject")),
+            recreate: false,
         };
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
@@ -266,6 +329,7 @@ mod tests {
         let action = PyenvVirtualenv {
             python_version: Some(String::from("3.12.0")),
             name: Some(String::from("myproject")),
+            recreate: false,
         };
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
@@ -275,5 +339,265 @@ mod tests {
 
         // virtualenv_exists returns false on error → fail-safe: generate step
         assert_eq!(1, steps.len());
+    }
+
+    // ── installed_python_version helper tests ──────────────────────────────
+
+    #[test]
+    fn installed_python_version_returns_none_when_not_a_symlink() {
+        let tmp = tempfile::tempdir().unwrap();
+        let versions_dir = tmp.path().join("versions");
+        std::fs::create_dir_all(versions_dir.join("ansible")).unwrap();
+        let result = installed_python_version(&versions_dir, "ansible");
+        assert!(result.is_none(), "expected None for non-symlink path");
+    }
+
+    #[test]
+    fn installed_python_version_returns_none_when_venv_absent() {
+        let tmp = tempfile::tempdir().unwrap();
+        let versions_dir = tmp.path().join("versions");
+        std::fs::create_dir_all(&versions_dir).unwrap();
+        let result = installed_python_version(&versions_dir, "ansible");
+        assert!(
+            result.is_none(),
+            "expected None when venv path does not exist"
+        );
+    }
+
+    #[test]
+    fn installed_python_version_returns_version_from_relative_symlink() {
+        use std::os::unix::fs::symlink;
+        let tmp = tempfile::tempdir().unwrap();
+        let versions_dir = tmp.path().join("versions");
+        let target = versions_dir.join("3.14.5").join("envs").join("ansible");
+        std::fs::create_dir_all(&target).unwrap();
+        symlink(
+            Path::new("3.14.5/envs/ansible"),
+            versions_dir.join("ansible"),
+        )
+        .unwrap();
+        let result = installed_python_version(&versions_dir, "ansible");
+        assert_eq!(result, Some("3.14.5".to_string()));
+    }
+
+    #[test]
+    fn installed_python_version_returns_version_from_absolute_symlink() {
+        use std::os::unix::fs::symlink;
+        let tmp = tempfile::tempdir().unwrap();
+        let versions_dir = tmp.path().join("versions");
+        let target = versions_dir.join("3.12.0").join("envs").join("myproject");
+        std::fs::create_dir_all(&target).unwrap();
+        symlink(&target, versions_dir.join("myproject")).unwrap();
+        let result = installed_python_version(&versions_dir, "myproject");
+        assert_eq!(result, Some("3.12.0".to_string()));
+    }
+
+    // ── plan() recreate tests ──────────────────────────────────────────────
+
+    #[test]
+    #[serial]
+    fn plan_recreate_true_creates_when_no_venv() {
+        let old_path = std::env::var("PATH").unwrap_or_default();
+        std::env::set_var("PATH", "/nonexistent");
+
+        let action = PyenvVirtualenv {
+            python_version: Some(String::from("3.14.5")),
+            name: Some(String::from("ansible")),
+            recreate: true,
+        };
+        let steps = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+
+        std::env::set_var("PATH", old_path);
+
+        assert_eq!(1, steps.len(), "expected 1 create step when venv absent");
+        let display = steps[0].atom.to_string();
+        assert!(
+            display.contains("virtualenv"),
+            "expected 'virtualenv' in: {display}"
+        );
+        assert!(display.contains("3.14.5"), "expected version in: {display}");
+        assert!(display.contains("ansible"), "expected name in: {display}");
+    }
+
+    #[test]
+    #[serial]
+    fn plan_recreate_false_skips_existing_venv_unchanged() {
+        use std::os::unix::fs::PermissionsExt;
+        let tmp = tempfile::tempdir().unwrap();
+        let fake_pyenv = tmp.path().join("pyenv");
+        std::fs::write(
+            &fake_pyenv,
+            "#!/bin/sh\nif [ \"$1\" = \"virtualenvs\" ]; then printf 'ansible\\n'; fi\n",
+        )
+        .unwrap();
+        std::fs::set_permissions(&fake_pyenv, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let old_path = std::env::var("PATH").unwrap_or_default();
+        std::env::set_var("PATH", format!("{}:{old_path}", tmp.path().display()));
+
+        let action = PyenvVirtualenv {
+            python_version: Some(String::from("3.14.5")),
+            name: Some(String::from("ansible")),
+            recreate: false,
+        };
+        let steps = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+        std::env::set_var("PATH", old_path);
+
+        assert!(
+            steps.is_empty(),
+            "expected no steps when recreate:false and venv exists"
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn plan_recreate_true_skips_when_version_matches() {
+        use std::os::unix::fs::{symlink, PermissionsExt};
+        let tmp = tempfile::tempdir().unwrap();
+
+        let fake_pyenv = tmp.path().join("pyenv");
+        std::fs::write(
+            &fake_pyenv,
+            "#!/bin/sh\nif [ \"$1\" = \"virtualenvs\" ]; then printf 'ansible\\n'; fi\n",
+        )
+        .unwrap();
+        std::fs::set_permissions(&fake_pyenv, std::fs::Permissions::from_mode(0o755)).unwrap();
+
+        let old_home = std::env::var("HOME").unwrap_or_default();
+        std::env::set_var("HOME", tmp.path());
+
+        let versions_dir = tmp.path().join(".pyenv").join("versions");
+        let target_dir = versions_dir.join("3.14.5").join("envs").join("ansible");
+        std::fs::create_dir_all(&target_dir).unwrap();
+        symlink(
+            Path::new("3.14.5/envs/ansible"),
+            versions_dir.join("ansible"),
+        )
+        .unwrap();
+
+        let old_path = std::env::var("PATH").unwrap_or_default();
+        std::env::set_var("PATH", format!("{}:{old_path}", tmp.path().display()));
+
+        let action = PyenvVirtualenv {
+            python_version: Some(String::from("3.14.5")),
+            name: Some(String::from("ansible")),
+            recreate: true,
+        };
+        let steps = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+
+        std::env::set_var("HOME", old_home);
+        std::env::set_var("PATH", old_path);
+
+        assert!(
+            steps.is_empty(),
+            "expected no steps when version already matches"
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn plan_recreate_true_recreates_when_version_differs() {
+        use std::os::unix::fs::{symlink, PermissionsExt};
+        let tmp = tempfile::tempdir().unwrap();
+
+        let fake_pyenv = tmp.path().join("pyenv");
+        std::fs::write(
+            &fake_pyenv,
+            "#!/bin/sh\nif [ \"$1\" = \"virtualenvs\" ]; then printf 'ansible\\n'; fi\n",
+        )
+        .unwrap();
+        std::fs::set_permissions(&fake_pyenv, std::fs::Permissions::from_mode(0o755)).unwrap();
+
+        let old_home = std::env::var("HOME").unwrap_or_default();
+        std::env::set_var("HOME", tmp.path());
+
+        let versions_dir = tmp.path().join(".pyenv").join("versions");
+        let target_dir = versions_dir.join("3.14.4").join("envs").join("ansible");
+        std::fs::create_dir_all(&target_dir).unwrap();
+        symlink(
+            Path::new("3.14.4/envs/ansible"),
+            versions_dir.join("ansible"),
+        )
+        .unwrap();
+
+        let old_path = std::env::var("PATH").unwrap_or_default();
+        std::env::set_var("PATH", format!("{}:{old_path}", tmp.path().display()));
+
+        let action = PyenvVirtualenv {
+            python_version: Some(String::from("3.14.5")),
+            name: Some(String::from("ansible")),
+            recreate: true,
+        };
+        let steps = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+
+        std::env::set_var("HOME", old_home);
+        std::env::set_var("PATH", old_path);
+
+        assert_eq!(2, steps.len(), "expected uninstall + create steps");
+        let s0 = steps[0].atom.to_string();
+        let s1 = steps[1].atom.to_string();
+        assert!(
+            s0.contains("uninstall"),
+            "step 0 should be uninstall, got: {s0}"
+        );
+        assert!(s0.contains("-f"), "uninstall should use -f flag, got: {s0}");
+        assert!(
+            s0.contains("ansible"),
+            "uninstall should name the venv, got: {s0}"
+        );
+        assert!(
+            s1.contains("virtualenv"),
+            "step 1 should be virtualenv create, got: {s1}"
+        );
+        assert!(
+            s1.contains("3.14.5"),
+            "step 1 should use new version, got: {s1}"
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn plan_recreate_true_recreates_when_version_undetectable() {
+        use std::os::unix::fs::PermissionsExt;
+        let tmp = tempfile::tempdir().unwrap();
+
+        let fake_pyenv = tmp.path().join("pyenv");
+        std::fs::write(
+            &fake_pyenv,
+            "#!/bin/sh\nif [ \"$1\" = \"virtualenvs\" ]; then printf 'ansible\\n'; fi\n",
+        )
+        .unwrap();
+        std::fs::set_permissions(&fake_pyenv, std::fs::Permissions::from_mode(0o755)).unwrap();
+
+        let old_home = std::env::var("HOME").unwrap_or_default();
+        std::env::set_var("HOME", tmp.path());
+        // No symlink created — installed_python_version returns None
+
+        let old_path = std::env::var("PATH").unwrap_or_default();
+        std::env::set_var("PATH", format!("{}:{old_path}", tmp.path().display()));
+
+        let action = PyenvVirtualenv {
+            python_version: Some(String::from("3.14.5")),
+            name: Some(String::from("ansible")),
+            recreate: true,
+        };
+        let steps = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+
+        std::env::set_var("HOME", old_home);
+        std::env::set_var("PATH", old_path);
+
+        assert!(
+            steps.is_empty(),
+            "expected no steps when version undetectable (safe skip)"
+        );
     }
 }
