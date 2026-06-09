@@ -1062,6 +1062,7 @@ actions:
     url: https://example.com/mytool
     directory: /usr/local/bin
   - action: macos.rosetta
+  - action: macos.softwareupdate
   - action: macos.service
     plist: /Library/LaunchDaemons/com.example.plist
     state: loaded
@@ -1088,7 +1089,7 @@ actions:
     name: htop
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(46, manifest.actions.len());
+        assert_eq!(47, manifest.actions.len());
 
         for action in &manifest.actions {
             // Exercise inner_ref(), Deref, and notify() for every variant
@@ -1250,6 +1251,7 @@ actions:
     directory: /usr/local/bin
     url: https://example.com/tool.tar.gz
   - action: macos.rosetta
+  - action: macos.softwareupdate
   - action: macos.service
     plist: /Library/LaunchAgents/com.example.plist
     state: loaded
@@ -1267,7 +1269,7 @@ actions:
         key: val
 "#;
         let m: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(7, m.actions.len());
+        assert_eq!(8, m.actions.len());
         for action in &m.actions {
             // Each notify() call exercises a match arm; all should return empty slice
             assert!(action.notify().is_empty());
@@ -1341,6 +1343,7 @@ actions:
     kind: string
     value: v
   - action: macos.rosetta
+  - action: macos.softwareupdate
   - action: macos.service
     plist: /Library/LaunchAgents/com.example.plist
     state: loaded
@@ -1393,7 +1396,7 @@ actions:
     name: htop
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(46, manifest.actions.len());
+        assert_eq!(47, manifest.actions.len());
         let names: Vec<String> = manifest.actions.iter().map(|a| a.to_string()).collect();
         assert!(names.contains(&"command.run".to_string()));
         assert!(names.contains(&"directory.copy".to_string()));
@@ -1418,6 +1421,7 @@ actions:
         assert!(names.contains(&"group.add".to_string()));
         assert!(names.contains(&"macos.default".to_string()));
         assert!(names.contains(&"macos.rosetta".to_string()));
+        assert!(names.contains(&"macos.softwareupdate".to_string()));
         assert!(names.contains(&"macos.service".to_string()));
         assert!(names.contains(&"systemd.service".to_string()));
         assert!(names.contains(&"mas.install".to_string()));
