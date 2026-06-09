@@ -82,6 +82,7 @@ Master status index for all specs and implementation plans in this directory.
 | 2026-06-07 | [ruby-chruby](plans/2026-06-07-ruby-chruby.md)                                             | [ruby-chruby](specs/2026-06-07-ruby-chruby-design.md)                                                                     | Done    |
 | 2026-06-08 | [zsh-oh-my-zsh](plans/2026-06-08-zsh-oh-my-zsh.md)                                         | [zsh-oh-my-zsh](specs/2026-06-08-zsh-oh-my-zsh-design.md)                                                                 | Done    |
 | 2026-06-09 | [macos-softwareupdate](plans/2026-06-09-macos-softwareupdate-plan.md)                      | [macos-softwareupdate](specs/2026-06-09-macos-softwareupdate-design.md)                                                   | Done    |
+| 2026-06-09 | [terraform-tfenv](plans/2026-06-09-terraform-tfenv-plan.md)                                | [terraform-tfenv](specs/2026-06-09-terraform-tfenv-design.md)                                                             | Done    |
 
 ---
 
@@ -93,7 +94,6 @@ Master status index for all specs and implementation plans in this directory.
 | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | ntfy notification action | Matches existing notification infra                                                                                                                                                                                                                                                    |
 | powershell.module        | No action for installing PowerShell modules from PSGallery. Dotfiles install 10 modules (Az, AWSPowerShell.NetCore, Microsoft.Graph, oh-my-posh, etc.) via script. Needs `powershell.module` with `name:`, `scope: CurrentUser\|AllUsers`, idempotent via `Get-Module -ListAvailable`. |
-| tfenv action             | setup_env.sh installs tfenv via git clone + symlinks to manage Terraform versions. No etch-cli action. Could be `terraform.tfenv` with `version:` field. Idempotency: skip if `~/.tfenv` exists and requested version is installed.                                                    |
 | binary.get version drift | `binary.get` downloads a pinned GitHub release but has no way to detect when a newer version is available. setup_env.sh fetches latest tag from GitHub API and compares against constants.sh pins. `etch status` could report drift for binary.get atoms where `version:` is set.      |
 
 ---
