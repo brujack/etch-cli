@@ -202,6 +202,23 @@ impl Action for BinaryGitHub {
                 initializers: vec![],
                 finalizers: vec![],
             });
+
+            // Sidecar may be absent on machines where the binary was installed
+            // before sidecar support or by other means. Write it so etch status
+            // can detect drift on the next run.
+            if binary_exists {
+                let sidecar = PathBuf::from(format!("{}/.{}.version", self.directory, self.name));
+                if !sidecar.exists() {
+                    steps.push(Step {
+                        atom: Box::new(SetContents {
+                            path: sidecar,
+                            contents: self.version.as_ref().unwrap().as_bytes().to_vec(),
+                        }),
+                        initializers: vec![],
+                        finalizers: vec![],
+                    });
+                }
+            }
         }
 
         // Download steps — only when binary is absent
@@ -397,6 +414,8 @@ mod tests {
     fn plan_with_pinned_version_and_binary_present_emits_one_step() {
         let tmp = tempfile::tempdir().unwrap();
         std::fs::write(tmp.path().join("mytool"), b"fake binary").unwrap();
+        // Sidecar already present — only status atom needed
+        std::fs::write(tmp.path().join(".mytool.version"), "v1.5.0").unwrap();
 
         let action = BinaryGitHub {
             name: String::from("mytool"),
@@ -463,6 +482,56 @@ mod tests {
         assert!(action
             .plan(&Manifest::default(), &Contexts::default())
             .is_err());
+    }
+
+    #[test]
+    fn plan_with_pinned_version_binary_present_no_sidecar_emits_two_steps() {
+        // Binary pre-exists (installed before sidecar support) — plan() must still write sidecar
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::write(tmp.path().join("mytool"), b"fake binary").unwrap();
+        // No sidecar file — simulates pre-existing binary
+
+        let action = BinaryGitHub {
+            name: String::from("mytool"),
+            directory: tmp.path().display().to_string(),
+            repository: String::from("owner/repo"),
+            version: Some(String::from("v1.5.0")),
+        };
+        let steps = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+        assert_eq!(2, steps.len(), "expected status atom + sidecar write");
+        assert!(
+            steps[0].atom.to_string().contains("version check"),
+            "step 0 should be status atom"
+        );
+    }
+
+    #[test]
+    fn plan_with_pinned_version_binary_present_sidecar_present_emits_one_step() {
+        // Both binary and sidecar present — only status atom needed
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::write(tmp.path().join("mytool"), b"fake binary").unwrap();
+        std::fs::write(tmp.path().join(".mytool.version"), "v1.5.0").unwrap();
+
+        let action = BinaryGitHub {
+            name: String::from("mytool"),
+            directory: tmp.path().display().to_string(),
+            repository: String::from("owner/repo"),
+            version: Some(String::from("v1.5.0")),
+        };
+        let steps = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+        assert_eq!(
+            1,
+            steps.len(),
+            "expected only status atom when sidecar exists"
+        );
+        assert!(
+            steps[0].atom.to_string().contains("version check"),
+            "step 0 should be status atom"
+        );
     }
 
     #[test]
