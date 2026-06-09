@@ -8,10 +8,16 @@ actions:
       repository: brujack/etch-cli
       directory: /usr/local/bin
 
-    # version: pin to a specific release tag (without leading "v").
-    # Use when you need reproducible installs rather than always-latest.
+    # version: pin to a specific release tag.
+    # When pinned, etch apply writes a sidecar file {dir}/.{name}.version
+    # on first install so etch status can detect drift:
+    #   - Install mismatch: sidecar differs from the pinned version
+    #   - Update available: pinned version is behind the latest GitHub release
+    #     (checked via GitHub API with 1h TTL cache at
+    #     ~/.cache/etch/github-versions/{owner}-{repo}.json)
+    # No drift detection when version: is absent or "latest".
     - action: binary.github
       name: etch
       repository: brujack/etch-cli
-      version: "0.9.3"
+      version: "v0.12.0"
       directory: "{{ user.home_dir }}/.local/bin"
