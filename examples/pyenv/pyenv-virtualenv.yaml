@@ -4,3 +4,12 @@ actions:
     - action: pyenv.virtualenv
       python_version: "3.12.0"
       name: myproject
+
+    # recreate: true — delete and recreate when python_version changes.
+    # Idempotent: no-op when the venv already uses the correct Python version.
+    # Use when Python patch version bumps must be picked up automatically.
+    - action: pyenv.virtualenv
+      python_version: "3.14.5"
+      name: ansible
+      recreate: true
+      where: 'variables.has_devtools == "true"'
