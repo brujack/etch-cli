@@ -16,3 +16,4 @@ Repo-specific decisions for etch-cli. Cross-cutting decisions that apply across 
 | [0010](0010-mutation-testing-cargo-mutants.md)           | Mutation testing with cargo-mutants                       | 2026-05-24 | Accepted |
 | [0011](0011-version-pinning-error-on-mismatch.md)        | package.install version pinning uses error-on-mismatch    | 2026-06-02 | Accepted |
 | [0012](0012-etch-doctor-subcommand.md)                   | etch doctor subcommand                                    | 2026-06-06 | Accepted |
+| [0013](0013-binary-github-version-drift-sidecar.md)      | binary.github version drift detection via sidecar files   | 2026-06-09 | Accepted |
