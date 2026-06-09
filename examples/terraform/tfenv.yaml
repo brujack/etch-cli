@@ -1,0 +1,18 @@
+# Install tfenv and Terraform 1.9.0, set as global default.
+#
+# tfenv is cloned to ~/.tfenv. Add ~/.tfenv/bin to PATH separately,
+# e.g. in .zshrc: export PATH="$HOME/.tfenv/bin:$PATH"
+#
+# Idempotent:
+#   - skips clone if ~/.tfenv already exists
+#   - skips install if ~/.tfenv/versions/1.9.0 already exists
+#   - tfenv use is always run (idempotent — just writes ~/.terraform-version)
+
+- action: terraform.tfenv
+  version: "1.9.0"
+  where: 'os.family == "linux" or os.name == "macos"'
+
+---
+# Install tfenv only (no specific Terraform version)
+- action: terraform.tfenv
+  where: 'os.family == "linux" or os.name == "macos"'
