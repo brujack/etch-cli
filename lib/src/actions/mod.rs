@@ -18,6 +18,7 @@ mod plugin;
 mod pyenv;
 mod ruby;
 mod systemd;
+mod terraform;
 mod user;
 mod zsh;
 
@@ -57,6 +58,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use std::ops::Deref;
+use terraform::TerraformTfenv;
 use tracing::{error, warn};
 use user::add::UserAdd;
 use zsh::ZshOhMyZsh;
@@ -291,6 +293,9 @@ pub enum Actions {
     #[serde(rename = "pyenv.virtualenv")]
     PyenvVirtualenv(ConditionalVariantAction<PyenvVirtualenv>),
 
+    #[serde(rename = "terraform.tfenv")]
+    TerraformTfenv(ConditionalVariantAction<TerraformTfenv>),
+
     #[serde(rename = "zsh.oh-my-zsh")]
     ZshOhMyZsh(ConditionalVariantAction<ZshOhMyZsh>),
 }
@@ -346,6 +351,7 @@ impl Actions {
             Actions::NpmInstall(a) => a,
             Actions::PyenvInstall(a) => a,
             Actions::PyenvVirtualenv(a) => a,
+            Actions::TerraformTfenv(a) => a,
             Actions::ZshOhMyZsh(a) => a,
         }
     }
@@ -400,6 +406,7 @@ impl Actions {
             Actions::NpmInstall(a) => &a.notify,
             Actions::PyenvInstall(a) => &a.notify,
             Actions::PyenvVirtualenv(a) => &a.notify,
+            Actions::TerraformTfenv(a) => &a.notify,
             Actions::ZshOhMyZsh(a) => &a.notify,
         }
     }
@@ -457,6 +464,7 @@ impl Deref for Actions {
             Actions::NpmInstall(a) => a,
             Actions::PyenvInstall(a) => a,
             Actions::PyenvVirtualenv(a) => a,
+            Actions::TerraformTfenv(a) => a,
             Actions::ZshOhMyZsh(a) => a,
         }
     }
@@ -513,6 +521,7 @@ impl Display for Actions {
             Actions::NpmInstall(_) => "npm.install",
             Actions::PyenvInstall(_) => "pyenv.install",
             Actions::PyenvVirtualenv(_) => "pyenv.virtualenv",
+            Actions::TerraformTfenv(_) => "terraform.tfenv",
             Actions::ZshOhMyZsh(_) => "zsh.oh-my-zsh",
         };
 
@@ -705,10 +714,11 @@ actions:
   - action: package.remove
     name: htop
   - action: ruby.chruby
+  - action: terraform.tfenv
   - action: zsh.oh-my-zsh
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(33, manifest.actions.len());
+        assert_eq!(34, manifest.actions.len());
     }
 
     #[test]
@@ -1087,9 +1097,10 @@ actions:
     name: superpowers
   - action: package.remove
     name: htop
+  - action: terraform.tfenv
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(47, manifest.actions.len());
+        assert_eq!(48, manifest.actions.len());
 
         for action in &manifest.actions {
             // Exercise inner_ref(), Deref, and notify() for every variant
@@ -1394,9 +1405,10 @@ actions:
     name: superpowers
   - action: package.remove
     name: htop
+  - action: terraform.tfenv
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(47, manifest.actions.len());
+        assert_eq!(48, manifest.actions.len());
         let names: Vec<String> = manifest.actions.iter().map(|a| a.to_string()).collect();
         assert!(names.contains(&"command.run".to_string()));
         assert!(names.contains(&"directory.copy".to_string()));
@@ -1445,6 +1457,7 @@ actions:
         assert!(names.contains(&"claude.marketplace.remove".to_string()));
         assert!(names.contains(&"claude.plugin.update".to_string()));
         assert!(names.contains(&"package.remove".to_string()));
+        assert!(names.contains(&"terraform.tfenv".to_string()));
     }
 
     #[test]
