@@ -21,7 +21,7 @@ mod systemd;
 mod user;
 mod zsh;
 
-use crate::actions::macos::{MacOSDefault, MacOSRosetta, MacOSService};
+use crate::actions::macos::{MacOSDefault, MacOSRosetta, MacOSService, MacOSSoftwareUpdate};
 use crate::actions::mas::{MasInstall, MasUpgrade};
 use crate::actions::systemd::SystemdService;
 use crate::{contexts::Contexts, manifests::Manifest, steps::Step};
@@ -237,6 +237,9 @@ pub enum Actions {
     #[serde(rename = "macos.service")]
     MacOSService(ConditionalVariantAction<MacOSService>),
 
+    #[serde(rename = "macos.softwareupdate")]
+    MacOSSoftwareUpdate(ConditionalVariantAction<MacOSSoftwareUpdate>),
+
     #[serde(rename = "systemd.service")]
     SystemdService(ConditionalVariantAction<SystemdService>),
 
@@ -322,6 +325,7 @@ impl Actions {
             Actions::MacOSDefault(a) => a,
             Actions::MacOSRosetta(a) => a,
             Actions::MacOSService(a) => a,
+            Actions::MacOSSoftwareUpdate(a) => a,
             Actions::SystemdService(a) => a,
             Actions::MasInstall(a) => a,
             Actions::MasUpgrade(a) => a,
@@ -377,6 +381,7 @@ impl Actions {
             Actions::MacOSDefault(a) => &a.notify,
             Actions::MacOSRosetta(a) => &a.notify,
             Actions::MacOSService(a) => &a.notify,
+            Actions::MacOSSoftwareUpdate(a) => &a.notify,
             Actions::SystemdService(a) => &a.notify,
             Actions::MasInstall(a) => &a.notify,
             Actions::MasUpgrade(a) => &a.notify,
@@ -431,6 +436,7 @@ impl Deref for Actions {
             Actions::MacOSDefault(a) => a,
             Actions::MacOSRosetta(a) => a,
             Actions::MacOSService(a) => a,
+            Actions::MacOSSoftwareUpdate(a) => a,
             Actions::SystemdService(a) => a,
             Actions::MasInstall(a) => a,
             Actions::MasUpgrade(a) => a,
@@ -488,6 +494,7 @@ impl Display for Actions {
             Actions::MacOSDefault(_) => "macos.default",
             Actions::MacOSRosetta(_) => "macos.rosetta",
             Actions::MacOSService(_) => "macos.service",
+            Actions::MacOSSoftwareUpdate(_) => "macos.softwareupdate",
             Actions::SystemdService(_) => "systemd.service",
             Actions::MasInstall(_) => "mas.install",
             Actions::MasUpgrade(_) => "mas.upgrade",
@@ -1055,6 +1062,7 @@ actions:
     url: https://example.com/mytool
     directory: /usr/local/bin
   - action: macos.rosetta
+  - action: macos.softwareupdate
   - action: macos.service
     plist: /Library/LaunchDaemons/com.example.plist
     state: loaded
@@ -1081,7 +1089,7 @@ actions:
     name: htop
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(46, manifest.actions.len());
+        assert_eq!(47, manifest.actions.len());
 
         for action in &manifest.actions {
             // Exercise inner_ref(), Deref, and notify() for every variant
@@ -1243,6 +1251,7 @@ actions:
     directory: /usr/local/bin
     url: https://example.com/tool.tar.gz
   - action: macos.rosetta
+  - action: macos.softwareupdate
   - action: macos.service
     plist: /Library/LaunchAgents/com.example.plist
     state: loaded
@@ -1260,7 +1269,7 @@ actions:
         key: val
 "#;
         let m: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(7, m.actions.len());
+        assert_eq!(8, m.actions.len());
         for action in &m.actions {
             // Each notify() call exercises a match arm; all should return empty slice
             assert!(action.notify().is_empty());
@@ -1334,6 +1343,7 @@ actions:
     kind: string
     value: v
   - action: macos.rosetta
+  - action: macos.softwareupdate
   - action: macos.service
     plist: /Library/LaunchAgents/com.example.plist
     state: loaded
@@ -1386,7 +1396,7 @@ actions:
     name: htop
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(46, manifest.actions.len());
+        assert_eq!(47, manifest.actions.len());
         let names: Vec<String> = manifest.actions.iter().map(|a| a.to_string()).collect();
         assert!(names.contains(&"command.run".to_string()));
         assert!(names.contains(&"directory.copy".to_string()));
@@ -1411,6 +1421,7 @@ actions:
         assert!(names.contains(&"group.add".to_string()));
         assert!(names.contains(&"macos.default".to_string()));
         assert!(names.contains(&"macos.rosetta".to_string()));
+        assert!(names.contains(&"macos.softwareupdate".to_string()));
         assert!(names.contains(&"macos.service".to_string()));
         assert!(names.contains(&"systemd.service".to_string()));
         assert!(names.contains(&"mas.install".to_string()));
