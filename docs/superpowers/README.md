@@ -84,6 +84,7 @@ Master status index for all specs and implementation plans in this directory.
 | 2026-06-09 | [macos-softwareupdate](plans/2026-06-09-macos-softwareupdate-plan.md)                      | [macos-softwareupdate](specs/2026-06-09-macos-softwareupdate-design.md)                                                   | Done    |
 | 2026-06-09 | [terraform-tfenv](plans/2026-06-09-terraform-tfenv-plan.md)                                | [terraform-tfenv](specs/2026-06-09-terraform-tfenv-design.md)                                                             | Done    |
 | 2026-06-09 | [binary-github-drift](plans/2026-06-09-binary-github-drift-plan.md)                        | [binary-github-drift](specs/2026-06-09-binary-github-drift-design.md)                                                     | Done    |
+| 2026-06-09 | [pyenv-recreate-virtualenv](plans/2026-06-09-pyenv-recreate-virtualenv-plan.md)            | [pyenv-recreate-virtualenv](specs/2026-06-09-pyenv-recreate-virtualenv-design.md)                                         | Done    |
 
 ---
 
@@ -91,11 +92,10 @@ Master status index for all specs and implementation plans in this directory.
 
 ## Backlog
 
-| Feature                   | Notes                                                                                                                                                                                                                                                                                                                  |
-| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| pyenv.recreate-virtualenv | `pyenv.virtualenv` is idempotent — skips if the named venv already exists. When Python version bumps (e.g. 3.14.3→3.14.5), the existing venv silently keeps the old interpreter. New action: delete-and-recreate if Python version differs, no-op if correct. Needed by etch-config ansible.yaml on every Python bump. |
-| ntfy notification action  | Matches existing notification infra                                                                                                                                                                                                                                                                                    |
-| powershell.module         | No action for installing PowerShell modules from PSGallery. Dotfiles install 10 modules (Az, AWSPowerShell.NetCore, Microsoft.Graph, oh-my-posh, etc.) via script. Needs `powershell.module` with `name:`, `scope: CurrentUser\|AllUsers`, idempotent via `Get-Module -ListAvailable`.                                 |
+| Feature                  | Notes                                                                                                                                                                                                                                                                                  |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ntfy notification action | Matches existing notification infra                                                                                                                                                                                                                                                    |
+| powershell.module        | No action for installing PowerShell modules from PSGallery. Dotfiles install 10 modules (Az, AWSPowerShell.NetCore, Microsoft.Graph, oh-my-posh, etc.) via script. Needs `powershell.module` with `name:`, `scope: CurrentUser\|AllUsers`, idempotent via `Get-Module -ListAvailable`. |
 
 ---
 
