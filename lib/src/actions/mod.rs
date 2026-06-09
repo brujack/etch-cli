@@ -21,7 +21,7 @@ mod systemd;
 mod user;
 mod zsh;
 
-use crate::actions::macos::{MacOSDefault, MacOSRosetta, MacOSService};
+use crate::actions::macos::{MacOSDefault, MacOSRosetta, MacOSService, MacOSSoftwareUpdate};
 use crate::actions::mas::{MasInstall, MasUpgrade};
 use crate::actions::systemd::SystemdService;
 use crate::{contexts::Contexts, manifests::Manifest, steps::Step};
@@ -237,6 +237,9 @@ pub enum Actions {
     #[serde(rename = "macos.service")]
     MacOSService(ConditionalVariantAction<MacOSService>),
 
+    #[serde(rename = "macos.softwareupdate")]
+    MacOSSoftwareUpdate(ConditionalVariantAction<MacOSSoftwareUpdate>),
+
     #[serde(rename = "systemd.service")]
     SystemdService(ConditionalVariantAction<SystemdService>),
 
@@ -322,6 +325,7 @@ impl Actions {
             Actions::MacOSDefault(a) => a,
             Actions::MacOSRosetta(a) => a,
             Actions::MacOSService(a) => a,
+            Actions::MacOSSoftwareUpdate(a) => a,
             Actions::SystemdService(a) => a,
             Actions::MasInstall(a) => a,
             Actions::MasUpgrade(a) => a,
@@ -377,6 +381,7 @@ impl Actions {
             Actions::MacOSDefault(a) => &a.notify,
             Actions::MacOSRosetta(a) => &a.notify,
             Actions::MacOSService(a) => &a.notify,
+            Actions::MacOSSoftwareUpdate(a) => &a.notify,
             Actions::SystemdService(a) => &a.notify,
             Actions::MasInstall(a) => &a.notify,
             Actions::MasUpgrade(a) => &a.notify,
@@ -431,6 +436,7 @@ impl Deref for Actions {
             Actions::MacOSDefault(a) => a,
             Actions::MacOSRosetta(a) => a,
             Actions::MacOSService(a) => a,
+            Actions::MacOSSoftwareUpdate(a) => a,
             Actions::SystemdService(a) => a,
             Actions::MasInstall(a) => a,
             Actions::MasUpgrade(a) => a,
@@ -488,6 +494,7 @@ impl Display for Actions {
             Actions::MacOSDefault(_) => "macos.default",
             Actions::MacOSRosetta(_) => "macos.rosetta",
             Actions::MacOSService(_) => "macos.service",
+            Actions::MacOSSoftwareUpdate(_) => "macos.softwareupdate",
             Actions::SystemdService(_) => "systemd.service",
             Actions::MasInstall(_) => "mas.install",
             Actions::MasUpgrade(_) => "mas.upgrade",
