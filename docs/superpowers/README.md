@@ -86,16 +86,16 @@ Master status index for all specs and implementation plans in this directory.
 | 2026-06-09 | [binary-github-drift](plans/2026-06-09-binary-github-drift-plan.md)                        | [binary-github-drift](specs/2026-06-09-binary-github-drift-design.md)                                                     | Done    |
 | 2026-06-09 | [pyenv-recreate-virtualenv](plans/2026-06-09-pyenv-recreate-virtualenv-plan.md)            | [pyenv-recreate-virtualenv](specs/2026-06-09-pyenv-recreate-virtualenv-design.md)                                         | Done    |
 | 2026-06-10 | [git-clone-update-existing](plans/2026-06-10-git-clone-update-existing-plan.md)            | [git-clone-update-existing](specs/2026-06-10-git-clone-update-existing-design.md)                                         | Done    |
+| 2026-06-10 | —                                                                                          | [user-default-shell](specs/2026-06-10-user-default-shell-design.md)                                                       | Pending |
 
 ---
 
 ## Backlog
 
-| Feature                     | Notes                                                                                                                                                                                                                                                                                      |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| ntfy notification action    | Matches existing notification infra                                                                                                                                                                                                                                                        |
-| powershell.module           | No action for installing PowerShell modules from PSGallery. Dotfiles install 10 modules (Az, AWSPowerShell.NetCore, Microsoft.Graph, oh-my-posh, etc.) via script. Needs `powershell.module` with `name:`, `scope: CurrentUser\|AllUsers`, idempotent via `Get-Module -ListAvailable`.     |
-| `user.default_shell` action | dotfiles `setup_zsh_as_default_shell()` runs `chsh -s /bin/zsh`. No native etch-cli action — etch-config works around with `command.run`. A `user.default_shell` action (field: `shell: /bin/zsh`) would be idempotent (no-op when `$SHELL` already matches) and eliminate the workaround. |
+| Feature           | Notes                                                                                                                                                                                                                                                                                  |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ntfy notification | Matches existing notification infra                                                                                                                                                                                                                                                    |
+| powershell.module | No action for installing PowerShell modules from PSGallery. Dotfiles install 10 modules (Az, AWSPowerShell.NetCore, Microsoft.Graph, oh-my-posh, etc.) via script. Needs `powershell.module` with `name:`, `scope: CurrentUser\|AllUsers`, idempotent via `Get-Module -ListAvailable`. |
 
 ---
 
