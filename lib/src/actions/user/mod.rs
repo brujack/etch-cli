@@ -1,5 +1,6 @@
 pub mod add;
 pub mod add_group;
+pub mod default_shell;
 pub mod providers;
 
 use providers::UserProviders;
