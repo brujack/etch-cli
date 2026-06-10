@@ -21,7 +21,7 @@ impl Action for UserDefaultShell {
         }
     }
 
-    fn plan(&self, _: &Manifest, _: &Contexts) -> anyhow::Result<Vec<Step>> {
+    fn plan(&self, _manifest: &Manifest, contexts: &Contexts) -> anyhow::Result<Vec<Step>> {
         if self.shell.is_empty() {
             anyhow::bail!("user.default_shell requires 'shell' to be specified");
         }
@@ -43,11 +43,15 @@ impl Action for UserDefaultShell {
             args.push(name.clone());
         }
 
+        let privilege_provider = crate::utilities::get_privilege_provider(contexts)
+            .unwrap_or_else(|| "sudo".to_string());
+
         Ok(vec![Step {
             atom: Box::new(Exec {
                 command: String::from("chsh"),
                 arguments: args,
                 privileged,
+                privilege_provider,
                 ..Default::default()
             }),
             initializers: vec![],
@@ -99,10 +103,15 @@ mod tests {
             .plan(&Manifest::default(), &Contexts::default())
             .unwrap();
         assert_eq!(1, steps.len());
+        // Display format: "CommandExec with: privileged={}: {} {}"
         let step_display = format!("{}", steps[0].atom);
         assert!(
-            step_display.contains("chsh") || step_display.contains("definitely-not"),
-            "unexpected step: {step_display}"
+            step_display.contains("chsh"),
+            "expected chsh in step display, got: {step_display}"
+        );
+        assert!(
+            step_display.contains("/bin/definitely-not-a-shell-xyzzy"),
+            "expected shell path in step display, got: {step_display}"
         );
     }
 
@@ -117,6 +126,16 @@ mod tests {
             .unwrap();
         // User doesn't exist → shell won't match → step emitted
         assert_eq!(1, steps.len());
+        // Display format: "CommandExec with: privileged={}: {} {}"
+        let step_display = format!("{}", steps[0].atom);
+        assert!(
+            step_display.contains("testuser-xyzzy-nonexistent"),
+            "expected username in step display, got: {step_display}"
+        );
+        assert!(
+            step_display.contains("/bin/zsh"),
+            "expected shell path in step display, got: {step_display}"
+        );
     }
 
     #[test]
