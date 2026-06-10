@@ -1,7 +1,12 @@
 actions:
-    # Clone a git repository. Not idempotent in the network sense — always checks
-    # the remote. If `directory` already exists, clone is skipped; the repo is not
-    # pulled or updated. Use git.pull when you need clone-or-pull semantics.
+    # Clone a git repository. If `directory` already exists, clone is skipped.
     - action: git.clone
       repo_url: https://github.com/brujack/etch-cli
       directory: "{{ user.home_dir }}/src/etch-cli"
+
+    # Clone-or-pull: clones if directory is missing, pulls if it already exists.
+    # Errors if directory exists but is not a git repository (bare repos not supported).
+    - action: git.clone
+      repo_url: https://github.com/brujack/dotfiles
+      directory: "{{ user.home_dir }}/git-repos/personal/dotfiles"
+      update_existing: true
