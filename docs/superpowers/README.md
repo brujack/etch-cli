@@ -88,14 +88,14 @@ Master status index for all specs and implementation plans in this directory.
 
 ---
 
----
-
 ## Backlog
 
-| Feature                  | Notes                                                                                                                                                                                                                                                                                  |
-| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ntfy notification action | Matches existing notification infra                                                                                                                                                                                                                                                    |
-| powershell.module        | No action for installing PowerShell modules from PSGallery. Dotfiles install 10 modules (Az, AWSPowerShell.NetCore, Microsoft.Graph, oh-my-posh, etc.) via script. Needs `powershell.module` with `name:`, `scope: CurrentUser\|AllUsers`, idempotent via `Get-Module -ListAvailable`. |
+| Feature                           | Notes                                                                                                                                                                                                                                                                                                                                           |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ntfy notification action          | Matches existing notification infra                                                                                                                                                                                                                                                                                                             |
+| powershell.module                 | No action for installing PowerShell modules from PSGallery. Dotfiles install 10 modules (Az, AWSPowerShell.NetCore, Microsoft.Graph, oh-my-posh, etc.) via script. Needs `powershell.module` with `name:`, `scope: CurrentUser\|AllUsers`, idempotent via `Get-Module -ListAvailable`.                                                          |
+| `user.default_shell` action       | dotfiles `setup_zsh_as_default_shell()` runs `chsh -s /bin/zsh`. No native etch-cli action — etch-config works around with `command.run`. A `user.default_shell` action (field: `shell: /bin/zsh`) would be idempotent (no-op when `$SHELL` already matches) and eliminate the workaround.                                                      |
+| `git.clone update_existing: true` | `git.clone` skips if the target directory exists; `git.pull` requires the dir to exist. The common dotfiles pattern is clone-if-missing else pull. etch-config `tools.yaml` uses a `command.run` block for this. A `update_existing: true` field on `git.clone` would handle both cases in one action and eliminate the command.run workaround. |
 
 ---
 
