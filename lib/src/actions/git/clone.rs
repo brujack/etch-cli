@@ -23,6 +23,7 @@ impl Action for GitClone {
             atom: Box::new(crate::atoms::git::Clone {
                 repository: url.clone(),
                 directory: PathBuf::from(self.directory.clone()),
+                update_existing: false,
             }),
             initializers: vec![],
             finalizers: vec![],

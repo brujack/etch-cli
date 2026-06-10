@@ -57,6 +57,7 @@ impl Action for ZshOhMyZsh {
                 atom: Box::new(Clone {
                     repository: url,
                     directory: omz_path.clone(),
+                    update_existing: false,
                 }),
                 initializers: vec![],
                 finalizers: vec![],
@@ -74,6 +75,7 @@ impl Action for ZshOhMyZsh {
                     atom: Box::new(Clone {
                         repository: url,
                         directory: plugin_dir,
+                        update_existing: false,
                     }),
                     initializers: vec![],
                     finalizers: vec![],
