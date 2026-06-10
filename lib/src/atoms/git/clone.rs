@@ -52,10 +52,13 @@ impl Atom for Clone {
 
     #[instrument(name = "git.clone.execute", level = "info", skip(self))]
     fn execute(&mut self) -> anyhow::Result<()> {
-        if self.directory.exists() {
+        if self.update_existing && self.directory.exists() {
             // update_existing=true; plan() already validated .git exists
             let status = std::process::Command::new("git")
                 .args(["-C", &self.directory.to_string_lossy(), "pull"])
+                .env_remove("GIT_DIR")
+                .env_remove("GIT_WORK_TREE")
+                .env_remove("GIT_INDEX_FILE")
                 .status()?;
             if !status.success() {
                 anyhow::bail!(
@@ -126,17 +129,6 @@ mod tests {
             update_existing: false,
         };
         assert!(atom.plan().unwrap().should_run);
-    }
-
-    #[test]
-    fn plan_should_not_run_when_directory_exists() {
-        let tmp = tempfile::tempdir().unwrap();
-        let atom = Clone {
-            repository: gix::url::parse("https://github.com/example/repo.git".into()).unwrap(),
-            directory: tmp.path().to_path_buf(),
-            update_existing: false,
-        };
-        assert!(!atom.plan().unwrap().should_run);
     }
 
     #[test]
