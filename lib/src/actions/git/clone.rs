@@ -115,4 +115,20 @@ mod tests {
             _ => panic!("GitClone didn't deserialize"),
         }
     }
+
+    #[test]
+    fn plan_passes_update_existing_true_to_atom() {
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(tmp.path().join(".git")).unwrap();
+        let action = GitClone {
+            repo_url: String::from("https://github.com/example/repo.git"),
+            directory: tmp.path().to_string_lossy().into_owned(),
+            update_existing: true,
+        };
+        let steps = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+        assert_eq!(1, steps.len());
+        assert!(steps[0].atom.plan().unwrap().should_run);
+    }
 }
