@@ -10,6 +10,8 @@ use std::path::PathBuf;
 pub struct GitClone {
     pub repo_url: String,
     pub directory: String,
+    #[serde(default)]
+    pub update_existing: bool,
 }
 
 impl Action for GitClone {
@@ -23,7 +25,7 @@ impl Action for GitClone {
             atom: Box::new(crate::atoms::git::Clone {
                 repository: url.clone(),
                 directory: PathBuf::from(self.directory.clone()),
-                update_existing: false,
+                update_existing: self.update_existing,
             }),
             initializers: vec![],
             finalizers: vec![],
@@ -61,6 +63,7 @@ mod tests {
         let action = GitClone {
             repo_url: String::from("https://github.com/example/repo.git"),
             directory: String::from("/tmp/repo"),
+            update_existing: false,
         };
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
@@ -73,9 +76,43 @@ mod tests {
         let action = GitClone {
             repo_url: String::from("not a url ://"),
             directory: String::from("/tmp/repo"),
+            update_existing: false,
         };
         assert!(action
             .plan(&Manifest::default(), &Contexts::default())
             .is_err());
+    }
+
+    #[test]
+    fn deserialization_with_update_existing_true() {
+        let yaml = r#"
+- action: git.clone
+  repo_url: https://github.com/example/repo.git
+  directory: /tmp/repo
+  update_existing: true
+"#;
+        let mut actions: Vec<Actions> = serde_yaml_ng::from_str(yaml).unwrap();
+        match actions.pop() {
+            Some(Actions::GitClone(action)) => {
+                assert!(action.action.update_existing);
+            }
+            _ => panic!("GitClone didn't deserialize"),
+        }
+    }
+
+    #[test]
+    fn deserialization_defaults_update_existing_false() {
+        let yaml = r#"
+- action: git.clone
+  repo_url: https://github.com/example/repo.git
+  directory: /tmp/repo
+"#;
+        let mut actions: Vec<Actions> = serde_yaml_ng::from_str(yaml).unwrap();
+        match actions.pop() {
+            Some(Actions::GitClone(action)) => {
+                assert!(!action.action.update_existing);
+            }
+            _ => panic!("GitClone didn't deserialize"),
+        }
     }
 }
