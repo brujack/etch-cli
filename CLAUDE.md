@@ -30,7 +30,7 @@ etch-cli/
 │       └── basic_usage.rs
 ├── lib/          # etch-lib — core engine (actions, atoms, contexts, manifests, steps)
 │   └── src/
-│       ├── actions/          # 49 action types (see Action Catalog below)
+│       ├── actions/          # 50 action types (see Action Catalog below)
 │       ├── atoms/            # Low-level OS operations (file, dir, command, http, plugin)
 │       ├── config/mod.rs     # Config struct (manifest_paths, variables, privilege, etc.)
 │       ├── contexts/         # Context providers: user, os, variables, rhai engine
@@ -73,7 +73,7 @@ make install-hooks # install pre-commit and pre-push hooks (run once per checkou
 
 ## Action Catalog
 
-49 actions — full field reference in [`docs/knowledge/action-catalog.md`](docs/knowledge/action-catalog.md).
+50 actions — full field reference in [`docs/knowledge/action-catalog.md`](docs/knowledge/action-catalog.md).
 
 Actions map to `lib/src/actions/<name>/`. YAML names come from `#[serde(rename = "...")]` — not Rust struct names (e.g. struct `GroupAdd` → YAML `group.add`).
 
