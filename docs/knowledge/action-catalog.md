@@ -1,6 +1,6 @@
 # Action Catalog
 
-Full reference for all 38 manifest actions. Actions map to `lib/src/actions/<name>/`.
+Full reference for all 49 manifest actions. Actions map to `lib/src/actions/<name>/`.
 
 **Auditing action names:** YAML action names come from `#[serde(rename = "...")]` in `lib/src/actions/mod.rs` — not from Rust struct names. Struct names and YAML names diverge (e.g. struct `GroupAdd` → YAML `group.add`).
 
