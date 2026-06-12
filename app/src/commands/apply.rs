@@ -1,9 +1,11 @@
 use super::EtchCommand;
 use crate::Runtime;
+use chrono::Utc;
 use clap::Parser;
 use core::panic;
 use etch_lib::contexts::to_rhai;
 use etch_lib::manifests::{load, Manifest};
+use etch_lib::state::{StateEntry, StateStore};
 use indexmap::IndexSet;
 use petgraph::{visit::DfsPostOrder, Graph};
 use rhai::Engine;
@@ -162,6 +164,7 @@ impl EtchCommand for Apply {
         let mut scope = to_rhai(contexts);
 
         let mut overall_successful = true;
+        let mut state_entries: Vec<StateEntry> = Vec::new();
 
         for manifest in &run_manifests {
             let start = if manifest.eq(&String::from("")) {
@@ -326,6 +329,20 @@ impl EtchCommand for Apply {
                                 notified.insert(name.clone());
                             }
                         }
+                        // Record state for this action (only when not a failed action)
+                        if execute_error.is_none() {
+                            let key = action.state_key();
+                            if !key.is_empty() {
+                                state_entries.push(StateEntry {
+                                    manifest: m1.name.clone().unwrap_or_default(),
+                                    action: raw_action.to_string(),
+                                    key,
+                                    applied_at: Utc::now(),
+                                    sha256: None,
+                                    changed: steps_ran > 0,
+                                });
+                            }
+                        }
                     }
                     span_action.exit();
                 }
@@ -403,6 +420,13 @@ impl EtchCommand for Apply {
 
         if !overall_successful {
             return Err(anyhow::anyhow!("One or more manifests failed"));
+        }
+
+        // Write state — best-effort; never blocks a successful apply
+        if !dry_run && !state_entries.is_empty() {
+            if let Err(e) = StateStore::new().record(state_entries) {
+                warn!("state: failed to record apply state: {e:#}");
+            }
         }
 
         Ok(())

@@ -38,6 +38,10 @@ impl Action for BinaryUrl {
         format!("Downloading binary from {} to {}", self.url, self.directory)
     }
 
+    fn state_key(&self) -> String {
+        self.name.clone()
+    }
+
     fn plan(&self, _manifest: &Manifest, contexts: &Contexts) -> anyhow::Result<Vec<Step>> {
         let dest = PathBuf::from(format!("{}/{}", self.directory, self.name));
         if dest.exists() {

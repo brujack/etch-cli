@@ -25,6 +25,10 @@ pub struct MacOSService {
 }
 
 impl Action for MacOSService {
+    fn state_key(&self) -> String {
+        self.plist.clone()
+    }
+
     fn summarize(&self) -> String {
         let action = match self.state {
             MacOSServiceState::Loaded => "load",

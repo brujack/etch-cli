@@ -16,6 +16,10 @@ pub struct SystemdService {
 }
 
 impl Action for SystemdService {
+    fn state_key(&self) -> String {
+        self.unit.clone()
+    }
+
     fn summarize(&self) -> String {
         let mut parts: Vec<&str> = vec![];
         if let Some(e) = self.enabled {

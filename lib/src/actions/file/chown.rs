@@ -28,6 +28,10 @@ impl Action for FileChown {
         format!("Changing ownership for file {}", self.path)
     }
 
+    fn state_key(&self) -> String {
+        self.path.clone()
+    }
+
     fn plan(
         &self,
         _: &crate::manifests::Manifest,

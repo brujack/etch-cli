@@ -104,6 +104,10 @@ where
         self.action.summarize()
     }
 
+    fn state_key(&self) -> String {
+        self.action.state_key()
+    }
+
     fn plan(&self, manifest: &Manifest, context: &Contexts) -> Result<Vec<Step>, anyhow::Error> {
         let engine = Engine::new();
         let mut scope = crate::contexts::to_rhai(context);
@@ -561,6 +565,11 @@ pub trait Action {
     fn summarize(&self) -> String {
         warn!("need to define action summarize");
         "not found action summarize".to_string()
+    }
+    /// Returns a canonical identifier for this action instance (e.g. destination path, package name).
+    /// Used by the state manifest to deduplicate records across runs.
+    fn state_key(&self) -> String {
+        String::new()
     }
     fn plan(&self, manifest: &Manifest, context: &Contexts) -> anyhow::Result<Vec<Step>>;
 }

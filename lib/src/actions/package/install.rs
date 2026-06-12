@@ -26,6 +26,14 @@ impl Action for PackageInstall {
         }
     }
 
+    fn state_key(&self) -> String {
+        if let Some(ref name) = self.name {
+            name.clone()
+        } else {
+            self.list.first().cloned().unwrap_or_default()
+        }
+    }
+
     fn plan(&self, _manifest: &Manifest, context: &Contexts) -> anyhow::Result<Vec<Step>> {
         let variant: PackageVariant = self.into();
 

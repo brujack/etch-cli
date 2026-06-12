@@ -24,6 +24,9 @@ pub(crate) use update::Update;
 mod doctor;
 pub(crate) use doctor::Doctor;
 
+mod history;
+pub(crate) use history::History;
+
 use crate::Runtime;
 
 pub trait EtchCommand {

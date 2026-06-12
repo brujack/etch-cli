@@ -31,6 +31,7 @@ pub(crate) fn execute(runtime: Runtime) -> anyhow::Result<()> {
         Commands::Plugin(plugin) => plugin.execute(&runtime),
         Commands::HelpAll(h) => h.execute(&runtime),
         Commands::Doctor(d) => d.execute(&runtime),
+        Commands::History(h) => h.execute(&runtime),
     }
 }
 

@@ -16,6 +16,10 @@ fn get_false() -> bool {
 }
 
 impl Action for BrewUpgrade {
+    fn state_key(&self) -> String {
+        "brew.upgrade".to_string()
+    }
+
     fn summarize(&self) -> String {
         if self.greedy {
             String::from("Upgrading Homebrew packages (greedy)")

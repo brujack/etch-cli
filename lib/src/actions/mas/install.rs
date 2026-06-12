@@ -39,6 +39,13 @@ impl MasInstall {
 }
 
 impl Action for MasInstall {
+    fn state_key(&self) -> String {
+        self.id
+            .map(|id| id.to_string())
+            .or_else(|| self.list.first().map(|a| a.id.to_string()))
+            .unwrap_or_default()
+    }
+
     fn summarize(&self) -> String {
         let apps = self.app_list();
         match apps.len() {

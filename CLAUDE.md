@@ -22,7 +22,7 @@ etch-cli/
 │   │       ├── plugin.rs
 │   │       └── version.rs
 │   └── tests/                # Integration tests (assert_cmd)
-│       ├── integration.rs    # 16 e2e tests: file.link, file.copy, command.run, directory.create, file.flags
+│       ├── integration.rs    # 20 e2e tests: file.link, file.copy, command.run, directory.create, file.flags, state+history
 │       ├── snapshots.rs      # 5 snapshot tests locking etch -h, etch apply --help, etch version, --dry-run output
 │       ├── cli_commands.rs   # 11 tests: version, gen-completions, contexts, plugin, help-all
 │       ├── status.rs         # 7 tests: etch status exit codes, --json, --missing-only, stdout structure
@@ -218,6 +218,22 @@ actions:
 | `has_snap`     | Use snap package manager (Linux only)           |
 
 New capabilities can be added freely — the convention is the only constraint. See `examples/machine-profiles/` for complete example files.
+
+## State Manifest
+
+After each successful `etch apply`, etch writes `~/.local/share/etch/state.yaml` recording every atom executed: manifest name, action type, canonical key, applied-at timestamp, sha256 (file atoms only, currently always `null`), and whether the atom produced a change.
+
+**`etch history`** reads the state file:
+
+```
+etch history                       # table of all recorded atoms
+etch history --manifest <substr>   # filter by manifest name substring
+etch history --json                # NDJSON, one object per atom
+```
+
+**State path override:** set `ETCH_STATE_DIR` env var to redirect state to a different directory (used by integration tests; `state.yaml` is always the filename within that dir).
+
+**Implementation:** `lib/src/state/` — `StateStore::record()` merges on `(manifest, action, key)` triple so re-running the same action updates the row rather than appending.
 
 ## Config File
 

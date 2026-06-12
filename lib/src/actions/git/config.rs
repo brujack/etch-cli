@@ -42,6 +42,10 @@ impl GitConfig {
 }
 
 impl Action for GitConfig {
+    fn state_key(&self) -> String {
+        self.key.clone().unwrap_or_else(|| "bulk".to_string())
+    }
+
     fn summarize(&self) -> String {
         let scope = match self.scope {
             GitConfigScope::Global => "global",

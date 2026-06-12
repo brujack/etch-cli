@@ -28,6 +28,10 @@ impl Action for FileFlags {
         format!("Set BSD flags {:?} on {}", self.flags, self.path)
     }
 
+    fn state_key(&self) -> String {
+        self.path.clone()
+    }
+
     fn plan(&self, _: &Manifest, _contexts: &Contexts) -> anyhow::Result<Vec<Step>> {
         #[cfg(not(target_os = "macos"))]
         return Err(anyhow!("file.flags is only supported on macOS"));

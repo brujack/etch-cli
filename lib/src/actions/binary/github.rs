@@ -169,6 +169,10 @@ impl Action for BinaryGitHub {
         )
     }
 
+    fn state_key(&self) -> String {
+        self.name.clone()
+    }
+
     fn plan(&self, _: &Manifest, _: &Contexts) -> anyhow::Result<Vec<Step>> {
         let binary_path = PathBuf::from(format!("{}/{}", self.directory, self.name));
         let binary_exists = binary_path.exists();

@@ -11,6 +11,12 @@ pub struct MasUpgrade {
 }
 
 impl Action for MasUpgrade {
+    fn state_key(&self) -> String {
+        self.id
+            .map(|id| id.to_string())
+            .unwrap_or_else(|| "all".to_string())
+    }
+
     fn summarize(&self) -> String {
         match self.id {
             Some(id) => format!("Upgrading App Store app {id}"),
