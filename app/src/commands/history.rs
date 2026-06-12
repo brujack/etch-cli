@@ -15,6 +15,7 @@ pub(crate) struct History {
 }
 
 impl EtchCommand for History {
+    #[cfg(not(tarpaulin_include))]
     fn execute(&self, _runtime: &Runtime) -> anyhow::Result<()> {
         let store = StateStore::new();
         let state = match store.load() {
@@ -45,8 +46,14 @@ impl EtchCommand for History {
 
         Ok(())
     }
+
+    #[cfg(tarpaulin_include)]
+    fn execute(&self, _runtime: &Runtime) -> anyhow::Result<()> {
+        unreachable!()
+    }
 }
 
+#[cfg(not(tarpaulin_include))]
 pub(crate) fn print_table(entries: &[&StateEntry]) {
     println!(
         "{:<50} {:<15} {:<30} {:<22} CHANGED",
