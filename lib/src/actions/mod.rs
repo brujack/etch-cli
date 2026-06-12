@@ -61,6 +61,7 @@ use std::ops::Deref;
 use terraform::TerraformTfenv;
 use tracing::{error, warn};
 use user::add::UserAdd;
+use user::default_shell::UserDefaultShell;
 use zsh::ZshOhMyZsh;
 
 use self::user::add_group::UserAddGroup;
@@ -269,6 +270,9 @@ pub enum Actions {
     #[serde(rename = "user.group")]
     UserAddGroup(ConditionalVariantAction<UserAddGroup>),
 
+    #[serde(rename = "user.default_shell")]
+    UserDefaultShell(ConditionalVariantAction<UserDefaultShell>),
+
     #[serde(rename = "plugin")]
     Plugin(ConditionalVariantAction<Plugin>),
 
@@ -341,6 +345,7 @@ impl Actions {
             Actions::PackageRemove(a) => a,
             Actions::UserAdd(a) => a,
             Actions::UserAddGroup(a) => a,
+            Actions::UserDefaultShell(a) => a,
             Actions::FileRemove(a) => a,
             Actions::DirectoryRemove(a) => a,
             Actions::Plugin(a) => a,
@@ -398,6 +403,7 @@ impl Actions {
             Actions::PackageRemove(a) => &a.notify,
             Actions::UserAdd(a) => &a.notify,
             Actions::UserAddGroup(a) => &a.notify,
+            Actions::UserDefaultShell(a) => &a.notify,
             Actions::Plugin(a) => &a.notify,
             Actions::RubyInstall(a) => &a.notify,
             Actions::RubyChruby(a) => &a.notify,
@@ -454,6 +460,7 @@ impl Deref for Actions {
             Actions::PackageRemove(a) => a,
             Actions::UserAdd(a) => a,
             Actions::UserAddGroup(a) => a,
+            Actions::UserDefaultShell(a) => a,
             Actions::FileRemove(a) => a,
             Actions::DirectoryRemove(a) => a,
             Actions::Plugin(a) => a,
@@ -513,6 +520,7 @@ impl Display for Actions {
             Actions::PackageRemove(_) => "package.remove",
             Actions::UserAdd(_) => "user.add",
             Actions::UserAddGroup(_) => "user.group",
+            Actions::UserDefaultShell(_) => "user.default_shell",
             Actions::Plugin(_) => "plugin",
             Actions::RubyInstall(_) => "ruby.install",
             Actions::RubyChruby(_) => "ruby.chruby",
@@ -683,6 +691,8 @@ actions:
     name: htop
   - action: user.add
     username: alice
+  - action: user.default_shell
+    shell: /bin/zsh
   - action: brew.bundle
     file: /tmp/Brewfile
   - action: brew.upgrade
@@ -718,7 +728,7 @@ actions:
   - action: zsh.oh-my-zsh
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(34, manifest.actions.len());
+        assert_eq!(35, manifest.actions.len());
     }
 
     #[test]
@@ -781,6 +791,8 @@ actions:
   - action: user.group
     username: alice
     group_name: staff
+  - action: user.default_shell
+    shell: /bin/zsh
   - action: brew.bundle
     file: /tmp/Brewfile
   - action: brew.upgrade
@@ -828,6 +840,7 @@ actions:
             "package.repository",
             "user.add",
             "user.group",
+            "user.default_shell",
             "brew.bundle",
             "brew.upgrade",
             "brew.cleanup",
@@ -1045,6 +1058,8 @@ actions:
   - action: user.group
     username: alice
     group_name: staff
+  - action: user.default_shell
+    shell: /bin/zsh
   - action: brew.bundle
     file: /tmp/Brewfile
   - action: brew.upgrade
@@ -1100,7 +1115,7 @@ actions:
   - action: terraform.tfenv
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(48, manifest.actions.len());
+        assert_eq!(49, manifest.actions.len());
 
         for action in &manifest.actions {
             // Exercise inner_ref(), Deref, and notify() for every variant
