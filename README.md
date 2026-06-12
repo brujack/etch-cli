@@ -302,6 +302,20 @@ doctor:
 
 Manifest-derived tool checks: `brew.bundle`/`brew.upgrade`/`brew.cleanup` → `brew`, `gem.install` → `gem`, `pip.install` → `pip`, `npm.install` → `npm`, `mas.install`/`mas.upgrade` → `mas`, `pyenv.install`/`pyenv.virtualenv` → `pyenv`, `ruby.install` → `ruby-install`, `claude.install`/`claude.upgrade`/`claude.plugin.update` → `claude`.
 
+## etch history
+
+`etch history` shows what `etch apply` has done — a persistent record of every atom that executed successfully, written to `~/.local/share/etch/state.yaml` after each apply.
+
+```shell
+etch history                         # table of all recorded atoms
+etch history --manifest <substr>     # filter by manifest name substring
+etch history --json                  # NDJSON, one object per atom
+```
+
+**Output columns:** `MANIFEST` · `ACTION` · `KEY` (destination path, package name, etc.) · `APPLIED AT` · `CHANGED` (yes/no — whether the atom mutated state in that run).
+
+The state file uses merge semantics: re-running the same action updates the existing row rather than appending — the file always reflects the most-recent outcome per `(manifest, action, key)` triple.
+
 ## Debugging
 
 ### Verbose output
