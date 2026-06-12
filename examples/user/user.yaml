@@ -15,3 +15,14 @@ actions:
       group:
           - wheel
           - docker
+
+    # Change the current user's default login shell. Idempotent: no-op if already correct.
+    # Shell must be listed in /etc/shells — chsh errors otherwise.
+    - action: user.default_shell
+      shell: /bin/zsh
+
+    # Change another user's default shell (requires privilege escalation).
+    - action: user.default_shell
+      shell: /bin/zsh
+      username: bruce
+      where: 'os.name == "linux"'
