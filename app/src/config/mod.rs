@@ -71,6 +71,9 @@ pub enum Commands {
     /// Print help for all subcommands
     #[clap(name = "help-all")]
     HelpAll(commands::HelpAll),
+
+    /// Show apply history from state file
+    History(commands::History),
 }
 
 impl Default for Commands {

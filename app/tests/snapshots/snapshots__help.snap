@@ -16,6 +16,7 @@ Commands:
   doctor           Check system health
   plugin           Manage etch plugins
   help-all         Print help for all subcommands
+  history          Show apply history from state file
   help             Print this message or the help of the given subcommand(s)
 
 Options:

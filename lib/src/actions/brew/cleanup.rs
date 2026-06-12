@@ -15,6 +15,10 @@ impl Action for BrewCleanup {
         String::from("Cleaning up Homebrew cache")
     }
 
+    fn state_key(&self) -> String {
+        "brew.cleanup".to_string()
+    }
+
     fn plan(&self, _: &Manifest, _: &Contexts) -> anyhow::Result<Vec<Step>> {
         use crate::atoms::command::Exec;
 

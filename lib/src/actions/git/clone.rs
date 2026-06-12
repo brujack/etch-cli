@@ -19,6 +19,10 @@ impl Action for GitClone {
         format!("Cloning repository {} to {}", self.repo_url, self.directory)
     }
 
+    fn state_key(&self) -> String {
+        self.directory.clone()
+    }
+
     fn plan(&self, _: &Manifest, _: &Contexts) -> anyhow::Result<Vec<Step>> {
         let url = gix::url::parse(self.repo_url.as_str().into())?;
         Ok(vec![Step {

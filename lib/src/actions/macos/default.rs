@@ -62,6 +62,10 @@ fn array_add_shell_cmd(domain: &str, key: &str, kind: &str, value: &str) -> Stri
 }
 
 impl Action for MacOSDefault {
+    fn state_key(&self) -> String {
+        format!("{}/{}", self.domain, self.key)
+    }
+
     fn summarize(&self) -> String {
         format!(
             "macos.default {} {} = {}",

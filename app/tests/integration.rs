@@ -2,6 +2,18 @@ use assert_cmd::Command;
 use std::fs;
 use tempfile::tempdir;
 
+/// Spawn `etch --no-color -d . apply` from `dir`, redirecting state to `state_dir`.
+fn apply_with_state(
+    dir: &std::path::Path,
+    state_dir: &std::path::Path,
+) -> assert_cmd::assert::Assert {
+    Command::new(assert_cmd::cargo::cargo_bin!("etch"))
+        .current_dir(dir)
+        .env("ETCH_STATE_DIR", state_dir)
+        .args(["--no-color", "-d", ".", "apply"])
+        .assert()
+}
+
 /// Spawn `etch --no-color -d . apply` from `dir`.
 fn apply(dir: &std::path::Path) -> assert_cmd::assert::Assert {
     Command::new(assert_cmd::cargo::cargo_bin!("etch"))
@@ -498,4 +510,123 @@ fn file_flags_clears_hidden() {
         !ls_flags(&target).contains("hidden"),
         "expected 'hidden' to be cleared"
     );
+}
+
+// ─── state manifest ───────────────────────────────────────────────────────────
+
+#[test]
+fn apply_writes_state_file_with_file_copy_key() {
+    let dir = tempdir().unwrap();
+    let state_dir = tempdir().unwrap();
+    let src = dir.path().join("src.txt");
+    let dst = dir.path().join("dst.txt");
+    fs::write(&src, "hello").unwrap();
+
+    fs::write(
+        dir.path().join("main.yaml"),
+        format!(
+            "actions:\n  - action: file.copy\n    from: {}\n    to: {}\n",
+            src.display(),
+            dst.display()
+        ),
+    )
+    .unwrap();
+
+    apply_with_state(dir.path(), state_dir.path()).success();
+
+    let state_file = state_dir.path().join("state.yaml");
+    assert!(state_file.exists(), "state.yaml should be created");
+    let content = fs::read_to_string(&state_file).unwrap();
+    assert!(
+        content.contains(dst.to_str().unwrap()),
+        "state should contain destination path as key"
+    );
+}
+
+#[test]
+fn apply_twice_merges_not_appends() {
+    let dir = tempdir().unwrap();
+    let state_dir = tempdir().unwrap();
+    let src = dir.path().join("src.txt");
+    let dst = dir.path().join("dst.txt");
+    fs::write(&src, "hello").unwrap();
+
+    let manifest = format!(
+        "actions:\n  - action: file.copy\n    from: {}\n    to: {}\n",
+        src.display(),
+        dst.display()
+    );
+    fs::write(dir.path().join("main.yaml"), &manifest).unwrap();
+
+    apply_with_state(dir.path(), state_dir.path()).success();
+    apply_with_state(dir.path(), state_dir.path()).success();
+
+    let content = fs::read_to_string(state_dir.path().join("state.yaml")).unwrap();
+    let state: serde_yaml_ng::Value = serde_yaml_ng::from_str(&content).unwrap();
+    let atoms = state["atoms"].as_sequence().unwrap();
+    assert_eq!(atoms.len(), 1, "second apply should merge, not append");
+}
+
+#[test]
+fn etch_history_stdout_contains_destination_path() {
+    let dir = tempdir().unwrap();
+    let state_dir = tempdir().unwrap();
+    let src = dir.path().join("src.txt");
+    let dst = dir.path().join("dst.txt");
+    fs::write(&src, "hello").unwrap();
+
+    fs::write(
+        dir.path().join("main.yaml"),
+        format!(
+            "actions:\n  - action: file.copy\n    from: {}\n    to: {}\n",
+            src.display(),
+            dst.display()
+        ),
+    )
+    .unwrap();
+    apply_with_state(dir.path(), state_dir.path()).success();
+
+    // Use --json to get untruncated key (table output truncates path to 30 chars)
+    let output = Command::new(assert_cmd::cargo::cargo_bin!("etch"))
+        .current_dir(dir.path())
+        .env("ETCH_STATE_DIR", state_dir.path())
+        .args(["--no-color", "history", "--json"])
+        .output()
+        .unwrap();
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(
+        stdout.contains(dst.to_str().unwrap()),
+        "history --json should contain full destination path"
+    );
+}
+
+#[test]
+fn etch_history_json_first_line_has_file_copy_action() {
+    let dir = tempdir().unwrap();
+    let state_dir = tempdir().unwrap();
+    let src = dir.path().join("src.txt");
+    let dst = dir.path().join("dst.txt");
+    fs::write(&src, "hello").unwrap();
+
+    fs::write(
+        dir.path().join("main.yaml"),
+        format!(
+            "actions:\n  - action: file.copy\n    from: {}\n    to: {}\n",
+            src.display(),
+            dst.display()
+        ),
+    )
+    .unwrap();
+    apply_with_state(dir.path(), state_dir.path()).success();
+
+    let output = Command::new(assert_cmd::cargo::cargo_bin!("etch"))
+        .current_dir(dir.path())
+        .env("ETCH_STATE_DIR", state_dir.path())
+        .args(["--no-color", "history", "--json"])
+        .output()
+        .unwrap();
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    let first_line = stdout.lines().next().unwrap();
+    let parsed: serde_json::Value = serde_json::from_str(first_line).unwrap();
+    assert_eq!(parsed["action"], "file.copy");
 }

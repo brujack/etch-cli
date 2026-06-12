@@ -16,6 +16,10 @@ impl Action for DirectoryCreate {
         format!("Creating directory {}", self.path)
     }
 
+    fn state_key(&self) -> String {
+        self.path.clone()
+    }
+
     fn plan(&self, _: &Manifest, _context: &Contexts) -> anyhow::Result<Vec<Step>> {
         Ok(vec![Step {
             atom: Box::new(DirectoryCreateAtom {

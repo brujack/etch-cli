@@ -25,6 +25,10 @@ impl Action for BrewBundle {
         format!("Installing Homebrew bundle from {}", self.file)
     }
 
+    fn state_key(&self) -> String {
+        self.file.clone()
+    }
+
     fn plan(&self, _: &Manifest, _: &Contexts) -> anyhow::Result<Vec<Step>> {
         use crate::atoms::command::Exec;
 

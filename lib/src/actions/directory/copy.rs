@@ -21,6 +21,10 @@ impl Action for DirectoryCopy {
         format!("Copying {} to {}", self.from, self.to)
     }
 
+    fn state_key(&self) -> String {
+        self.to.clone()
+    }
+
     fn plan(&self, manifest: &Manifest, _context: &Contexts) -> anyhow::Result<Vec<Step>> {
         let mut from: String = self.resolve(manifest, &self.from).display().to_string();
 

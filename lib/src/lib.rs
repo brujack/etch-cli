@@ -8,6 +8,7 @@ pub mod config;
 pub mod contexts;
 pub mod doctor;
 pub mod manifests;
+pub mod state;
 pub mod steps;
 pub mod tera_functions;
 mod utilities;

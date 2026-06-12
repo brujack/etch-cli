@@ -47,6 +47,14 @@ impl Action for RunCommand {
         }
     }
 
+    fn state_key(&self) -> String {
+        if let Some(first_arg) = self.args.first() {
+            format!("{} {}", self.command, first_arg)
+        } else {
+            self.command.clone()
+        }
+    }
+
     fn plan(&self, _: &Manifest, contexts: &Contexts) -> anyhow::Result<Vec<Step>> {
         use crate::atoms::command::Exec;
 

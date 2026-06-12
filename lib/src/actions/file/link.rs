@@ -191,6 +191,10 @@ impl FileAction for FileLink {
 }
 
 impl Action for FileLink {
+    fn state_key(&self) -> String {
+        self.target()
+    }
+
     fn summarize(&self) -> String {
         if let Some(ref pattern) = self.glob {
             return format!(

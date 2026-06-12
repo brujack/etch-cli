@@ -57,6 +57,10 @@ impl Action for FileCopy {
         format!("Copy file from {} to {}", self.from, self.to)
     }
 
+    fn state_key(&self) -> String {
+        self.to.clone()
+    }
+
     fn plan(
         &self,
         manifest: &Manifest,

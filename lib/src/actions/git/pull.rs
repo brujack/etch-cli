@@ -22,6 +22,10 @@ impl Action for GitPull {
         )
     }
 
+    fn state_key(&self) -> String {
+        self.directory.clone()
+    }
+
     fn plan(&self, _: &Manifest, _: &Contexts) -> anyhow::Result<Vec<Step>> {
         if let Some(path) = &self.skip_if_not_exists {
             if !PathBuf::from(path).exists() {

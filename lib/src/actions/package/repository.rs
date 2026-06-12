@@ -33,6 +33,10 @@ impl Action for PackageRepository {
         format!("Adding repository {}", self.name)
     }
 
+    fn state_key(&self) -> String {
+        self.name.clone()
+    }
+
     fn plan(&self, _manifest: &Manifest, context: &Contexts) -> anyhow::Result<Vec<Step>> {
         let box_provider = self.provider.clone().get_provider();
         let provider = box_provider.deref();

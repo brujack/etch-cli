@@ -34,6 +34,10 @@ impl Action for FileChmod {
         format!("Set permissions {} on {}", self.mode, self.path)
     }
 
+    fn state_key(&self) -> String {
+        self.path.clone()
+    }
+
     fn plan(&self, _: &Manifest, contexts: &Contexts) -> anyhow::Result<Vec<Step>> {
         if self.config.privileged {
             use crate::atoms::command::Exec;
