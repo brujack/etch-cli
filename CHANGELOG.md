@@ -3,6 +3,378 @@
 
 ## Bug Fixes
 
+- dist-upgrade, autoremove, scope pip/gems to user envs
+
+- scope pip list to user packages; extract testable helpers (#60)
+
+- make add_to_group idempotent via id -nG membership check (#64)
+
+- strip directory prefix from sha256sum in release workflow
+
+- fix etch plugin update — inverted guard, missing fetch calls, wrong remote (#88)
+
+- remove --yes from snap install invocation (#90)
+
+- detect installed casks in installed_version() (#97)
+
+- install cargo-machete in release workflow
+
+
+
+## CI
+
+- raise coverage gate 70% → 80% after PR #83 measured 80.17% on Linux
+
+
+
+## Documentation
+
+- document etch update command and fix cosign verify command
+
+- fix etch update config example types and add missing fields
+
+- document new-action checklist and restore lost backlog items
+
+- mark pip.install Done, remove from backlog
+
+- mark user.group idempotency Done, remove from backlog
+
+- mark package.autoremove Done, remove from backlog
+
+- mark npm.install Done, remove from backlog
+
+- mark pyenv.install Done, remove from backlog
+
+- add pyenv.install configure_opts for macOS Homebrew interference
+
+- mark pyenv configure_opts Done, remove from backlog
+
+- mark pyenv.virtualenv Done, remove from backlog
+
+- mark ruby.install version_manager Done
+
+- add ruby.install compile_flags for macOS OpenSSL
+
+- add pyenv.install and pyenv.virtualenv examples and catalog entries
+
+- document 8 previously undocumented actions in README and CLAUDE.md
+
+- add npm.install and package.autoremove example manifests
+
+- improve comments across 19 example manifests
+
+- fix 4 inaccuracies in CLAUDE.md action catalog
+
+- fix group/user action names, add plugin row
+
+- note serde rename as canonical action name source
+
+- add compile_flags plan, spec, mark Done
+
+- add etch status coverage spec
+
+- add etch status coverage implementation plan
+
+- mark etch-status-coverage Done
+
+- sync CLAUDE.md and plan index after learnings audit
+
+- add ADR-0006 through ADR-0010 for major decisions
+
+- mark package-upgrade Done in plan index
+
+- document package.upgrade behavior and debug path
+
+- add package.upgrade usage examples with where: guards
+
+- flesh out package/install.yaml and upgrade.yaml
+
+- consolidate package examples into package-management.yaml
+
+- consolidate brew examples into brew-management.yaml
+
+- remove stale etch-update-command pending row
+
+- mark version-pinning Done, update coverage to ~77%
+
+- ADR-0011 — version pinning error-on-mismatch semantics; update CLAUDE.md catalog
+
+- mark macos.rosetta Done, remove from backlog
+
+- document replace_all pattern for actions/mod.rs match arm edits
+
+- add os.arch context field
+
+- mark os.arch Done, remove from backlog
+
+- document etch plugin CLI subcommands and plugin.rs tests
+
+- mark verbose-apply Done, remove from backlog
+
+- fix stale -v note and document verbose apply flag
+
+- add subcommand help discoverability item
+
+- close 6 coverage gap items after #80 merge
+
+- update Linux CI coverage to ~78% after PR #80
+
+- mark subcommand help-all Done after #81 merge
+
+- update cli_commands.rs count 7→11 for help-all tests
+
+- mark mas.install list: support Done after #82 merge
+
+- update Linux CI coverage 77.64% → 77.67% after PR #82
+
+- add error summary includes actual error item
+
+- update Linux CI coverage 77.67% → 80.17% after PR #83; remove solved backlog items
+
+- add 8 coverage gap items targeting atoms and actions layers
+
+- update coverage 80.17% → 80.28% after PR #84; clear resolved backlog items
+
+- update coverage 80.28% → 81.29% after PR #85; raise CI gate to 81%
+
+- mark error-summary Done; remove from backlog
+
+- move action catalog to knowledge/, trim testing section
+
+- trim DoD to repo-specific addenda; fix coverage gate 80%→81%
+
+- add package-streaming spec, plan, and mark Done
+
+- update streaming behavior and coverage floor
+
+- add 8 items from dotfiles/setup_env.sh capability gap analysis
+
+- add claude.plugin spec
+
+- add claude.install/upgrade to README, examples, and plan index
+
+- add claude.install and claude.upgrade to action catalog
+
+- add 2026-06-05 retrospective (PRs #70-#89)
+
+- record snap install --yes bug
+
+- claude.marketplace, claude.marketplace.remove, package.remove
+
+- claude.marketplace, claude.marketplace.remove, package.remove
+
+- mark claude-marketplace-package-remove Done in plan index
+
+- update action count to 44, add cask field to package.remove catalog
+
+- update action checklist to mention all 3 dispatch tests
+
+- add claude.plugin.update design spec
+
+- add claude.plugin.update implementation plan
+
+- mark claude-plugin-update Done in plan index
+
+- add claude.plugin.update to catalogs, bump action count to 45
+
+- note dispatch test also fails during todo!() TDD phase
+
+- add etch doctor implementation plan
+
+- add etch doctor design spec
+
+- mark etch-doctor Done in plan index
+
+- add etch doctor to README and ADR-0012
+
+- add snapshot/lib.rs/security notes from etch-doctor session
+
+- add etch update --only/--skip design spec
+
+- add etch update --only/--skip implementation plan
+
+- mark etch-update-only-skip Done in plan index
+
+- update README and ADR-0008 for --only/--skip flags
+
+- add ruby.chruby design spec
+
+- add ruby.chruby implementation plan
+
+- mark ruby-chruby Done in plan index
+
+- fix stale ruby.install chruby description in action catalog
+
+- add zsh.oh-my-zsh design spec
+
+- mark zsh.oh-my-zsh Done in plan index
+
+- bump action count 45→46 after zsh.oh-my-zsh
+
+- add macos.softwareupdate implementation plan
+
+- add macos.softwareupdate design spec
+
+- mark macos.softwareupdate Done, prune stale backlog
+
+- bump action count 46→47 after macos.softwareupdate
+
+- add terraform.tfenv design spec
+
+- add terraform.tfenv implementation plan
+
+- mark terraform.tfenv Done, prune backlog entry
+
+- add binary.github version drift detection spec
+
+- add binary.github drift detection implementation plan
+
+- add pyenv.recreate-virtualenv action item
+
+- mark binary.github drift detection Done
+
+- ADR-0013 — binary.github version drift via sidecar files
+
+- update binary example and coverage figure after PR #101
+
+- add pyenv.virtualenv recreate: field design spec
+
+- add pyenv.virtualenv recreate: implementation plan
+
+- mark pyenv.virtualenv recreate: Done
+
+- update pyenv.virtualenv recreate: in README, catalog, and coverage
+
+- add user.default_shell and git.clone update_existing gaps
+
+- add git.clone update_existing field design
+
+- add git.clone update_existing implementation plan
+
+- mark git.clone update_existing Done
+
+- bump Linux coverage 81.33% → 81.38% after git.clone update_existing
+
+- add user.default_shell design spec
+
+- add user.default_shell implementation plan
+
+- mark user.default_shell Done
+
+- bump Linux coverage 81.38% → 81.48% after user.default_shell
+
+- fix action count 49→50 and macos.default name
+
+- bump Linux coverage 81.48% → 81.01% after state-manifest
+
+- ADR-0014 — state manifest and etch history subcommand
+
+- mark file-rollback plan Done, add status banner
+
+- add rollback.rs to test file inventory in CLAUDE.md
+
+- rename ansible-cop-review → ansible-good-practices in etch spec (#109)
+
+- mark plan Done, add to index
+
+
+
+## Features
+
+- generate and publish SHA256 checksum
+
+- add ruby.install action via ruby-install (#61)
+
+- add gem.install action (#62)
+
+- add pip.install action (#63)
+
+- add package.autoremove action for apt orphan cleanup (#65)
+
+- add npm.install action for global npm packages (#66)
+
+- add pyenv.install action (#67)
+
+- add configure_opts field to pyenv.install (#68)
+
+- add pyenv.virtualenv action (#70)
+
+- add version_manager field for rbenv post-install steps (#71)
+
+- add compile_flags field (#72)
+
+- add package.upgrade action for apt and snap (#74)
+
+- add version: field to package.install for version pinning (#75)
+
+- add macos.rosetta action (#76)
+
+- add os.arch field to OS context provider (#77)
+
+- re-register plugin subcommand in CLI (#78)
+
+- add --verbose flag; suppress nothing-to-be-done by default (#79)
+
+- add help-all subcommand to show all subcommand flags (#81)
+
+- add list: field to mas.install for multiple apps (#82)
+
+- embed error in summary line on action failure (#86)
+
+- stream package manager output in real time (#87)
+
+- add claude.install and claude.upgrade actions (#89)
+
+- add claude.marketplace, claude.marketplace.remove, and package.remove actions (#91)
+
+- add claude.plugin.update action (#92)
+
+- add etch doctor subcommand (#93)
+
+- replace per-category flags with --only/--skip (#95)
+
+- add ruby.chruby action and extend version_manager: chruby (#96)
+
+- add zsh.oh-my-zsh action (#98)
+
+- add macos.softwareupdate action (#99)
+
+- add terraform.tfenv action (#100)
+
+- add version drift detection to binary.github (#101)
+
+- add recreate: field to pyenv.virtualenv (#102)
+
+- add update_existing field for clone-or-pull (#103)
+
+- add user.default_shell action (#104)
+
+- add state manifest and etch history command (#105)
+
+- adopt 10-80-10 execution cycle (ai-config ADR-0009/0010) (#106)
+
+- etch rollback subcommand with pre-apply file stash (#107)
+
+- propagate DEBCONF_NONINTERACTIVE_SEEN and NEEDRESTART_MODE (#108)
+
+
+
+## Testing
+
+- add 7 integration tests for etch status (#73)
+
+- add coverage for 7 backlog gap items (#80)
+
+- cover actions/mod.rs false-condition and apply.rs error paths (#83)
+
+- fix Linux tarpaulin gaps in atoms, actions, and values (#84)
+
+- cover all 40 dispatch arms in inner_ref/notify/Deref (#85)
+
+
+
+## Bug Fixes
+
 - exit nonzero on manifest parse errors and step failures (#38)
 
 - pin cosign-installer to v4.1.2
