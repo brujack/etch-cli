@@ -1,4 +1,4 @@
-.PHONY: all test lint build build-linux install-hooks mutants bench changelog fuzz fuzz-manifest fuzz-path semver
+.PHONY: all test lint build build-linux install-hooks mutants bench changelog fuzz fuzz-manifest fuzz-path semver validate-plan
 
 all: test build
 
@@ -50,3 +50,11 @@ semver:
 
 changelog:
 	git-cliff -o CHANGELOG.md
+
+# 10-80-10 cycle (ai-config ADR-0009/0010) — validate a plan file
+validate-plan:
+ifndef PLAN
+	@printf "error: PLAN is required, e.g. make validate-plan PLAN=docs/superpowers/plans/foo.md\n" >&2
+	@exit 2
+endif
+	@python3 ~/.claude/scripts/validate-plan.py "$(PLAN)"
