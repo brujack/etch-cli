@@ -26,6 +26,7 @@ etch-cli/
 │       ├── snapshots.rs      # 5 snapshot tests locking etch -h, etch apply --help, etch version, --dry-run output
 │       ├── cli_commands.rs   # 11 tests: version, gen-completions, contexts, plugin, help-all
 │       ├── status.rs         # 7 tests: etch status exit codes, --json, --missing-only, stdout structure
+│       ├── rollback.rs       # 7 tests: etch rollback stash/prune/restore integration
 │       ├── error_paths.rs    # error path integration tests
 │       └── basic_usage.rs
 ├── lib/          # etch-lib — core engine (actions, atoms, contexts, manifests, steps)
