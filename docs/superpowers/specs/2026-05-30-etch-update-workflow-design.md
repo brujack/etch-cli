@@ -64,7 +64,7 @@ update:
             - skill-creator@claude-plugins-official
             - frontend-design@claude-plugins-official
             - security-guidance@claude-plugins-official
-            - ansible-cop-review@claude-ansible-skills
+            - ansible-good-practices@claude-ansible-skills
             - warp@claude-code-warp
         npm_globals:
             - firecrawl-cli
@@ -185,7 +185,7 @@ update:
             - skill-creator@claude-plugins-official
             - frontend-design@claude-plugins-official
             - security-guidance@claude-plugins-official
-            - ansible-cop-review@claude-ansible-skills
+            - ansible-good-practices@claude-ansible-skills
             - warp@claude-code-warp
         npm_globals:
             - firecrawl-cli
