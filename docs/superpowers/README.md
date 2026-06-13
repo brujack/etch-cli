@@ -87,6 +87,7 @@ Master status index for all specs and implementation plans in this directory.
 | 2026-06-09 | [pyenv-recreate-virtualenv](plans/2026-06-09-pyenv-recreate-virtualenv-plan.md)            | [pyenv-recreate-virtualenv](specs/2026-06-09-pyenv-recreate-virtualenv-design.md)                                         | Done   |
 | 2026-06-10 | [git-clone-update-existing](plans/2026-06-10-git-clone-update-existing-plan.md)            | [git-clone-update-existing](specs/2026-06-10-git-clone-update-existing-design.md)                                         | Done   |
 | 2026-06-10 | [user-default-shell](plans/2026-06-10-user-default-shell-plan.md)                          | [user-default-shell](specs/2026-06-10-user-default-shell-design.md)                                                       | Done   |
+| 2026-06-13 | [debian-frontend-propagation](plans/2026-06-13-debian-frontend-propagation.md)             | [debian-frontend-propagation](specs/2026-06-13-debian-frontend-propagation-design.md)                                     | Done   |
 
 ---
 

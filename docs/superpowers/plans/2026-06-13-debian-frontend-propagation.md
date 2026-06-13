@@ -1,5 +1,7 @@
 # DEBIAN_FRONTEND Propagation Implementation Plan
 
+> **Status: DONE** — merged as etch-cli#108 (2026-06-13)
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add `DEBCONF_NONINTERACTIVE_SEEN=true` and `NEEDRESTART_MODE=a` to every apt invocation so dpkg post-invoke hooks run non-interactively.
