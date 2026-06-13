@@ -1368,6 +1368,7 @@ dependencies = [
  "serial_test",
  "sha256",
  "shellexpand",
+ "similar",
  "tar",
  "tealr",
  "tempfile",
