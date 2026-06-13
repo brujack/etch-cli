@@ -11,6 +11,7 @@ mod create;
 mod decrypt;
 mod link;
 mod remove;
+mod stash;
 mod unarchive;
 
 use super::Atom;
@@ -22,6 +23,7 @@ pub use create::Create;
 pub use decrypt::Decrypt;
 pub use link::Link;
 pub use remove::Remove;
+pub use stash::Stash;
 pub use unarchive::Unarchive;
 
 pub trait FileAtom: Atom {

@@ -27,6 +27,9 @@ pub(crate) use doctor::Doctor;
 mod history;
 pub(crate) use history::History;
 
+mod rollback;
+pub(crate) use rollback::Rollback;
+
 use crate::Runtime;
 
 pub trait EtchCommand {

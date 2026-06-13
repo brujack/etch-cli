@@ -74,6 +74,9 @@ pub enum Commands {
 
     /// Show apply history from state file
     History(commands::History),
+
+    /// List and restore pre-apply file stashes
+    Rollback(commands::Rollback),
 }
 
 impl Default for Commands {

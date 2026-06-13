@@ -37,6 +37,7 @@ gix = { version = "0.80.0", features = ["blocking-network-client", "blocking-htt
 assert_cmd = "2.1"
 insta = { version = "1", features = ["filters"] }
 predicates = "3.1"
+sha256 = "1.6"
 tempfile = "3.26"
 tracing-test = "0.2"
 
