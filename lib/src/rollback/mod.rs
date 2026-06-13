@@ -191,7 +191,7 @@ impl StashStore {
             if entries.is_empty() {
                 continue;
             }
-            entries.sort_by(|a, b| b.stashed_at.cmp(&a.stashed_at));
+            entries.sort_by_key(|e| std::cmp::Reverse(e.stashed_at));
             let original_path = entries[0].original_path.clone();
             result.push((original_path, entries));
         }
