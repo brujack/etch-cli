@@ -134,6 +134,17 @@ impl Action for FileCopy {
 
             let mut steps: Vec<crate::steps::Step> = vec![];
 
+            // Stash original before privileged overwrite (best-effort)
+            steps.push(crate::steps::Step {
+                atom: Box::new(crate::atoms::file::Stash {
+                    path: path.clone(),
+                    manifest: manifest.name.clone().unwrap_or_default(),
+                    keep: 3,
+                }),
+                initializers: vec![],
+                finalizers: vec![],
+            });
+
             // Write content to tempfile (non-privileged)
             if let Some(passphrase) = self.passphrase.clone() {
                 steps.push(crate::steps::Step {
@@ -229,6 +240,15 @@ impl Action for FileCopy {
 
         let parent = path.clone();
         let mut steps = vec![
+            Step {
+                atom: Box::new(crate::atoms::file::Stash {
+                    path: path.clone(),
+                    manifest: manifest.name.clone().unwrap_or_default(),
+                    keep: 3,
+                }),
+                initializers: vec![],
+                finalizers: vec![],
+            },
             Step {
                 atom: Box::new(DirCreate {
                     path: parent
@@ -365,8 +385,8 @@ mod tests {
         let manifest = crate::test_helpers::make_manifest(tmp.path());
         let contexts = crate::test_helpers::make_contexts();
         let steps = action.plan(&manifest, &contexts).unwrap();
-        // DirCreate + Create + Chmod + SetContents = 4 steps
-        assert_eq!(4, steps.len());
+        // Stash + DirCreate + Create + Chmod + SetContents = 5 steps
+        assert_eq!(5, steps.len());
     }
 
     #[test]
@@ -404,7 +424,7 @@ mod tests {
         let manifest = crate::test_helpers::make_manifest(tmp.path());
         let contexts = crate::test_helpers::make_contexts();
         let steps = action.plan(&manifest, &contexts).unwrap();
-        assert_eq!(4, steps.len()); // DirCreate + Create + Chmod + SetContents
+        assert_eq!(5, steps.len()); // Stash + DirCreate + Create + Chmod + SetContents
     }
 
     #[test]
@@ -426,8 +446,8 @@ mod tests {
         let manifest = crate::test_helpers::make_manifest(tmp.path());
         let contexts = crate::test_helpers::make_contexts();
         let steps = action.plan(&manifest, &contexts).unwrap();
-        // DirCreate + Create + Chmod + Decrypt = 4 steps
-        assert_eq!(4, steps.len());
+        // Stash + DirCreate + Create + Chmod + Decrypt = 5 steps
+        assert_eq!(5, steps.len());
     }
 
     #[test]
@@ -452,7 +472,7 @@ mod tests {
         let manifest = crate::test_helpers::make_manifest(tmp.path());
         let contexts = crate::test_helpers::make_contexts();
         let steps = action.plan(&manifest, &contexts).unwrap();
-        assert_eq!(4, steps.len());
+        assert_eq!(5, steps.len());
     }
 
     #[test]
@@ -545,10 +565,10 @@ mod tests {
         let steps = action
             .plan(&manifest, &crate::contexts::Contexts::default())
             .unwrap();
-        // SetContents(tempfile) + mkdir + cp + chmod + rm = 5 steps
-        assert_eq!(5, steps.len());
-        // First step writes to a tempfile
-        assert!(steps[0].atom.to_string().contains("etch-"));
+        // Stash + SetContents(tempfile) + mkdir + cp + chmod + rm = 6 steps
+        assert_eq!(6, steps.len());
+        // Second step writes to a tempfile (index 1 after Stash at index 0)
+        assert!(steps[1].atom.to_string().contains("etch-"));
     }
 
     #[test]
@@ -578,10 +598,10 @@ mod tests {
         let steps = action
             .plan(&manifest, &crate::contexts::Contexts::default())
             .unwrap();
-        // SetContents(tempfile) + mkdir + cp + chmod + rm = 5 steps
-        assert_eq!(5, steps.len());
-        // First step writes to a tempfile path containing "etch-"
-        assert!(steps[0].atom.to_string().contains("etch-"));
+        // Stash + SetContents(tempfile) + mkdir + cp + chmod + rm = 6 steps
+        assert_eq!(6, steps.len());
+        // Second step writes to a tempfile path containing "etch-" (index 1 after Stash)
+        assert!(steps[1].atom.to_string().contains("etch-"));
     }
 
     #[test]
@@ -611,10 +631,10 @@ mod tests {
         let steps = action
             .plan(&manifest, &crate::contexts::Contexts::default())
             .unwrap();
-        // Decrypt(tempfile) + mkdir + cp + chmod + rm = 5 steps
-        assert_eq!(5, steps.len());
-        // First step is a Decrypt atom (tempfile has "etch-" in path)
-        assert!(steps[0].atom.to_string().contains("etch-"));
+        // Stash + Decrypt(tempfile) + mkdir + cp + chmod + rm = 6 steps
+        assert_eq!(6, steps.len());
+        // Second step is a Decrypt atom (tempfile has "etch-" in path, index 1 after Stash)
+        assert!(steps[1].atom.to_string().contains("etch-"));
     }
 
     #[cfg(unix)]
@@ -646,10 +666,66 @@ mod tests {
         let steps = action
             .plan(&manifest, &crate::contexts::Contexts::default())
             .unwrap();
-        // SetContents(tempfile) + mkdir + cp + chmod + chown + rm = 6 steps
-        assert_eq!(6, steps.len());
-        // chown step contains "chown"
-        assert!(steps[4].atom.to_string().contains("chown"));
+        // Stash + SetContents(tempfile) + mkdir + cp + chmod + chown + rm = 7 steps
+        assert_eq!(7, steps.len());
+        // chown step contains "chown" (index 5 after Stash prepended at index 0)
+        assert!(steps[5].atom.to_string().contains("chown"));
+    }
+
+    #[test]
+    fn plan_prepends_stash_step_when_dest_exists() {
+        use super::FileCopy;
+        use crate::actions::Action;
+        let tmp = tempfile::tempdir().unwrap();
+        let src = tmp.path().join("files");
+        std::fs::create_dir_all(&src).unwrap();
+        std::fs::write(src.join("source.txt"), b"new content").unwrap();
+
+        let dest = tmp.path().join("dest.txt");
+        std::fs::write(&dest, b"original content").unwrap();
+
+        let action = FileCopy {
+            from: "source.txt".to_string(),
+            to: dest.display().to_string(),
+            ..Default::default()
+        };
+        let manifest = crate::test_helpers::make_manifest(tmp.path());
+        let contexts = crate::test_helpers::make_contexts();
+        let steps = action.plan(&manifest, &contexts).unwrap();
+        assert_eq!(
+            5,
+            steps.len(),
+            "stash step must be prepended when dest exists"
+        );
+        assert!(
+            steps[0].atom.to_string().contains("Stash"),
+            "first step must be Stash"
+        );
+    }
+
+    #[test]
+    fn plan_has_stash_step_even_when_dest_absent() {
+        use super::FileCopy;
+        use crate::actions::Action;
+        let tmp = tempfile::tempdir().unwrap();
+        let src = tmp.path().join("files");
+        std::fs::create_dir_all(&src).unwrap();
+        std::fs::write(src.join("source.txt"), b"content").unwrap();
+
+        let action = FileCopy {
+            from: "source.txt".to_string(),
+            to: tmp.path().join("new_dest.txt").display().to_string(),
+            ..Default::default()
+        };
+        let manifest = crate::test_helpers::make_manifest(tmp.path());
+        let contexts = crate::test_helpers::make_contexts();
+        let steps = action.plan(&manifest, &contexts).unwrap();
+        assert_eq!(
+            5,
+            steps.len(),
+            "stash step always present in non-privileged path"
+        );
+        assert!(steps[0].atom.to_string().contains("Stash"));
     }
 
     #[test]
