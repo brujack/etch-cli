@@ -111,6 +111,13 @@ actions:
   # ==========================================================================
   # INSTALL — apt (Linux/Debian/Ubuntu)
   # ==========================================================================
+  #
+  # etch automatically propagates three environment variables to every apt/
+  # apt-get invocation so dpkg post-invoke hooks run non-interactively:
+  #   DEBIAN_FRONTEND=noninteractive   — disables debconf UI
+  #   DEBCONF_NONINTERACTIVE_SEEN=true — marks questions seen; applies defaults
+  #   NEEDRESTART_MODE=a               — auto-restarts services without prompting
+  # No manifest configuration needed — these are always set.
 
   # Install a single package via apt.
   - action: package.install
