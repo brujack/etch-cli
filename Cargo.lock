@@ -1320,6 +1320,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_yaml_ng",
+ "sha256",
  "strip-ansi-escapes",
  "tempfile",
  "tracing",
