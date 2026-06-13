@@ -368,14 +368,23 @@ To reproduce a failure outside etch:
 
 ```bash
 # package.install
-sudo DEBIAN_FRONTEND=noninteractive apt install --yes <package-list>
+sudo env DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true NEEDRESTART_MODE=a \
+  apt install --yes <package-list>
 
 # package.upgrade (upgrade-all)
-sudo DEBIAN_FRONTEND=noninteractive apt-get update && sudo apt-get upgrade -y
+sudo env DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true NEEDRESTART_MODE=a \
+  apt-get update && \
+sudo env DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true NEEDRESTART_MODE=a \
+  apt-get upgrade -y
 
 # package.upgrade (named package)
-sudo DEBIAN_FRONTEND=noninteractive apt-get update && sudo apt-get install --only-upgrade -y <package>
+sudo env DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true NEEDRESTART_MODE=a \
+  apt-get update && \
+sudo env DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true NEEDRESTART_MODE=a \
+  apt-get install --only-upgrade -y <package>
 ```
+
+> **Note:** etch propagates all three environment variables to suppress interactive prompts from dpkg post-invoke hooks. `DEBIAN_FRONTEND=noninteractive` disables debconf UI; `DEBCONF_NONINTERACTIVE_SEEN=true` marks questions as seen so debconf applies defaults silently; `NEEDRESTART_MODE=a` auto-restarts services instead of prompting. When reproducing failures manually, include all three.
 
 ## Development
 
