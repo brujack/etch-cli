@@ -124,10 +124,15 @@ impl EtchCommand for Rollback {
                 }
             }
 
+            let mut failed = false;
             for (path, _) in &list {
                 if let Err(e) = store.restore(path, false) {
                     eprintln!("error restoring {}: {e}", path.display());
+                    failed = true;
                 }
+            }
+            if failed {
+                std::process::exit(1);
             }
             return Ok(());
         }

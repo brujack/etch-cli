@@ -66,6 +66,12 @@ impl StashStore {
         let hex_dir = self.base.join(&hex);
         std::fs::create_dir_all(&hex_dir)
             .with_context(|| format!("rollback: cannot create backup dir {:?}", hex_dir))?;
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&hex_dir, std::fs::Permissions::from_mode(0o700))
+                .with_context(|| format!("rollback: cannot set permissions on {:?}", hex_dir))?;
+        }
 
         let now = Utc::now();
         let ts = now.format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string();
@@ -76,6 +82,21 @@ impl StashStore {
             std::fs::read(path).with_context(|| format!("rollback: cannot read {:?}", path))?;
         let content_hash = sha256::digest(content.as_slice());
 
+        #[cfg(unix)]
+        {
+            use std::io::Write;
+            use std::os::unix::fs::OpenOptionsExt;
+            let mut f = std::fs::OpenOptions::new()
+                .write(true)
+                .create(true)
+                .truncate(true)
+                .mode(0o600)
+                .open(&stash_path)
+                .with_context(|| format!("rollback: cannot write stash {:?}", stash_path))?;
+            f.write_all(&content)
+                .with_context(|| format!("rollback: cannot write stash {:?}", stash_path))?;
+        }
+        #[cfg(not(unix))]
         std::fs::write(&stash_path, &content)
             .with_context(|| format!("rollback: cannot write stash {:?}", stash_path))?;
 
@@ -86,6 +107,21 @@ impl StashStore {
             sha256: content_hash,
         };
         let meta_yaml = serde_yaml_ng::to_string(&meta).context("rollback: serialize meta")?;
+        #[cfg(unix)]
+        {
+            use std::io::Write;
+            use std::os::unix::fs::OpenOptionsExt;
+            let mut f = std::fs::OpenOptions::new()
+                .write(true)
+                .create(true)
+                .truncate(true)
+                .mode(0o600)
+                .open(&meta_path)
+                .with_context(|| format!("rollback: cannot write meta {:?}", meta_path))?;
+            f.write_all(meta_yaml.as_bytes())
+                .with_context(|| format!("rollback: cannot write meta {:?}", meta_path))?;
+        }
+        #[cfg(not(unix))]
         std::fs::write(&meta_path, meta_yaml)
             .with_context(|| format!("rollback: cannot write meta {:?}", meta_path))?;
 
@@ -254,8 +290,12 @@ impl StashStore {
 
         let to_delete: Vec<String> = names[..names.len() - keep].to_vec();
         for name in to_delete {
-            let _ = std::fs::remove_file(hex_dir.join(&name));
-            let _ = std::fs::remove_file(hex_dir.join(format!("{}.meta.yaml", name)));
+            if let Err(e) = std::fs::remove_file(hex_dir.join(&name)) {
+                tracing::warn!("rollback: prune failed to delete {}: {e}", name);
+            }
+            if let Err(e) = std::fs::remove_file(hex_dir.join(format!("{}.meta.yaml", name))) {
+                tracing::warn!("rollback: prune failed to delete {}.meta.yaml: {e}", name);
+            }
         }
 
         Ok(())
