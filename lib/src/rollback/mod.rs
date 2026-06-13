@@ -1,6 +1,7 @@
 use anyhow::Context;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use similar::{ChangeTag, TextDiff};
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
@@ -94,11 +95,131 @@ impl StashStore {
     }
 
     pub fn list(&self) -> anyhow::Result<Vec<(PathBuf, Vec<StashEntry>)>> {
-        todo!()
+        if !self.base.is_dir() {
+            return Ok(vec![]);
+        }
+
+        let mut result: Vec<(PathBuf, Vec<StashEntry>)> = Vec::new();
+
+        for hex_entry in std::fs::read_dir(&self.base)? {
+            let hex_dir = hex_entry?.path();
+            if !hex_dir.is_dir() {
+                continue;
+            }
+
+            let mut entries: Vec<StashEntry> = Vec::new();
+
+            for meta_entry in std::fs::read_dir(&hex_dir)? {
+                let meta_path = meta_entry?.path();
+                let name = meta_path
+                    .file_name()
+                    .unwrap_or_default()
+                    .to_string_lossy()
+                    .into_owned();
+                if !name.ends_with(".meta.yaml") {
+                    continue;
+                }
+
+                let content = match std::fs::read_to_string(&meta_path) {
+                    Ok(c) => c,
+                    Err(_) => {
+                        tracing::warn!("rollback: cannot read meta {:?}, skipping", meta_path);
+                        continue;
+                    }
+                };
+                let meta: StashMeta = match serde_yaml_ng::from_str(&content) {
+                    Ok(m) => m,
+                    Err(_) => {
+                        tracing::warn!("rollback: corrupt meta {:?}, skipping", meta_path);
+                        continue;
+                    }
+                };
+
+                let stash_name = name.trim_end_matches(".meta.yaml").to_string();
+                let stash_path = hex_dir.join(&stash_name);
+                if !stash_path.exists() {
+                    tracing::warn!("rollback: stash missing for meta {:?}, skipping", meta_path);
+                    continue;
+                }
+
+                entries.push(StashEntry {
+                    original_path: PathBuf::from(&meta.original_path),
+                    stashed_at: meta.stashed_at,
+                    apply_manifest: meta.apply_manifest,
+                    sha256: meta.sha256,
+                    stash_path,
+                    meta_path,
+                });
+            }
+
+            if entries.is_empty() {
+                continue;
+            }
+            entries.sort_by(|a, b| b.stashed_at.cmp(&a.stashed_at));
+            let original_path = entries[0].original_path.clone();
+            result.push((original_path, entries));
+        }
+
+        result.sort_by(|a, b| a.0.cmp(&b.0));
+        Ok(result)
     }
 
-    pub fn restore(&self, _path: &Path, _dry_run: bool) -> anyhow::Result<()> {
-        todo!()
+    pub fn restore(&self, path: &Path, dry_run: bool) -> anyhow::Result<()> {
+        let hex = sha256::digest(path.to_string_lossy().as_ref());
+        let hex_dir = self.base.join(&hex);
+
+        if !hex_dir.is_dir() {
+            anyhow::bail!("no stash found for {}", path.display());
+        }
+
+        let mut names: Vec<String> = std::fs::read_dir(&hex_dir)?
+            .filter_map(|e| e.ok())
+            .filter_map(|e| {
+                let name = e.file_name().to_string_lossy().into_owned();
+                if name.ends_with(".meta.yaml") {
+                    None
+                } else {
+                    Some(name)
+                }
+            })
+            .collect();
+        names.sort();
+
+        let latest = names
+            .last()
+            .ok_or_else(|| anyhow::anyhow!("no stash found for {}", path.display()))?
+            .clone();
+        let stash_path = hex_dir.join(&latest);
+        let stash_content = std::fs::read_to_string(&stash_path)
+            .with_context(|| format!("rollback: cannot read stash {:?}", stash_path))?;
+
+        if dry_run {
+            let current = if path.exists() {
+                std::fs::read_to_string(path)
+                    .with_context(|| format!("rollback: cannot read current {:?}", path))?
+            } else {
+                String::new()
+            };
+            let diff = TextDiff::from_lines(current.as_str(), stash_content.as_str());
+            println!("--- current ({})", path.display());
+            println!("+++ stash ({})", latest);
+            for change in diff.iter_all_changes() {
+                let sign = match change.tag() {
+                    ChangeTag::Delete => "-",
+                    ChangeTag::Insert => "+",
+                    ChangeTag::Equal => " ",
+                };
+                print!("{}{}", sign, change);
+            }
+            return Ok(());
+        }
+
+        println!("Restoring {} from stash {}", path.display(), latest);
+        std::fs::write(path, stash_content.as_bytes())
+            .with_context(|| format!("rollback: cannot restore to {:?}", path))?;
+        println!("Done.");
+
+        Ok(())
     }
 
     pub fn prune(&self, path: &Path, keep: usize) -> anyhow::Result<()> {
@@ -291,5 +412,88 @@ mod tests {
             std::env::remove_var("ETCH_STASH_DIR");
         }
         assert_eq!(store.base, dir.path());
+    }
+
+    #[test]
+    fn list_returns_empty_when_base_missing() {
+        let dir = tempdir().unwrap();
+        let store = StashStore::with_base(dir.path().join("nonexistent"));
+        let result = store.list().unwrap();
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn list_groups_by_path_newest_first() {
+        let (store, _dir) = make_store();
+        let src = tempdir().unwrap();
+        let path = src.path().join("file.txt");
+
+        std::fs::write(&path, "v1").unwrap();
+        store.stash(&path, "m", 10).unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(1100));
+        std::fs::write(&path, "v2").unwrap();
+        store.stash(&path, "m", 10).unwrap();
+
+        let list = store.list().unwrap();
+        assert_eq!(list.len(), 1, "one path");
+        let (listed_path, entries) = &list[0];
+        assert_eq!(listed_path, &path);
+        assert_eq!(entries.len(), 2);
+        assert!(
+            entries[0].stashed_at > entries[1].stashed_at,
+            "newest first"
+        );
+    }
+
+    #[test]
+    fn restore_dry_run_does_not_write() {
+        let (store, _dir) = make_store();
+        let src = tempdir().unwrap();
+        let path = src.path().join("file.txt");
+        std::fs::write(&path, "original").unwrap();
+        store.stash(&path, "m", 3).unwrap();
+        std::fs::write(&path, "modified").unwrap();
+
+        store.restore(&path, true).unwrap();
+        assert_eq!(
+            std::fs::read_to_string(&path).unwrap(),
+            "modified",
+            "dry_run must not write"
+        );
+    }
+
+    #[test]
+    fn restore_writes_stash_content_and_preserves_stash_file() {
+        let (store, _dir) = make_store();
+        let src = tempdir().unwrap();
+        let path = src.path().join("file.txt");
+        std::fs::write(&path, "original").unwrap();
+        store.stash(&path, "m", 3).unwrap();
+        std::fs::write(&path, "modified").unwrap();
+
+        store.restore(&path, false).unwrap();
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "original");
+
+        // stash file must still exist
+        let hex = sha256::digest(path.to_string_lossy().as_ref());
+        let hex_dir = store.base.join(&hex);
+        let count = std::fs::read_dir(&hex_dir)
+            .unwrap()
+            .filter_map(|e| e.ok())
+            .filter(|e| !e.file_name().to_string_lossy().ends_with(".meta.yaml"))
+            .count();
+        assert_eq!(count, 1, "stash file preserved after restore");
+    }
+
+    #[test]
+    fn restore_errors_when_no_stash_for_path() {
+        let (store, _dir) = make_store();
+        let result = store.restore(std::path::Path::new("/no/stash/here"), false);
+        assert!(result.is_err());
+        let msg = result.unwrap_err().to_string();
+        assert!(
+            msg.contains("no stash found"),
+            "expected 'no stash found', got: {msg}"
+        );
     }
 }
