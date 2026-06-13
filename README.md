@@ -316,6 +316,19 @@ etch history --json                  # NDJSON, one object per atom
 
 The state file uses merge semantics: re-running the same action updates the existing row rather than appending — the file always reflects the most-recent outcome per `(manifest, action, key)` triple.
 
+## etch rollback
+
+`etch rollback` lists and restores pre-apply file backups. Before `file.copy` overwrites an existing file, etch stashes the original to `~/.local/share/etch/backups/`. The three most recent stashes per path are kept (configurable via `ETCH_STASH_DIR` env var in tests).
+
+```shell
+etch rollback                              # list all stashed paths with timestamps
+etch rollback --path ~/.zshrc             # restore latest stash for that path
+etch rollback --path ~/.zshrc --dry-run   # diff stash vs current; no write
+etch rollback --all --yes                 # restore all paths, skip confirmation
+```
+
+Stash is best-effort: stash failures log a warning and never block `etch apply`.
+
 ## Debugging
 
 ### Verbose output
