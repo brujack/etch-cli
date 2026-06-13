@@ -36,6 +36,7 @@ impl Atom for Stash {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
     use tempfile::tempdir;
 
     #[test]
@@ -75,6 +76,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn execute_returns_ok_on_success() {
         let stash_dir = tempdir().unwrap();
         let src_dir = tempdir().unwrap();

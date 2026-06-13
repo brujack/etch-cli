@@ -68,7 +68,7 @@ impl StashStore {
             .with_context(|| format!("rollback: cannot create backup dir {:?}", hex_dir))?;
 
         let now = Utc::now();
-        let ts = now.format("%Y-%m-%dT%H:%M:%SZ").to_string();
+        let ts = now.format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string();
         let stash_path = hex_dir.join(&ts);
         let meta_path = hex_dir.join(format!("{}.meta.yaml", ts));
 
@@ -190,7 +190,7 @@ impl StashStore {
             .ok_or_else(|| anyhow::anyhow!("no stash found for {}", path.display()))?
             .clone();
         let stash_path = hex_dir.join(&latest);
-        let stash_content = std::fs::read_to_string(&stash_path)
+        let stash_bytes = std::fs::read(&stash_path)
             .with_context(|| format!("rollback: cannot read stash {:?}", stash_path))?;
 
         if dry_run {
@@ -200,7 +200,8 @@ impl StashStore {
             } else {
                 String::new()
             };
-            let diff = TextDiff::from_lines(current.as_str(), stash_content.as_str());
+            let stash_content = String::from_utf8_lossy(&stash_bytes);
+            let diff = TextDiff::from_lines(current.as_str(), stash_content.as_ref());
             println!("--- current ({})", path.display());
             println!("+++ stash ({})", latest);
             for change in diff.iter_all_changes() {
@@ -215,7 +216,11 @@ impl StashStore {
         }
 
         println!("Restoring {} from stash {}", path.display(), latest);
-        std::fs::write(path, stash_content.as_bytes())
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent)
+                .with_context(|| format!("rollback: cannot create parent dir for {:?}", path))?;
+        }
+        std::fs::write(path, &stash_bytes)
             .with_context(|| format!("rollback: cannot restore to {:?}", path))?;
         println!("Done.");
 
@@ -260,6 +265,7 @@ impl StashStore {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
     use tempfile::tempdir;
 
     fn make_store() -> (StashStore, tempfile::TempDir) {
@@ -401,6 +407,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn new_respects_etch_stash_dir_env() {
         let dir = tempdir().unwrap();
         let old = std::env::var("ETCH_STASH_DIR").ok();

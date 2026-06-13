@@ -27,6 +27,9 @@ pub(crate) fn validate_args(args: &Rollback) -> anyhow::Result<()> {
     if args.all && args.dry_run {
         anyhow::bail!("--dry-run cannot be combined with --all");
     }
+    if args.dry_run && args.path.is_none() {
+        anyhow::bail!("--dry-run requires --path");
+    }
     Ok(())
 }
 
@@ -166,6 +169,18 @@ mod tests {
             stash_path: PathBuf::from("/tmp/s"),
             meta_path: PathBuf::from("/tmp/s.meta.yaml"),
         }
+    }
+
+    #[test]
+    fn validate_dry_run_without_path_errors() {
+        let args = Rollback {
+            path: None,
+            list: false,
+            dry_run: true,
+            all: false,
+            yes: false,
+        };
+        assert!(validate_args(&args).is_err());
     }
 
     #[test]
