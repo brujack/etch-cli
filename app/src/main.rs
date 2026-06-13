@@ -32,6 +32,7 @@ pub(crate) fn execute(runtime: Runtime) -> anyhow::Result<()> {
         Commands::HelpAll(h) => h.execute(&runtime),
         Commands::Doctor(d) => d.execute(&runtime),
         Commands::History(h) => h.execute(&runtime),
+        Commands::Rollback(r) => r.execute(&runtime),
     }
 }
 

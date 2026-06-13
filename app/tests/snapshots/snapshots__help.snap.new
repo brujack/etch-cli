@@ -1,5 +1,6 @@
 ---
 source: app/tests/snapshots.rs
+assertion_line: 22
 expression: "String::from_utf8_lossy(&output.stdout)"
 ---
 Declarative configuration management for personal workstations.

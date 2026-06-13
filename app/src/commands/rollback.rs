@@ -1,7 +1,7 @@
 use super::EtchCommand;
 use crate::Runtime;
 use etch_lib::rollback::{StashEntry, StashStore};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[derive(clap::Args, Debug)]
 pub(crate) struct Rollback {
@@ -49,14 +49,14 @@ pub(crate) fn render_list(entries: &[(PathBuf, Vec<StashEntry>)]) -> String {
     buf
 }
 
-pub(crate) fn expand_tilde(path: &PathBuf) -> PathBuf {
+pub(crate) fn expand_tilde(path: &Path) -> PathBuf {
     let s = path.to_string_lossy();
     if let Some(rest) = s.strip_prefix("~/") {
         if let Some(home) = dirs_next::home_dir() {
             return home.join(rest);
         }
     }
-    path.clone()
+    path.to_path_buf()
 }
 
 impl EtchCommand for Rollback {
