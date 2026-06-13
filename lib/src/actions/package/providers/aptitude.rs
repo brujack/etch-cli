@@ -16,10 +16,17 @@ pub struct Aptitude {}
 
 impl Aptitude {
     fn env(&self) -> Vec<(String, String)> {
-        vec![(
-            String::from("DEBIAN_FRONTEND"),
-            String::from("noninteractive"),
-        )]
+        vec![
+            (
+                String::from("DEBIAN_FRONTEND"),
+                String::from("noninteractive"),
+            ),
+            (
+                String::from("DEBCONF_NONINTERACTIVE_SEEN"),
+                String::from("true"),
+            ),
+            (String::from("NEEDRESTART_MODE"), String::from("a")),
+        ]
     }
 }
 
@@ -517,5 +524,28 @@ mod test {
         } else {
             panic!("expected at least one step");
         }
+    }
+
+    #[test]
+    fn env_contains_all_noninteractive_vars() {
+        let apt = Aptitude {};
+        let env = apt.env();
+        let map: std::collections::HashMap<&str, &str> =
+            env.iter().map(|(k, v)| (k.as_str(), v.as_str())).collect();
+        assert_eq!(
+            map.get("DEBIAN_FRONTEND"),
+            Some(&"noninteractive"),
+            "DEBIAN_FRONTEND must be noninteractive"
+        );
+        assert_eq!(
+            map.get("DEBCONF_NONINTERACTIVE_SEEN"),
+            Some(&"true"),
+            "DEBCONF_NONINTERACTIVE_SEEN must be true"
+        );
+        assert_eq!(
+            map.get("NEEDRESTART_MODE"),
+            Some(&"a"),
+            "NEEDRESTART_MODE must be a"
+        );
     }
 }
