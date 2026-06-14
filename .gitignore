@@ -31,6 +31,9 @@ lcov.info
 .claude/settings.local.json
 .claude/worktrees/
 
+# 10-80-10 loop logs — session-local, not source
+.claude/loop-log/*.jsonl
+
 # cargo-fuzz artifacts (crashes, slow inputs) — not committed
 fuzz/artifacts/
 # cargo-fuzz build output

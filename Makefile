@@ -1,19 +1,9 @@
-.PHONY: all test lint build build-linux install-hooks mutants bench changelog fuzz fuzz-manifest fuzz-path semver validate-plan validate-memory
+.PHONY: all test lint build build-linux install-hooks mutants bench changelog fuzz fuzz-manifest fuzz-path semver validate-plan
 
 all: test build
 
-test: lint validate-memory
+test: lint
 	cargo nextest run
-
-# Validate canonical memory + retrospective frontmatter (ADR-0014)
-validate-memory:
-	@if [ -f .claude/scripts/validate_memory.py ]; then \
-		python3 .claude/scripts/validate_memory.py --all; \
-	elif [ -f "$$HOME/.claude/scripts/validate_memory.py" ]; then \
-		python3 "$$HOME/.claude/scripts/validate_memory.py" --all; \
-	else \
-		printf "validate-memory: validator not found (ai-config not installed); skipping. Local pre-commit gate still enforced.\n" >&2; \
-	fi
 
 lint:
 	cargo fmt --all -- --check
