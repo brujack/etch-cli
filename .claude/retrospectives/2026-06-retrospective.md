@@ -1,3 +1,11 @@
+---
+name: retrospective-2026-06-retrospective
+description: Retrospective — 2026-06 (etch-cli)
+metadata:
+  type: retrospective
+  period: 2026-06
+---
+
 # Retrospective — 2026-06 (etch-cli)
 
 **Period:** 2026-05-17 to 2026-06-01
