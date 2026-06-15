@@ -208,14 +208,20 @@ impl StashStore {
             anyhow::bail!("no stash found for {}", path.display());
         }
 
+        // Only consider stash files that have a complete .meta.yaml sidecar.
+        // An orphaned stash file (meta write interrupted) must not be selected as a
+        // restore candidate — it may contain partially-written data.
         let mut names: Vec<String> = std::fs::read_dir(&hex_dir)?
             .filter_map(|e| e.ok())
             .filter_map(|e| {
                 let name = e.file_name().to_string_lossy().into_owned();
                 if name.ends_with(".meta.yaml") {
                     None
-                } else {
+                } else if hex_dir.join(format!("{}.meta.yaml", name)).exists() {
                     Some(name)
+                } else {
+                    tracing::warn!("rollback: orphaned stash (no meta) {:?}, skipping", name);
+                    None
                 }
             })
             .collect();
@@ -256,8 +262,18 @@ impl StashStore {
             std::fs::create_dir_all(parent)
                 .with_context(|| format!("rollback: cannot create parent dir for {:?}", path))?;
         }
-        std::fs::write(path, &stash_bytes)
-            .with_context(|| format!("rollback: cannot restore to {:?}", path))?;
+        // Write to a temp file in the same directory, then rename atomically.
+        // A direct fs::write() truncates before writing — an interrupt (signal, disk-full)
+        // would destroy the target with no recovery path.
+        let parent_dir = path.parent().unwrap_or_else(|| std::path::Path::new("."));
+        let tmp_path = parent_dir.join(format!(
+            ".etch-restore-{}.tmp",
+            path.file_name().unwrap_or_default().to_string_lossy()
+        ));
+        std::fs::write(&tmp_path, &stash_bytes)
+            .with_context(|| format!("rollback: cannot write temp {:?}", tmp_path))?;
+        std::fs::rename(&tmp_path, path)
+            .with_context(|| format!("rollback: cannot rename {:?} to {:?}", tmp_path, path))?;
         println!("Done.");
 
         Ok(())
@@ -542,5 +558,64 @@ mod tests {
             msg.contains("no stash found"),
             "expected 'no stash found', got: {msg}"
         );
+    }
+
+    // Regression: restore() must skip orphaned stash files (content file with no .meta.yaml).
+    // An interrupted stash write leaves a partial content file and no meta. Before the fix,
+    // restore() would select the orphan as "latest" and restore corrupt/partial data.
+    #[test]
+    fn restore_skips_orphaned_stash_picks_last_complete() {
+        let (store, _dir) = make_store();
+        let src = tempdir().unwrap();
+        let path = src.path().join("file.txt");
+
+        // Create one complete stash (content + meta).
+        std::fs::write(&path, "good content").unwrap();
+        store.stash(&path, "m", 10).unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(1100));
+
+        // Inject an orphaned stash file (content only, no meta) with a LATER timestamp.
+        // This simulates a stash write that was interrupted before the meta was written.
+        let hex = sha256::digest(path.to_string_lossy().as_ref());
+        let hex_dir = store.base.join(&hex);
+        let later_ts = chrono::Utc::now()
+            .format("%Y-%m-%dT%H:%M:%S%.3fZ")
+            .to_string();
+        std::fs::write(hex_dir.join(&later_ts), b"partial garbage").unwrap();
+        // Deliberately do NOT write the corresponding .meta.yaml.
+
+        // Overwrite path so we can verify restore chooses the complete stash.
+        std::fs::write(&path, "current content").unwrap();
+
+        store.restore(&path, false).unwrap();
+        assert_eq!(
+            std::fs::read_to_string(&path).unwrap(),
+            "good content",
+            "restore must pick last complete stash, not the orphaned stash file"
+        );
+    }
+
+    // Regression: restore() must not leave a temp file on the filesystem.
+    // The atomic rename approach leaves no temp file after a successful restore.
+    #[test]
+    fn restore_no_tmp_file_left_after_success() {
+        let (store, _dir) = make_store();
+        let src = tempdir().unwrap();
+        let path = src.path().join("file.txt");
+        std::fs::write(&path, "original").unwrap();
+        store.stash(&path, "m", 3).unwrap();
+        std::fs::write(&path, "modified").unwrap();
+
+        store.restore(&path, false).unwrap();
+
+        let tmp = path.parent().unwrap().join(format!(
+            ".etch-restore-{}.tmp",
+            path.file_name().unwrap().to_string_lossy()
+        ));
+        assert!(
+            !tmp.exists(),
+            "temp file must not exist after successful restore"
+        );
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "original");
     }
 }
