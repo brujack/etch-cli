@@ -10,6 +10,11 @@ pub struct StashMeta {
     pub stashed_at: DateTime<Utc>,
     pub apply_manifest: String,
     pub sha256: String,
+    /// Unix file permission bits (st_mode & 0o7777). Absent in stashes created
+    /// before this field was added; restore falls back to leaving OS-default perms.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    pub mode: Option<u32>,
 }
 
 #[derive(Debug)]
@@ -83,6 +88,14 @@ impl StashStore {
         let content_hash = sha256::digest(content.as_slice());
 
         #[cfg(unix)]
+        let original_mode = {
+            use std::os::unix::fs::MetadataExt;
+            path.metadata().ok().map(|m| m.mode() & 0o7777)
+        };
+        #[cfg(not(unix))]
+        let original_mode: Option<u32> = None;
+
+        #[cfg(unix)]
         {
             use std::io::Write;
             use std::os::unix::fs::OpenOptionsExt;
@@ -105,6 +118,7 @@ impl StashStore {
             stashed_at: now,
             apply_manifest: manifest.to_string(),
             sha256: content_hash,
+            mode: original_mode,
         };
         let meta_yaml = serde_yaml_ng::to_string(&meta).context("rollback: serialize meta")?;
         #[cfg(unix)]
@@ -274,6 +288,25 @@ impl StashStore {
             .with_context(|| format!("rollback: cannot write temp {:?}", tmp_path))?;
         std::fs::rename(&tmp_path, path)
             .with_context(|| format!("rollback: cannot rename {:?} to {:?}", tmp_path, path))?;
+
+        // Restore original Unix permissions. fs::write() creates the temp file with
+        // umask-derived permissions (typically 0644), which rename() carries over. A
+        // file like ~/.ssh/id_rsa (originally 0600) would become world-readable after
+        // restore without this step — a security exposure on multi-user systems.
+        #[cfg(unix)]
+        {
+            let meta_path = hex_dir.join(format!("{}.meta.yaml", latest));
+            if let Ok(meta_content) = std::fs::read_to_string(&meta_path) {
+                if let Ok(meta) = serde_yaml_ng::from_str::<StashMeta>(&meta_content) {
+                    if let Some(mode) = meta.mode {
+                        use std::fs::Permissions;
+                        use std::os::unix::fs::PermissionsExt;
+                        let _ = std::fs::set_permissions(path, Permissions::from_mode(mode));
+                    }
+                }
+            }
+        }
+
         println!("Done.");
 
         Ok(())
@@ -592,6 +625,62 @@ mod tests {
             std::fs::read_to_string(&path).unwrap(),
             "good content",
             "restore must pick last complete stash, not the orphaned stash file"
+        );
+    }
+
+    // Regression: restore() must re-apply the original file permissions after rename.
+    // fs::write creates the temp file with umask-derived permissions (0644), which
+    // fs::rename carries over. Without the chmod step, a 0600 file (e.g. ~/.ssh/id_rsa)
+    // becomes world-readable after restore — a security exposure on multi-user systems.
+    #[cfg(unix)]
+    #[test]
+    fn restore_preserves_original_permissions() {
+        use std::fs::Permissions;
+        use std::os::unix::fs::PermissionsExt;
+
+        let (store, _dir) = make_store();
+        let src = tempdir().unwrap();
+        let path = src.path().join("secret.txt");
+        std::fs::write(&path, "private content").unwrap();
+        std::fs::set_permissions(&path, Permissions::from_mode(0o600)).unwrap();
+
+        store.stash(&path, "m", 3).unwrap();
+        // Overwrite so restore has something to do
+        std::fs::write(&path, "modified content").unwrap();
+        // Also widen the current file's permissions to confirm restore re-sets to 0600
+        std::fs::set_permissions(&path, Permissions::from_mode(0o644)).unwrap();
+
+        store.restore(&path, false).unwrap();
+
+        let restored_mode = path.metadata().unwrap().permissions().mode() & 0o7777;
+        assert_eq!(
+            restored_mode, 0o600,
+            "restore must re-apply original 0600 permissions, not leave 0644"
+        );
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "private content");
+    }
+
+    // Verify the mode field in StashMeta survives a YAML roundtrip (serde skip_serializing_if
+    // omits None, and #[serde(default)] deserializes absent fields as None).
+    #[test]
+    fn stash_meta_mode_roundtrips() {
+        let with_mode = StashMeta {
+            original_path: "/tmp/foo".to_string(),
+            stashed_at: chrono::Utc::now(),
+            apply_manifest: "m".to_string(),
+            sha256: "abc".to_string(),
+            mode: Some(0o600),
+        };
+        let yaml = serde_yaml_ng::to_string(&with_mode).unwrap();
+        let roundtripped: StashMeta = serde_yaml_ng::from_str(&yaml).unwrap();
+        assert_eq!(roundtripped.mode, Some(0o600));
+
+        // Old stash entries without the mode field must deserialize with mode = None
+        let old_yaml = "original_path: /tmp/foo\nstashed_at: '2026-06-15T00:00:00Z'\napply_manifest: m\nsha256: abc\n";
+        let old: StashMeta = serde_yaml_ng::from_str(old_yaml).unwrap();
+        assert_eq!(
+            old.mode, None,
+            "old stash without mode field must deserialize as None"
         );
     }
 
