@@ -85,6 +85,8 @@ proptest = "1"
 serial_test = "3"
 tracing-test = "0.2"
 tracing-subscriber = "0.3"
+wiremock = "0.6"
+rustls = { version = "0.23", default-features = false, features = ["ring"] }
 
 [[bench]]
 name = "etch_lib"
