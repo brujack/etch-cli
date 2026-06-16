@@ -705,8 +705,91 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
-    fn plan_downloads_real_github_release() {
+    #[serial_test::serial]
+    fn plan_resolves_release_asset_via_mocked_github_api() {
+        // Arrange: spin up a wiremock server serving a GitHub releases response.
+        // plan() uses octocrab::instance() (global singleton backed by arc_swap),
+        // so we redirect that singleton at the mock server for this test only.
+        let release_json = serde_json::json!({
+            "url": "https://api.github.com/repos/gitleaks/gitleaks/releases/1",
+            "assets_url": "https://api.github.com/repos/gitleaks/gitleaks/releases/1/assets",
+            "upload_url": "https://uploads.github.com/repos/gitleaks/gitleaks/releases/1/assets{?name,label}",
+            "html_url": "https://github.com/gitleaks/gitleaks/releases/tag/v8.30.1",
+            "id": 1,
+            "node_id": "RE_abc",
+            "tag_name": "v8.30.1",
+            "target_commitish": "main",
+            "name": "v8.30.1",
+            "draft": false,
+            "prerelease": false,
+            "created_at": "2024-01-01T00:00:00Z",
+            "published_at": "2024-01-01T00:00:00Z",
+            "author": {
+                "login": "bot",
+                "id": 1,
+                "node_id": "U_abc",
+                "avatar_url": "https://avatars.githubusercontent.com/u/1",
+                "gravatar_id": "",
+                "url": "https://api.github.com/users/bot",
+                "html_url": "https://github.com/bot",
+                "followers_url": "https://api.github.com/users/bot/followers",
+                "following_url": "https://api.github.com/users/bot/following{/other_user}",
+                "gists_url": "https://api.github.com/users/bot/gists{/gist_id}",
+                "starred_url": "https://api.github.com/users/bot/starred{/owner}{/repo}",
+                "subscriptions_url": "https://api.github.com/users/bot/subscriptions",
+                "organizations_url": "https://api.github.com/users/bot/orgs",
+                "repos_url": "https://api.github.com/users/bot/repos",
+                "events_url": "https://api.github.com/users/bot/events{/privacy}",
+                "received_events_url": "https://api.github.com/users/bot/received_events",
+                "type": "User",
+                "site_admin": false
+            },
+            "assets": [{
+                "url": "https://api.github.com/repos/gitleaks/gitleaks/releases/assets/1",
+                "id": 1,
+                "node_id": "A_abc",
+                "name": "gitleaks_linux_x64.tar.gz",
+                "label": null,
+                "uploader": null,
+                "content_type": "application/gzip",
+                "state": "uploaded",
+                "size": 1000,
+                "download_count": 0,
+                "created_at": "2024-01-01T00:00:00Z",
+                "updated_at": "2024-01-01T00:00:00Z",
+                "browser_download_url": "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_linux_x64.tar.gz"
+            }],
+            "tarball_url": null,
+            "zipball_url": null,
+            "body": null
+        });
+
+        // rustls 0.23 requires an explicit crypto provider; install ring once
+        // before any reqwest/octocrab client is built in this process.
+        let _ = rustls::crypto::ring::default_provider().install_default();
+
+        // tower::buffer (used by octocrab middleware) requires a running reactor
+        // during build — initialise octocrab inside the runtime block.
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        let _mock_server = rt.block_on(async {
+            use wiremock::matchers::{method, path};
+            use wiremock::{Mock, MockServer, ResponseTemplate};
+            let server = MockServer::start().await;
+            Mock::given(method("GET"))
+                .and(path("/repos/gitleaks/gitleaks/releases/tags/v8.30.1"))
+                .respond_with(ResponseTemplate::new(200).set_body_json(&release_json))
+                .mount(&server)
+                .await;
+            octocrab::initialise(
+                octocrab::OctocrabBuilder::default()
+                    .base_uri(server.uri())
+                    .unwrap()
+                    .build()
+                    .unwrap(),
+            );
+            server
+        });
+
         let tmp = tempfile::tempdir().unwrap();
         let action = BinaryGitHub {
             name: String::from("gitleaks"),
@@ -717,6 +800,7 @@ mod tests {
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
             .unwrap();
-        assert_eq!(2, steps.len());
+        // binary absent + pinned → status atom + download + chmod + sidecar write
+        assert_eq!(4, steps.len());
     }
 }
