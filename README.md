@@ -327,6 +327,8 @@ etch rollback --path ~/.zshrc --dry-run   # diff stash vs current; no write
 etch rollback --all --yes                 # restore all paths, skip confirmation
 ```
 
+Restore preserves the original file permissions. If `~/.ssh/id_rsa` was stashed at mode 0600, it is restored at 0600 regardless of the current umask. Old stash entries (created before v0.13.0) that have no recorded mode are silently restored without a permission change.
+
 Stash is best-effort: stash failures log a warning and never block `etch apply`.
 
 ## Debugging
