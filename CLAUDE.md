@@ -282,7 +282,7 @@ Invoke `caveman:caveman-commit` skill to generate the commit message before runn
 
 **Run tests:** `make test`
 
-Unit tests in `lib/src/`, integration tests in `app/tests/` (assert_cmd + insta snapshots). Coverage ~86% macOS / ~81.01% Linux CI — gap is macOS-only tests gated with `#[cfg(target_os = "macos")]`.
+Unit tests in `lib/src/`, integration tests in `app/tests/` (assert_cmd + insta snapshots). Coverage ~86% macOS / ~81.84% Linux CI — gap is macOS-only tests gated with `#[cfg(target_os = "macos")]`.
 
 To update insta snapshots: `INSTA_UPDATE=new cargo test --test snapshots`, then `cargo insta accept`.
 
