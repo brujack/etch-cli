@@ -43,3 +43,6 @@ fuzz/target/
 mutants.out/
 mutants.out.old/
 tarpaulin-report.json
+
+# Firecrawl cache
+.firecrawl/
