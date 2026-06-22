@@ -15,6 +15,7 @@ mod npm;
 mod package;
 mod pip;
 mod plugin;
+mod powershell;
 mod pyenv;
 mod ruby;
 mod systemd;
@@ -50,6 +51,7 @@ use package::{
 };
 use pip::PipInstall;
 use plugin::Plugin;
+use powershell::PowershellModule;
 use pyenv::{PyenvInstall, PyenvVirtualenv};
 use rhai::Engine;
 use ruby::RubyChruby;
@@ -292,6 +294,9 @@ pub enum Actions {
     #[serde(rename = "pip.install")]
     PipInstall(ConditionalVariantAction<PipInstall>),
 
+    #[serde(rename = "powershell.module")]
+    PowershellModule(ConditionalVariantAction<PowershellModule>),
+
     #[serde(rename = "npm.install")]
     NpmInstall(ConditionalVariantAction<NpmInstall>),
 
@@ -357,6 +362,7 @@ impl Actions {
             Actions::RubyChruby(a) => a,
             Actions::GemInstall(a) => a,
             Actions::PipInstall(a) => a,
+            Actions::PowershellModule(a) => a,
             Actions::NpmInstall(a) => a,
             Actions::PyenvInstall(a) => a,
             Actions::PyenvVirtualenv(a) => a,
@@ -413,6 +419,7 @@ impl Actions {
             Actions::RubyChruby(a) => &a.notify,
             Actions::GemInstall(a) => &a.notify,
             Actions::PipInstall(a) => &a.notify,
+            Actions::PowershellModule(a) => &a.notify,
             Actions::NpmInstall(a) => &a.notify,
             Actions::PyenvInstall(a) => &a.notify,
             Actions::PyenvVirtualenv(a) => &a.notify,
@@ -472,6 +479,7 @@ impl Deref for Actions {
             Actions::RubyChruby(a) => a,
             Actions::GemInstall(a) => a,
             Actions::PipInstall(a) => a,
+            Actions::PowershellModule(a) => a,
             Actions::NpmInstall(a) => a,
             Actions::PyenvInstall(a) => a,
             Actions::PyenvVirtualenv(a) => a,
@@ -530,6 +538,7 @@ impl Display for Actions {
             Actions::RubyChruby(_) => "ruby.chruby",
             Actions::GemInstall(_) => "gem.install",
             Actions::PipInstall(_) => "pip.install",
+            Actions::PowershellModule(_) => "powershell.module",
             Actions::NpmInstall(_) => "npm.install",
             Actions::PyenvInstall(_) => "pyenv.install",
             Actions::PyenvVirtualenv(_) => "pyenv.virtualenv",
@@ -735,9 +744,11 @@ actions:
   - action: ruby.chruby
   - action: terraform.tfenv
   - action: zsh.oh-my-zsh
+  - action: powershell.module
+    name: oh-my-posh
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(35, manifest.actions.len());
+        assert_eq!(36, manifest.actions.len());
     }
 
     #[test]
@@ -1122,9 +1133,11 @@ actions:
   - action: package.remove
     name: htop
   - action: terraform.tfenv
+  - action: powershell.module
+    name: oh-my-posh
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(49, manifest.actions.len());
+        assert_eq!(50, manifest.actions.len());
 
         for action in &manifest.actions {
             // Exercise inner_ref(), Deref, and notify() for every variant
@@ -1430,9 +1443,11 @@ actions:
   - action: package.remove
     name: htop
   - action: terraform.tfenv
+  - action: powershell.module
+    name: oh-my-posh
 "#;
         let manifest: crate::manifests::Manifest = serde_yaml_ng::from_str(yaml).unwrap();
-        assert_eq!(48, manifest.actions.len());
+        assert_eq!(49, manifest.actions.len());
         let names: Vec<String> = manifest.actions.iter().map(|a| a.to_string()).collect();
         assert!(names.contains(&"command.run".to_string()));
         assert!(names.contains(&"directory.copy".to_string()));
@@ -1482,6 +1497,7 @@ actions:
         assert!(names.contains(&"claude.plugin.update".to_string()));
         assert!(names.contains(&"package.remove".to_string()));
         assert!(names.contains(&"terraform.tfenv".to_string()));
+        assert!(names.contains(&"powershell.module".to_string()));
     }
 
     #[test]

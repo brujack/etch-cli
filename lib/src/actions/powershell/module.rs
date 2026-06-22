@@ -115,6 +115,41 @@ mod tests {
     const FAKE_MODULE: &str = "etch_cli_not_a_real_ps_module_xyz_zyx_test";
 
     #[test]
+    fn it_can_be_deserialized() {
+        use crate::actions::Actions;
+        let yaml = "- action: powershell.module\n  name: oh-my-posh\n";
+        let mut actions: Vec<Actions> = serde_yaml_ng::from_str(yaml).unwrap();
+        match actions.pop() {
+            Some(Actions::PowershellModule(action)) => {
+                assert_eq!(Some("oh-my-posh".to_string()), action.action.name);
+                assert!(action.action.list.is_empty());
+            }
+            _ => panic!("PowershellModule didn't deserialize to the correct type"),
+        }
+    }
+
+    #[test]
+    fn it_can_be_deserialized_with_list() {
+        use crate::actions::Actions;
+        let yaml = concat!(
+            "- action: powershell.module\n",
+            "  list:\n",
+            "    - Az\n",
+            "    - oh-my-posh\n",
+        );
+        let mut actions: Vec<Actions> = serde_yaml_ng::from_str(yaml).unwrap();
+        match actions.pop() {
+            Some(Actions::PowershellModule(action)) => {
+                assert_eq!(
+                    vec!["Az".to_string(), "oh-my-posh".to_string()],
+                    action.action.list
+                );
+            }
+            _ => panic!("PowershellModule didn't deserialize to the correct type"),
+        }
+    }
+
+    #[test]
     fn it_deserializes_name() {
         let action: PowershellModule = serde_yaml_ng::from_str("name: oh-my-posh\n").unwrap();
         assert_eq!(Some("oh-my-posh".to_string()), action.name);
