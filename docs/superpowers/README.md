@@ -88,15 +88,15 @@ Master status index for all specs and implementation plans in this directory.
 | 2026-06-10 | [git-clone-update-existing](plans/2026-06-10-git-clone-update-existing-plan.md)            | [git-clone-update-existing](specs/2026-06-10-git-clone-update-existing-design.md)                                         | Done   |
 | 2026-06-10 | [user-default-shell](plans/2026-06-10-user-default-shell-plan.md)                          | [user-default-shell](specs/2026-06-10-user-default-shell-design.md)                                                       | Done   |
 | 2026-06-13 | [debian-frontend-propagation](plans/2026-06-13-debian-frontend-propagation.md)             | [debian-frontend-propagation](specs/2026-06-13-debian-frontend-propagation-design.md)                                     | Done   |
+| 2026-06-22 | [powershell-module](plans/2026-06-22-powershell-module-plan.md)                            | [powershell-module](specs/2026-06-22-powershell-module-design.md)                                                         | Done   |
 
 ---
 
 ## Backlog
 
-| Feature           | Notes                                                                                                                                                                                                                                                                                  |
-| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ntfy notification | Matches existing notification infra                                                                                                                                                                                                                                                    |
-| powershell.module | No action for installing PowerShell modules from PSGallery. Dotfiles install 10 modules (Az, AWSPowerShell.NetCore, Microsoft.Graph, oh-my-posh, etc.) via script. Needs `powershell.module` with `name:`, `scope: CurrentUser\|AllUsers`, idempotent via `Get-Module -ListAvailable`. |
+| Feature           | Notes                               |
+| ----------------- | ----------------------------------- |
+| ntfy notification | Matches existing notification infra |
 
 ---
 
