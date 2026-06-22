@@ -90,7 +90,7 @@ make install-hooks # install pre-commit and pre-push hooks (run once per checkou
 
 ## Action Catalog
 
-50 actions — full field reference in [`docs/knowledge/action-catalog.md`](docs/knowledge/action-catalog.md).
+51 actions — full field reference in [`docs/knowledge/action-catalog.md`](docs/knowledge/action-catalog.md). Includes `powershell.module` (install PowerShell modules from PSGallery; `name`, `list`, `scope`).
 
 Actions map to `lib/src/actions/<name>/`. YAML names come from `#[serde(rename = "...")]` — not Rust struct names (e.g. struct `GroupAdd` → YAML `group.add`).
 

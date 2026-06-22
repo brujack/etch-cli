@@ -1,0 +1,25 @@
+# powershell.module — install PowerShell modules from PSGallery using pwsh
+# Idempotent: skips modules already installed (Get-Module -ListAvailable check)
+# Requires: pwsh (PowerShell Core) in PATH
+
+# Install a single module (CurrentUser scope by default)
+- action: powershell.module
+  name: oh-my-posh # module name as listed in PSGallery
+
+# Install multiple modules in one action (preferred for batching)
+- action: powershell.module
+  list:
+      - Az # Azure PowerShell module
+      - AWSPowerShell.NetCore # AWS PowerShell module
+      - Microsoft.Graph # Microsoft Graph SDK
+      - oh-my-posh # prompt theme engine
+
+# Explicit CurrentUser scope (same as default; shown for clarity)
+- action: powershell.module
+  name: PSReadLine
+  scope: CurrentUser # installs to user profile; no admin required
+
+# AllUsers scope — installs system-wide; requires admin rights at apply time
+- action: powershell.module
+  name: PowerShellGet
+  scope: AllUsers # requires elevated privileges when etch apply runs
