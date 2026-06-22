@@ -94,9 +94,8 @@ Master status index for all specs and implementation plans in this directory.
 
 ## Backlog
 
-| Feature           | Notes                               |
-| ----------------- | ----------------------------------- |
-| ntfy notification | Matches existing notification infra |
+| Feature | Notes |
+| ------- | ----- |
 
 ---
 
