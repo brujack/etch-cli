@@ -94,8 +94,9 @@ Master status index for all specs and implementation plans in this directory.
 
 ## Backlog
 
-| Feature | Notes |
-| ------- | ----- |
+| Feature           | Notes                                                                                                                                                                                                                            |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `flatpak.install` | Install Flatpak apps from Flathub or other remotes. Needed to manage Steam (`com.valvesoftware.Steam`) and other Flatpak apps from etch-config. Fields: `app_id:`, `remote:` (default `flathub`), idempotent via `flatpak list`. |
 
 ---
 
