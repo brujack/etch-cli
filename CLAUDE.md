@@ -60,7 +60,6 @@ Sessions in this repo follow the 10-80-10 execution cycle defined in `ai-config`
 - **Phase 2 (80%) — Execute.** `subagent-driven-development` runs iterate-until-green per task; FORBIDDEN list prevents gate cheating; wave-dispatch when `parallel_group` is declared. Sonnet/Haiku per task per the plan.
 - **Phase 3 (10%) — Review.** `finishing-a-development-branch` chains `pr-review` → `security-review` → `bug-scan` → `docs` → `learnings` → finish. Opus role.
 
-
 Validate a plan before dispatch:
 
 ```bash
@@ -278,6 +277,14 @@ Invoke `caveman:caveman-commit` skill to generate the commit message before runn
 - **update-informer:** checks crates.io at startup; disable via `disable_update_check: true` in config or `--no-color` flag has no effect on this.
 - **lib.rs module order:** `pub mod` declarations in `lib/src/lib.rs` must be alphabetical — rustfmt enforces this. Out-of-order additions cause pre-commit failure.
 - **etch doctor security pattern:** binary names from manifest YAML are passed to `Command::new(binary_name)` (no shell), not `sh -c "binary_name --version"`, to prevent injection from hostile `name:` fields. Only explicit `doctor.versions.command` uses `sh -c` (user-authored in etch.yaml).
+
+## Language Standards
+
+Language-specific standards for this repo. These supplement the universal standards loaded
+from `~/.claude/CLAUDE.md` (tdd, behavior, git-workflow, ci, code-standards, logic-review,
+repo-structure, shell).
+
+@~/.claude/standards/rust.md
 
 ## Testing
 
