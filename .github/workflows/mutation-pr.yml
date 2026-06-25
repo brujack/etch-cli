@@ -1,0 +1,51 @@
+name: mutation-pr
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  mutation-pr:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+
+      - name: Install cargo-mutants
+        run: cargo install cargo-mutants --locked
+
+      - name: Detect changed Rust files
+        id: detect
+        run: |
+          changed=$(git diff --name-only "origin/${GITHUB_BASE_REF}...HEAD")
+          if printf '%s\n' "${changed}" | grep -q '\.rs$'; then
+            echo "has_rs=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "has_rs=false" >> "${GITHUB_OUTPUT}"
+          fi
+        env:
+          GITHUB_BASE_REF: ${{ github.base_ref }}
+
+      - name: Skip — no Rust files changed
+        if: steps.detect.outputs.has_rs == 'false'
+        run: echo "No .rs files changed — skipping mutation testing."
+
+      - name: Get PR diff
+        if: steps.detect.outputs.has_rs == 'true'
+        run: git diff "origin/${GITHUB_BASE_REF}...HEAD" > /tmp/pr.diff
+        env:
+          GITHUB_BASE_REF: ${{ github.base_ref }}
+
+      - name: Run cargo mutants on diff
+        if: steps.detect.outputs.has_rs == 'true'
+        run: cargo mutants --in-diff /tmp/pr.diff --timeout 30 --no-shuffle
