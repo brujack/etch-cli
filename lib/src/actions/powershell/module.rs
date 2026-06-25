@@ -36,15 +36,23 @@ impl PowershellModule {
         }
     }
 
+    // Escape a string for use inside a PowerShell single-quoted literal.
+    // In PowerShell, the only special character inside '' is ' itself, which
+    // is escaped by doubling it: O'Reilly → 'O''Reilly'.
+    fn escape_ps_string(s: &str) -> String {
+        s.replace('\'', "''")
+    }
+
     fn module_installed(name: &str) -> bool {
+        // Pass the name via an environment variable to avoid PowerShell
+        // command injection when the module name contains single quotes or
+        // other special characters.
         std::process::Command::new("pwsh")
             .args([
                 "-Command",
-                &format!(
-                    "if (Get-Module -ListAvailable -Name '{}') {{ exit 0 }} else {{ exit 1 }}",
-                    name
-                ),
+                "if (Get-Module -ListAvailable -Name $env:ETCH_PS_CHECK_MODULE) { exit 0 } else { exit 1 }",
             ])
+            .env("ETCH_PS_CHECK_MODULE", name)
             .output()
             .map(|o| o.status.success())
             .unwrap_or(false)
@@ -84,7 +92,7 @@ impl Action for PowershellModule {
 
         let module_list = to_install
             .iter()
-            .map(|n| format!("'{}'", n))
+            .map(|n| format!("'{}'", Self::escape_ps_string(n)))
             .collect::<Vec<_>>()
             .join(",");
 
@@ -400,6 +408,53 @@ mod tests {
         assert!(
             display.contains("-AllowClobber"),
             "expected '-AllowClobber' in: {display}"
+        );
+    }
+
+    #[test]
+    fn escape_ps_string_doubles_single_quotes() {
+        assert_eq!("O''Reilly", PowershellModule::escape_ps_string("O'Reilly"));
+        assert_eq!(
+            "no-specials",
+            PowershellModule::escape_ps_string("no-specials")
+        );
+        assert_eq!("a''b''c", PowershellModule::escape_ps_string("a'b'c"));
+        assert_eq!("", PowershellModule::escape_ps_string(""));
+    }
+
+    #[test]
+    #[serial]
+    fn plan_escapes_single_quotes_in_module_name() {
+        // A module name with a single quote must be escaped in the install
+        // command — the name appears inside 'quoted' delimiters in the
+        // pwsh -Command string.  An unescaped quote would break the script
+        // and allow injection.
+        let action = PowershellModule {
+            name: Some(String::from("O'Reilly")),
+            list: vec![],
+            scope: PowerShellScope::CurrentUser,
+        };
+        let steps = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+        assert_eq!(1, steps.len());
+        let display = steps[0].atom.to_string();
+        assert!(
+            display.contains("O''Reilly"),
+            "expected escaped name (doubled quote) in: {display}"
+        );
+        assert!(
+            !display.contains("O'Reilly' "),
+            "unescaped single quote found in install command — injection risk: {display}"
+        );
+    }
+
+    #[test]
+    fn escape_ps_string_does_not_escape_double_quotes() {
+        // Double quotes are safe inside single-quoted PS strings; don't mangle them.
+        assert_eq!(
+            r#"foo"bar"#,
+            PowershellModule::escape_ps_string(r#"foo"bar"#)
         );
     }
 }
