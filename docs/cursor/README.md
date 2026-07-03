@@ -7,5 +7,8 @@
 
 ## Backlog
 
-| Feature | Notes |
-| ------- | ----- |
+| Feature                                                                | Notes                                                                                     |
+| ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Property tests for rollback: idempotency, partial failure, permissions | Rollback took 3 PRs (#107→#113→#114) to stabilize; missing property tests were root cause |
+| Wire CI test artifact upload                                           | No visibility into flaky/slow tests; `test_health.py` has no data                         |
+| Evaluate perf-regression gate (Criterion benchmarks)                   | Gate exists in SDLC; no Criterion benchmarks wired in etch-cli yet                        |
