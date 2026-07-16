@@ -1,5 +1,7 @@
 # Release SBOM Vulnerability Monitor Implementation Plan
 
+> **Status: DONE** — merged via PR #121 (2026-07-16). Post-merge verification: manual workflow_dispatch on main succeeded, 0 issues opened. Repo Issues had to be enabled (previously disabled) for the notify path to work.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Monthly scheduled workflow that re-scans the latest published release's SBOM
