@@ -1,0 +1,16 @@
+name: Release SBOM Monitor (scheduled)
+
+on:
+    schedule:
+        - cron: "0 13 3 * *"
+    workflow_dispatch:
+
+jobs:
+    monitor:
+        uses: ./.github/workflows/release-sbom-monitor.yml
+        with:
+            binary_name: etch
+            release_tag_pattern: "v"
+        permissions:
+            contents: read
+            issues: write
