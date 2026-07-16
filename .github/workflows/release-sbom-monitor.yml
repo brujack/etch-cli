@@ -62,7 +62,7 @@ jobs:
               --pattern "${BINARY_NAME}.sbom.spdx.json" 2>/dev/null; then
             echo "present=true" >> "$GITHUB_OUTPUT"
           else
-            echo "No SBOM asset on ${LATEST_TAG} — pre-dates SBOM rollout, skipping"
+            echo "No SBOM asset found for ${LATEST_TAG} (or download failed) — skipping scan for this binary"
             echo "present=false" >> "$GITHUB_OUTPUT"
           fi
 
