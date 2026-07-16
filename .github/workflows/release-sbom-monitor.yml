@@ -1,0 +1,114 @@
+name: Release SBOM Monitor
+
+on:
+  workflow_call:
+    inputs:
+      binary_name:
+        required: true
+        type: string
+      release_tag_pattern:
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      binary_name:
+        required: true
+        type: string
+        description: "Binary name (e.g. etch)"
+      release_tag_pattern:
+        required: true
+        type: string
+        description: "Tag prefix to match latest release (e.g. v)"
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  monitor:
+    name: SBOM Vulnerability Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Resolve latest matching release tag
+        id: latest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_PATTERN: ${{ inputs.release_tag_pattern }}
+        run: |
+          LATEST_TAG=$(gh release list --limit 50 --json tagName \
+            --jq ".[] | select(.tagName | startswith(\"${TAG_PATTERN}\")) | .tagName" \
+            | head -1)
+          if [[ -z "${LATEST_TAG}" ]]; then
+            echo "No matching release found for pattern ${TAG_PATTERN} — skipping"
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "found=true" >> "$GITHUB_OUTPUT"
+          echo "tag=${LATEST_TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Download SBOM asset
+        if: steps.latest.outputs.found == 'true'
+        id: sbom
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LATEST_TAG: ${{ steps.latest.outputs.tag }}
+          BINARY_NAME: ${{ inputs.binary_name }}
+        run: |
+          if gh release download "${LATEST_TAG}" \
+              --pattern "${BINARY_NAME}.sbom.spdx.json" 2>/dev/null; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No SBOM asset found for ${LATEST_TAG} (or download failed) — skipping scan for this binary"
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Scan SBOM
+        if: steps.latest.outputs.found == 'true' && steps.sbom.outputs.present == 'true'
+        id: scan
+        uses: anchore/scan-action@v7
+        with:
+          sbom: "${{ inputs.binary_name }}.sbom.spdx.json"
+          output-format: json
+          fail-build: false
+
+      - name: Filter Critical/High and file issues
+        if: steps.latest.outputs.found == 'true' && steps.sbom.outputs.present == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BINARY_NAME: ${{ inputs.binary_name }}
+          LATEST_TAG: ${{ steps.latest.outputs.tag }}
+          SCAN_JSON: ${{ steps.scan.outputs.json }}
+        run: |
+          jq -c '.matches[] | select(.vulnerability.severity == "Critical" or .vulnerability.severity == "High")' \
+            "${SCAN_JSON}" | while read -r finding; do
+            CVE_ID=$(echo "${finding}" | jq -r '.vulnerability.id')
+            SEVERITY=$(echo "${finding}" | jq -r '.vulnerability.severity')
+            PACKAGE_NAME=$(echo "${finding}" | jq -r '.artifact.name')
+            PACKAGE_VERSION=$(echo "${finding}" | jq -r '.artifact.version')
+            FIX_VERSION=$(echo "${finding}" | jq -r '.vulnerability.fix.versions[0] // "none"')
+
+            EXISTING=$(gh issue list --label sbom-monitor --state open \
+              --search "in:title \"${CVE_ID}\" \"${BINARY_NAME}\"" \
+              --json number --jq '.[0].number // empty')
+
+            if [[ -n "${EXISTING}" ]]; then
+              echo "Issue already open for ${CVE_ID} in ${BINARY_NAME}: #${EXISTING}"
+              continue
+            fi
+
+            gh issue create \
+              --label sbom-monitor \
+              --title "[SBOM Monitor] ${CVE_ID} in ${BINARY_NAME} ${LATEST_TAG}" \
+              --body "Severity: ${SEVERITY}
+            Package: ${PACKAGE_NAME} ${PACKAGE_VERSION}
+            Fix available: ${FIX_VERSION}
+            Release: ${LATEST_TAG}
+            Source: monthly release-sbom-monitor.yml scan
+
+            Non-blocking. Human judgment call on whether this warrants a patch release
+            (reachability, exploitability, whether ${LATEST_TAG} is still actively downloaded)."
+          done
