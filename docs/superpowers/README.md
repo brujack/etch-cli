@@ -95,9 +95,10 @@ Master status index for all specs and implementation plans in this directory.
 
 ## Backlog
 
-| Feature           | Notes                                                                                                                                                                                                                            |
-| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `flatpak.install` | Install Flatpak apps from Flathub or other remotes. Needed to manage Steam (`com.valvesoftware.Steam`) and other Flatpak apps from etch-config. Fields: `app_id:`, `remote:` (default `flathub`), idempotent via `flatpak list`. |
+| Feature              | Notes                                                                                                                                                                                                                            |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `flatpak.install`    | Install Flatpak apps from Flathub or other remotes. Needed to manage Steam (`com.valvesoftware.Steam`) and other Flatpak apps from etch-config. Fields: `app_id:`, `remote:` (default `flathub`), idempotent via `flatpak list`. |
+| Maintainability pass | Once the ai-config maintainability gate (2026-07-24 spec) ships, run a worldclass pass in this repo against its thresholds — not scheduled yet.                                                                                  |
 
 ---
 
