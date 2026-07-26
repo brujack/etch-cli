@@ -47,5 +47,8 @@ mutants.out/
 mutants.out.old/
 tarpaulin-report.json
 
+# cargo tool shared cache
+.cache/cargo-target-rust-checker/
+
 # Firecrawl cache
 .firecrawl/
