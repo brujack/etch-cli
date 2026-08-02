@@ -1,4 +1,4 @@
-.PHONY: all test lint build build-linux install-hooks mutants bench changelog fuzz fuzz-manifest fuzz-path semver validate-plan
+.PHONY: all test lint build build-linux install-hooks mutants bench changelog fuzz fuzz-manifest fuzz-path semver validate-plan docs-debt
 
 all: test build
 
@@ -9,6 +9,10 @@ lint:
 	cargo fmt --all -- --check
 	cargo clippy --all-targets -- -D warnings
 	cargo machete
+
+docs-debt:
+	@cargo clippy --workspace --all-targets --quiet -- -W missing_docs 2>&1 \
+	  | grep -c 'missing documentation'
 
 build:
 	cargo build --release

@@ -43,3 +43,10 @@ tracing-test = "0.2"
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(tarpaulin_include)'] }
+missing_debug_implementations = "warn"
+# 402 undocumented public items as of 2026-08-02. Recheck: make docs-debt
+# Flip to "warn" once documented — see docs/superpowers/README.md backlog.
+missing_docs = "allow"
+
+[lints.clippy]
+wrong_self_convention = "warn"
