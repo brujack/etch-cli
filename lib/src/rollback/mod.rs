@@ -27,6 +27,7 @@ pub struct StashEntry {
     pub meta_path: PathBuf,
 }
 
+#[derive(Debug)]
 pub struct StashStore {
     pub base: PathBuf,
 }

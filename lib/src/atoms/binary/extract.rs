@@ -6,6 +6,7 @@ use tar::Archive;
 use xz2::read::XzDecoder;
 use zip::ZipArchive;
 
+#[derive(Debug)]
 pub enum ArchiveFormat {
     Raw,
     TarGz,
@@ -29,6 +30,7 @@ impl ArchiveFormat {
     }
 }
 
+#[derive(Debug)]
 pub struct BinaryExtract {
     pub src: PathBuf,
     pub dest: PathBuf,

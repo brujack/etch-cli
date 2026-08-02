@@ -5,6 +5,7 @@ use crate::{
     contexts::{Context, ContextProvider},
 };
 
+#[derive(Debug)]
 pub struct VariablesContextProvider<'a> {
     pub config: &'a Config,
 }

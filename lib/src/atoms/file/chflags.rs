@@ -6,6 +6,7 @@ use std::path::PathBuf;
 pub const UF_HIDDEN: u32 = 0x8000;
 pub const UF_IMMUTABLE: u32 = 0x0002;
 
+#[derive(Debug)]
 pub struct Chflags {
     pub path: PathBuf,
     pub flags: Vec<String>,

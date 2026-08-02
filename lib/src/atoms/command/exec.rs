@@ -5,7 +5,7 @@ use crate::utilities;
 use anyhow::anyhow;
 use tracing::debug;
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct Exec {
     pub command: String,
     pub arguments: Vec<String>,
@@ -17,7 +17,7 @@ pub struct Exec {
     pub(crate) status: ExecStatus,
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub(crate) struct ExecStatus {
     code: i32,
     stdout: String,

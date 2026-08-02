@@ -3,6 +3,7 @@ use crate::atoms::Outcome;
 use std::path::PathBuf;
 use tracing::instrument;
 
+#[derive(Debug)]
 pub struct Pull {
     pub repository: String,
     pub directory: PathBuf,

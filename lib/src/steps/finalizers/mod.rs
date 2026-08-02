@@ -7,6 +7,7 @@ pub use env_vars_remove::RemoveEnvVars;
 pub use output_contains::OutputContains;
 
 #[allow(dead_code)]
+#[derive(Debug)]
 pub enum FlowControl {
     Ensure(Box<dyn Finalizer>),
     StopIf(Box<dyn Finalizer>),
@@ -14,7 +15,7 @@ pub enum FlowControl {
 
 /// Finalizers allow us to store data within the manifests KV store,
 /// or to end the execution of atoms for the action
-pub trait Finalizer {
+pub trait Finalizer: std::fmt::Debug {
     fn finalize(&self, atom: &dyn Atom) -> anyhow::Result<bool>;
 }
 
@@ -23,6 +24,7 @@ pub mod test {
     use super::*;
     use anyhow::anyhow;
 
+    #[derive(Debug)]
     pub struct EchoFinalizer(pub bool);
 
     impl Finalizer for EchoFinalizer {
@@ -31,6 +33,7 @@ pub mod test {
         }
     }
 
+    #[derive(Debug)]
     pub struct ErrorFinalizer();
 
     impl Finalizer for ErrorFinalizer {

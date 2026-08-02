@@ -6,6 +6,7 @@ use crate::atoms::{Atom, Outcome};
 
 use super::FileAtom;
 
+#[derive(Debug)]
 pub struct Remove {
     pub target: PathBuf,
 }

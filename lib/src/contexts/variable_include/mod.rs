@@ -8,6 +8,7 @@ use crate::{config::Config, contexts::Context, contexts::ContextProvider};
 pub mod dns;
 pub mod file;
 
+#[derive(Debug)]
 pub struct VariableIncludeContextProvider<'a> {
     pub config: &'a Config,
 }

@@ -26,6 +26,7 @@ impl Display for Privilege {
     }
 }
 
+#[derive(Debug)]
 pub struct PrivilegeContextProvider<'a> {
     pub config: &'a Config,
 }

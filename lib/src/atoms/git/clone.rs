@@ -5,7 +5,7 @@ use gix::{progress::Discard, Url};
 use std::path::PathBuf;
 use tracing::instrument;
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Clone {
     pub repository: Url,
     pub directory: PathBuf,

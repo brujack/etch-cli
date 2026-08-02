@@ -7,6 +7,7 @@ use crate::atoms::{Atom, Outcome};
 
 use super::FileAtom;
 
+#[derive(Debug)]
 pub struct Unarchive {
     pub origin: PathBuf,
     pub dest: PathBuf,

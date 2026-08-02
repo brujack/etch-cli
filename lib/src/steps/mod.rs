@@ -5,6 +5,7 @@ use tracing::error;
 pub mod finalizers;
 pub mod initializers;
 
+#[derive(Debug)]
 pub struct Step {
     pub atom: Box<dyn Atom>,
     pub initializers: Vec<initializers::FlowControl>,

@@ -2,6 +2,7 @@ use super::super::Atom;
 use crate::atoms::Outcome;
 use tracing::instrument;
 
+#[derive(Debug)]
 pub struct Service {
     pub unit: String,
     pub enabled: Option<bool>,

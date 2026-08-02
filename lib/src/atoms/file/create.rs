@@ -4,6 +4,7 @@ use super::super::Atom;
 use super::FileAtom;
 use std::path::PathBuf;
 
+#[derive(Debug)]
 pub struct Create {
     pub path: PathBuf,
 }

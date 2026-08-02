@@ -4,6 +4,7 @@ use super::super::Atom;
 use std::io::Write;
 use std::{fs::File, path::PathBuf};
 
+#[derive(Debug)]
 pub struct Download {
     pub url: String,
     pub to: PathBuf,

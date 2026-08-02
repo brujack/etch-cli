@@ -30,6 +30,7 @@ impl Default for State {
     }
 }
 
+#[derive(Debug)]
 pub struct StateStore {
     path: PathBuf,
 }

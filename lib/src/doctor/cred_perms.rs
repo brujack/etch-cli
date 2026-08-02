@@ -3,6 +3,7 @@ use crate::config::Config;
 use crate::manifests::Manifest;
 use std::collections::HashMap;
 
+#[derive(Debug)]
 pub struct CredPermsCheck;
 
 impl DoctorCheck for CredPermsCheck {

@@ -8,6 +8,7 @@ use std::io::Read;
 use std::path::PathBuf;
 use tracing::error;
 
+#[derive(Debug)]
 pub struct Decrypt {
     pub encrypted_content: Vec<u8>,
     pub passphrase: String,
