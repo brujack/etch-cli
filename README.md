@@ -396,8 +396,29 @@ make test     # lint + test
 make lint     # cargo clippy -D warnings
 make build    # cargo build --release
 make semver   # check for API-breaking changes vs origin/main (advisory)
+make docs-debt      # count undocumented public items (see API lints below)
 make install-hooks  # install pre-commit and pre-push hooks (run once per checkout)
 ```
+
+### API-quality lints
+
+Every crate's `[lints]` table enables two Rust API Guidelines items that a compiler
+can check, at `warn` — which `make lint`'s `-D warnings` promotes to a hard failure:
+
+| Item      | Lint                            |
+| --------- | ------------------------------- |
+| `C-DEBUG` | `missing_debug_implementations` |
+| `C-CONV`  | `clippy::wrong_self_convention` |
+
+`C-DOCS` (`missing_docs`) is deliberately **not** enforced yet. It sits at `allow`
+with a dated count, because `etch-lib` has 402 undocumented public items and
+documenting them is its own piece of work — see the backlog row in
+`docs/superpowers/README.md`. `make docs-debt` reprints that count so the number in
+`lib/Cargo.toml` can be refuted in one command rather than trusted.
+
+Two types carry a hand-written `Debug` instead of a derived one, and must keep it:
+`Decrypt` holds a passphrase and `Exec` holds an environment map. Both redact those
+fields; deriving `Debug` on either would print the secret.
 
 `make test` also runs 5 `insta` snapshot tests (`app/tests/snapshots.rs`) that lock the exact stdout format of `etch -h`, `etch apply --help`, `etch version`, and `etch apply --dry-run`. Any accidental format change fails the test. To update snapshots intentionally: `INSTA_UPDATE=new cargo test --test snapshots`, then `cargo insta accept`, then commit the updated `.snap` files.
 
