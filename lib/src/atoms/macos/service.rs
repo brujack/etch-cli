@@ -3,6 +3,7 @@ use crate::atoms::Outcome;
 use std::path::PathBuf;
 use tracing::instrument;
 
+#[derive(Debug)]
 pub struct Service {
     pub plist: PathBuf,
     pub label: Option<String>,

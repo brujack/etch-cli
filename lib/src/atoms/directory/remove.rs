@@ -4,6 +4,7 @@ use tracing::error;
 
 use crate::atoms::{Atom, Outcome};
 
+#[derive(Debug)]
 pub struct Remove {
     pub target: PathBuf,
 }

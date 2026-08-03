@@ -2,6 +2,7 @@ use crate::atoms::{Atom, Outcome};
 use crate::rollback::StashStore;
 use std::path::PathBuf;
 
+#[derive(Debug)]
 pub struct Stash {
     pub path: PathBuf,
     pub manifest: String,

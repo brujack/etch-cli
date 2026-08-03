@@ -3,6 +3,7 @@ use anyhow::Result;
 use gethostname::gethostname;
 use os_info;
 
+#[derive(Debug)]
 pub struct OSContextProvider {}
 
 impl ContextProvider for OSContextProvider {

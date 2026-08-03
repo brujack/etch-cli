@@ -6,6 +6,7 @@ use std::io;
 use std::path::PathBuf;
 use tracing::{error, warn};
 
+#[derive(Debug)]
 pub struct Link {
     pub source: PathBuf,
     pub target: PathBuf,

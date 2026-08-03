@@ -2,6 +2,7 @@ use super::super::Atom;
 use crate::atoms::command::Exec;
 use crate::atoms::Outcome;
 
+#[derive(Debug)]
 pub struct GitConfigUnset {
     /// Args inserted between `git` and `--get`/`--unset`:
     /// global → ["config", "--global"]

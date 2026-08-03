@@ -5,6 +5,7 @@ use super::FileAtom;
 use std::io;
 use std::path::PathBuf;
 
+#[derive(Debug)]
 pub struct Chmod {
     pub path: PathBuf,
     pub mode: u32,

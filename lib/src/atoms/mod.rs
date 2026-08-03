@@ -11,14 +11,16 @@ pub mod systemd;
 
 pub use status::AtomStatus;
 
+#[derive(Debug)]
 pub enum SideEffect {}
 
+#[derive(Debug)]
 pub struct Outcome {
     pub side_effects: Vec<SideEffect>,
     pub should_run: bool,
 }
 
-pub trait Atom: std::fmt::Display {
+pub trait Atom: std::fmt::Display + std::fmt::Debug {
     // Determine if this atom needs to run
     fn plan(&self) -> anyhow::Result<Outcome>;
 
@@ -47,6 +49,7 @@ pub trait Atom: std::fmt::Display {
     }
 }
 
+#[derive(Debug)]
 pub struct Echo(pub &'static str);
 
 impl Atom for Echo {
@@ -124,6 +127,7 @@ mod tests {
     fn trait_default_output_string_returns_empty() {
         // Tests the default Atom::output_string() impl — Echo overrides it,
         // so we need a minimal implementor that doesn't.
+        #[derive(Debug)]
         struct Minimal;
         impl std::fmt::Display for Minimal {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

@@ -1,4 +1,4 @@
-.PHONY: all test lint build build-linux install-hooks mutants bench changelog fuzz fuzz-manifest fuzz-path semver validate-plan
+.PHONY: all test lint build build-linux install-hooks mutants bench changelog fuzz fuzz-manifest fuzz-path semver validate-plan docs-debt
 
 all: test build
 
@@ -9,6 +9,13 @@ lint:
 	cargo fmt --all -- --check
 	cargo clippy --all-targets -- -D warnings
 	cargo machete
+
+# `grep -c` exits 1 when it counts zero matches, so without the `|| true` this
+# target would fail at exactly the moment the debt is cleared — the success
+# state. The count still prints; only the exit status is suppressed.
+docs-debt:
+	@cargo clippy --workspace --all-targets --quiet -- -W missing_docs 2>&1 \
+	  | grep -c 'missing documentation' || true
 
 build:
 	cargo build --release

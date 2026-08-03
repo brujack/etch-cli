@@ -14,6 +14,23 @@ pub struct Decrypt {
     pub path: PathBuf,
 }
 
+// Hand-written rather than derived: `Atom` requires `Debug`, and a derive here
+// would print the passphrase. The `Display` impl below already omits it
+// deliberately, printing only the path — Debug must not reopen what Display
+// was written to keep closed.
+impl std::fmt::Debug for Decrypt {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Decrypt")
+            .field(
+                "encrypted_content",
+                &format_args!("<{} bytes>", self.encrypted_content.len()),
+            )
+            .field("passphrase", &"<redacted>")
+            .field("path", &self.path)
+            .finish()
+    }
+}
+
 impl FileAtom for Decrypt {
     fn get_path(&self) -> &PathBuf {
         &self.path
@@ -201,5 +218,25 @@ mod tests {
         writer.finish()?;
 
         Ok(encrypted)
+    }
+
+    #[test]
+    fn debug_output_redacts_the_passphrase() {
+        // Display deliberately prints only the path; Debug must not be the
+        // channel that leaks what Display was written to keep out.
+        let decrypt = Decrypt {
+            encrypted_content: vec![1, 2, 3],
+            passphrase: "hunter2-super-secret".to_string(),
+            path: PathBuf::from("/tmp/x"),
+        };
+        let rendered = format!("{decrypt:?}");
+        assert!(
+            !rendered.contains("hunter2-super-secret"),
+            "passphrase leaked into Debug output: {rendered}"
+        );
+        assert!(
+            rendered.contains("redacted"),
+            "expected an explicit redaction marker, got: {rendered}"
+        );
     }
 }

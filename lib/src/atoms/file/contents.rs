@@ -5,6 +5,7 @@ use super::FileAtom;
 use std::path::PathBuf;
 use tracing::error;
 
+#[derive(Debug)]
 pub struct SetContents {
     pub path: PathBuf,
     pub contents: Vec<u8>,

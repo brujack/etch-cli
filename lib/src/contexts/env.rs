@@ -3,6 +3,7 @@ use anyhow::Result;
 use super::ContextProvider;
 use crate::contexts::Context;
 
+#[derive(Debug)]
 pub struct EnvContextProvider;
 
 impl ContextProvider for EnvContextProvider {

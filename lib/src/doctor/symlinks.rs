@@ -4,6 +4,7 @@ use crate::config::Config;
 use crate::manifests::Manifest;
 use std::collections::HashMap;
 
+#[derive(Debug)]
 pub struct SymlinkCheck;
 
 impl DoctorCheck for SymlinkCheck {

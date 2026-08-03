@@ -52,6 +52,7 @@ fn normalize_version(v: &str) -> &str {
     v.strip_prefix('v').unwrap_or(v)
 }
 
+#[derive(Debug)]
 pub(crate) struct BinaryGitHubStatus {
     pub name: String,
     pub directory: String,

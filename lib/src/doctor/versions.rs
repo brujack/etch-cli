@@ -5,6 +5,7 @@ use crate::manifests::Manifest;
 use std::collections::HashMap;
 use std::process::Command;
 
+#[derive(Debug)]
 pub struct VersionsCheck;
 
 /// Run a shell command string (for explicit config pins — user-authored in etch.yaml).

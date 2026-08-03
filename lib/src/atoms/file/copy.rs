@@ -7,6 +7,7 @@ use file_diff::diff;
 use std::path::{Path, PathBuf};
 use tracing::error;
 
+#[derive(Debug)]
 pub struct Copy {
     pub from: PathBuf,
     pub to: PathBuf,

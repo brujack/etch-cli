@@ -81,8 +81,21 @@ make lint          # cargo fmt --check + cargo clippy --all-targets -D warnings
 make test          # lint, then cargo test
 make build         # cargo build --release → target/release/etch (macOS aarch64)
 make build-linux   # cargo zigbuild → target/x86_64-unknown-linux-gnu/release/etch + ~/Downloads/etch-linux
+make docs-debt     # count undocumented public items (missing_docs is at allow, not warn)
 make install-hooks # install pre-commit and pre-push hooks (run once per checkout)
 ```
+
+**API-quality lints.** Each crate's `[lints]` table enables `missing_debug_implementations`
+(`C-DEBUG`) and `clippy::wrong_self_convention` (`C-CONV`) at `warn`, which `-D warnings`
+makes blocking. `missing_docs` (`C-DOCS`) sits at `allow` with a dated count of 402 and a
+backlog row — `make docs-debt` rechecks it. When adding a public type, derive `Debug` on it
+or the build fails.
+
+**Two types must keep a hand-written `Debug`.** `Decrypt` (holds a passphrase) and `Exec`
+(holds an environment map) redact those fields manually. Replacing either with `#[derive(Debug)]`
+puts a secret into every `{:?}` of that value, including transitively via `Step` and
+`Box<dyn Atom>`. Regression tests: `debug_output_redacts_the_passphrase`,
+`debug_output_redacts_environment_values`.
 
 **Cross-compilation toolchain:** `cargo-zigbuild` + Zig (installed via `brew install zig` + `cargo install cargo-zigbuild`). Uses Zig's built-in C cross-compiler — no Docker required. `cross` (Docker-based) was attempted but has a known Apple Silicon bug in v0.2.5.
 

@@ -8,13 +8,14 @@ pub use env_vars_set::SetEnvVars;
 pub use file_exists::FileExists;
 
 #[allow(dead_code)]
+#[derive(Debug)]
 pub enum FlowControl {
     Ensure(Box<dyn Initializer>),
     SkipIf(Box<dyn Initializer>),
 }
 
 /// Initializers allow us to modify or skip the execution of an atom
-pub trait Initializer {
+pub trait Initializer: std::fmt::Debug {
     fn initialize(&self) -> anyhow::Result<bool>;
 }
 

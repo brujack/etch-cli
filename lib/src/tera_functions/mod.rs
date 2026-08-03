@@ -1,5 +1,6 @@
 use tera::{Function, Result, Tera, Value};
 
+#[derive(Debug)]
 pub struct ReadFileContents;
 
 impl Function for ReadFileContents {

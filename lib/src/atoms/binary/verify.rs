@@ -1,6 +1,7 @@
 use crate::atoms::{Atom, Outcome};
 use std::path::PathBuf;
 
+#[derive(Debug)]
 pub struct BinaryVerify {
     pub path: PathBuf,
     pub expected: String,

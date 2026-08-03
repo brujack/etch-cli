@@ -4,6 +4,7 @@ use crate::config::Config;
 use crate::manifests::Manifest;
 use std::collections::{BTreeSet, HashMap};
 
+#[derive(Debug)]
 pub struct ToolsCheck;
 
 fn action_implied_tool(action: &Actions) -> Option<&'static str> {
