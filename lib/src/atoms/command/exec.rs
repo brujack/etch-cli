@@ -5,7 +5,7 @@ use crate::utilities;
 use anyhow::anyhow;
 use tracing::debug;
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct Exec {
     pub command: String,
     pub arguments: Vec<String>,
@@ -15,6 +15,31 @@ pub struct Exec {
     pub privilege_provider: String,
     pub streaming: bool,
     pub(crate) status: ExecStatus,
+}
+
+// Hand-written rather than derived: `Atom` requires `Debug`, and `environment`
+// routinely carries secrets. Keys are kept — useful and rarely sensitive —
+// while values are not. `command`/`arguments` stay visible because `Display`
+// already prints both, so Debug adds no exposure there.
+impl std::fmt::Debug for Exec {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let redacted_env: Vec<(&str, &str)> = self
+            .environment
+            .iter()
+            .map(|(k, _)| (k.as_str(), "<redacted>"))
+            .collect();
+
+        f.debug_struct("Exec")
+            .field("command", &self.command)
+            .field("arguments", &self.arguments)
+            .field("working_dir", &self.working_dir)
+            .field("environment", &redacted_env)
+            .field("privileged", &self.privileged)
+            .field("privilege_provider", &self.privilege_provider)
+            .field("streaming", &self.streaming)
+            .field("status", &self.status)
+            .finish()
+    }
 }
 
 #[derive(Debug, Default)]
@@ -506,5 +531,32 @@ mod tests {
             "expected exit code in error, got: {err}"
         );
         assert_eq!(exec.status.code, 1);
+    }
+
+    #[test]
+    fn debug_output_redacts_environment_values() {
+        // Display already prints command + arguments, and execute() already
+        // debug!-logs stdout/stderr, so both are pre-existing exposure. The
+        // environment map has no such call site -- deriving Debug would be the
+        // only thing that ever prints it.
+        let exec = Exec {
+            command: "printenv".to_string(),
+            environment: vec![("API_TOKEN".to_string(), "sk-live-abcdef".to_string())],
+            ..Default::default()
+        };
+
+        let rendered = format!("{exec:?}");
+        assert!(
+            !rendered.contains("sk-live-abcdef"),
+            "environment value leaked into Debug output: {rendered}"
+        );
+        assert!(
+            rendered.contains("API_TOKEN") || rendered.contains("redacted"),
+            "expected keys or a redaction marker, got: {rendered}"
+        );
+        assert!(
+            rendered.contains("printenv"),
+            "command should still be visible, got: {rendered}"
+        );
     }
 }
