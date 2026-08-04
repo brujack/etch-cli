@@ -324,7 +324,7 @@ Single workflow `.github/workflows/ci.yml`, triggers on `pull_request` to `main`
 
 | Job            | What it does                                                                                                   |
 | -------------- | -------------------------------------------------------------------------------------------------------------- |
-| `test`         | `make test` (fmt check + clippy + cargo test) + tarpaulin ≥81% (excluding jsonschemagen)                       |
+| `test`         | `ruff check scripts/ tests/` + `make test` (fmt check + clippy + cargo test) + Python unittest + tarpaulin ≥81% (excluding jsonschemagen) |
 | `cargo-audit`  | `cargo audit` — advisory scan (non-blocking)                                                                   |
 | `secret-scan`  | gitleaks v8.30.1 binary (advisory, non-blocking)                                                               |
 | `snyk-scan`    | Snyk code test (advisory, non-blocking)                                                                        |
@@ -332,6 +332,17 @@ Single workflow `.github/workflows/ci.yml`, triggers on `pull_request` to `main`
 | `docs-build`   | Builds mdbook docs                                                                                             |
 | `semver-check` | `cargo semver-checks` vs `origin/main` baseline (advisory, `continue-on-error: true`, not in auto-merge needs) |
 | `auto-merge`   | Squash-merges the PR when all required jobs pass                                                               |
+
+**Python linting.** `ruff==0.16.1` is pinned in the `test` job and installed *before*
+`Run tests`, because `make lint` invokes ruff — an install ordered after it fails the job
+on every PR and blocks auto-merge. Scope is `scripts/ tests/`, never the repo root: this
+repo holds 3 `.py` and 166 `.md`, so bounding the gate makes a stray `.py` elsewhere an
+explicit decision rather than a silent CI break. Shared rule set in `ruff.toml`; see
+ai-config ADR-0058.
+
+Known gap: `scripts/pre-push`'s trigger pattern matches neither `scripts/*.py`,
+`ruff.toml`, nor `Makefile`, so a Python-only change skips the local hook entirely. The
+gate is closed on the CI side only.
 
 > **Note:** `build` job is temporarily disabled — restore when build times improve.
 
