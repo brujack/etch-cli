@@ -26,6 +26,12 @@ jobs:
         run: cargo install cargo-machete --locked
       - name: Install cargo-nextest
         run: cargo install cargo-nextest --locked
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - name: Install ruff
+        run: pip install "ruff==0.16.1"
       - name: Run tests
         run: make lint && cargo nextest run --profile ci
       - name: Run Python tests

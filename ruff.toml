@@ -1,0 +1,10 @@
+target-version = "py310"
+
+[lint]
+select = ["E4", "E7", "E9", "F", "W", "I", "B", "C4", "UP", "PIE", "RUF",
+          "PLW1510", "BLE001", "S110", "S112"]
+ignore = ["RUF001", "RUF002", "RUF003"]
+unfixable = ["RUF100"]
+
+[lint.per-file-ignores]
+"tests/**" = ["E402"]

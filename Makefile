@@ -9,6 +9,7 @@ lint:
 	cargo fmt --all -- --check
 	cargo clippy --all-targets -- -D warnings
 	cargo machete
+	ruff check scripts/ tests/
 
 # `grep -c` exits 1 when it counts zero matches, so without the `|| true` this
 # target would fail at exactly the moment the debt is cleared — the success

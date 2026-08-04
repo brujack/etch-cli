@@ -7,6 +7,7 @@ Usage:
 """
 import argparse
 import json
+import lzma
 import math
 import os
 import subprocess
@@ -14,7 +15,41 @@ import sys
 import tempfile
 import xml.etree.ElementTree as ET
 import zipfile
+import zlib
 from datetime import datetime, timezone
+
+try:
+    from compression.zstd import ZstdError
+    _ZSTD_ERRORS = (ZstdError,)
+except ImportError:  # compression.zstd is 3.14+ only; CI runs 3.13.
+    _ZSTD_ERRORS = ()
+
+# Every failure mode fetch_historical treats as "this one artifact is
+# unreadable, skip it" — enumerated per compression method zipfile.ZipFile can
+# decode (stored, deflate, bzip2, lzma, and zstd on 3.14+), plus decode/shape
+# errors on the JSON payload itself:
+#   OSError             - truncated/inaccessible download; bz2's decompressor
+#                         also raises OSError (not a bz2-specific type) on
+#                         corrupt bzip2 data
+#   zipfile.BadZipFile  - corrupt zip structure / CRC mismatch
+#   KeyError            - member missing (older artifact format)
+#   ValueError          - malformed JSON (json.JSONDecodeError) or non-UTF-8
+#                         content (UnicodeDecodeError, a UnicodeError/
+#                         ValueError subclass)
+#   zlib.error          - deflate bitstream corrupted mid-stream
+#   NotImplementedError - compression method zipfile cannot decode at all
+#   lzma.LZMAError      - lzma stream corrupted mid-stream
+#   ZstdError           - zstd stream corrupted mid-stream (3.14+ only; the
+#                         tuple degrades to omit it on older interpreters,
+#                         see _ZSTD_ERRORS above)
+# This is a closed, deliberately enumerated list of known corruption modes —
+# not a catch-all. An exception outside this set is a real bug in this
+# script (or a genuinely new corruption mode worth naming explicitly) and
+# must propagate rather than be swallowed.
+_ARTIFACT_READ_ERRORS = (
+    OSError, zipfile.BadZipFile, KeyError, ValueError, zlib.error,
+    NotImplementedError, lzma.LZMAError, *_ZSTD_ERRORS,
+)
 
 
 def parse_junit(path: str):
@@ -77,9 +112,25 @@ def fetch_historical(repo: str, artifact_name: str = "test-metrics") -> list:
             if dl.returncode != 0:
                 continue
             try:
-                with zipfile.ZipFile(zp) as z, z.open("test-metrics.json") as f:
-                    runs.append(json.load(f))
-            except Exception:
+                with zipfile.ZipFile(zp) as z:
+                    zinfo = z.getinfo("test-metrics.json")
+                    if zinfo.flag_bits & 0x1:
+                        # zipfile raises bare RuntimeError for an encrypted
+                        # member (stdlib zipfile/__init__.py "is encrypted,
+                        # password required") — too common a bug-class
+                        # exception to blanket-catch, so detect it up front
+                        # via the general-purpose flag bit instead of in the
+                        # except clause below.
+                        print(
+                            f"WARNING: skipping artifact {aid}: encrypted "
+                            f"member {zinfo.filename!r}",
+                            file=sys.stderr,
+                        )
+                        continue
+                    with z.open(zinfo) as f:
+                        runs.append(json.load(f))
+            except _ARTIFACT_READ_ERRORS as exc:
+                print(f"WARNING: skipping artifact {aid}: {exc}", file=sys.stderr)
                 continue
     return runs
 
@@ -93,6 +144,18 @@ def compute_slow(timings: dict, historical: list, z_threshold: float = 3.0) -> l
     """
     by_name: dict[str, list] = {}
     for run in historical:
+        if not isinstance(run, dict):
+            # A valid-JSON-wrong-shape historical artifact (top-level list,
+            # null, or a foreign document that happens to be named
+            # test-metrics.json) would otherwise crash here with
+            # AttributeError on `.get`. fetch_historical only guarantees the
+            # artifact parsed as JSON, not that it has this shape. Warn
+            # (matching fetch_historical's own skip warnings) rather than
+            # dropping it silently — a silent drop here would make a
+            # producer-schema regression look like "no slow tests" instead
+            # of surfacing the bad data.
+            print(f"WARNING: skipping non-dict historical run: {run!r}", file=sys.stderr)
+            continue
         for name, ms in run.get("all_timings", {}).items():
             by_name.setdefault(name, []).append(ms)
 

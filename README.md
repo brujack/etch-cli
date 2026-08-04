@@ -425,6 +425,9 @@ fields; deriving `Debug` on either would print the secret.
 Prerequisites:
 
 - `brew install git-cliff` — CHANGELOG generation (`make changelog`)
+- `pip install "ruff==0.16.1"` — Python lint (`make lint` shells out to `ruff check
+  scripts/ tests/`; without it on PATH, `make lint`, `make test`, and the pre-push
+  hook all fail)
 
 ## Verifying releases
 
