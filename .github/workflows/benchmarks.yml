@@ -20,8 +20,22 @@ jobs:
 
       - name: Run benchmarks
         run: |
-          cargo bench -p etch-lib \
-            -- --output-format bencher 2>/dev/null | tee output.txt
+          # --bench etch_lib, not a bare `cargo bench`: the bare form also runs
+          # the lib's default libtest harness, which rejects Criterion's
+          # --output-format and aborts before any benchmark runs. That produced
+          # an empty output.txt and a failure attributed to the store step
+          # below, every monthly run since 2026-06-01.
+          #
+          # set -o pipefail because the Actions default run: shell is `bash -e`
+          # without it, so tee's 0 was masking cargo's 101. Dropping 2>/dev/null
+          # keeps the reason visible next time.
+          set -o pipefail
+          cargo bench -p etch-lib --bench etch_lib \
+            -- --output-format bencher | tee output.txt
+          if [[ ! -s output.txt ]]; then
+            printf 'no benchmark output produced\n' >&2
+            exit 1
+          fi
 
       - uses: benchmark-action/github-action-benchmark@v1
         with:
