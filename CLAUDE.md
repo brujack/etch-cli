@@ -301,7 +301,11 @@ repo-structure, shell).
 
 ## Testing
 
-**Run tests:** `make test`
+**Run tests:** `make test` — `cargo nextest run` plus `python3 -m unittest discover -s tests -p 'test_*.py'`.
+
+The Python step was added 2026-08-07 (#124). CI had run it all along via ci.yml's "Run Python tests" step, but
+`make test` had not, so 42 Python tests — including the pre-existing `tests/test_test_metrics.py` — only ever
+ran on a PR and never on a developer machine. `make lint`'s ruff sweep now also covers `.claude/scripts/`.
 
 Unit tests in `lib/src/`, integration tests in `app/tests/` (assert_cmd + insta snapshots). Coverage ~86.47% macOS / ~82.64% Linux CI — gap is macOS-only tests gated with `#[cfg(target_os = "macos")]`.
 
@@ -315,6 +319,14 @@ cargo test -p etch-lib                                              # lib only
 cargo test -p etch-cli                                              # integration only
 cargo tarpaulin --exclude-files 'jsonschemagen/*' --fail-under 81  # coverage (matches CI)
 ```
+
+**`.claude/scripts/triage_log.py`** — vendored per-repo (it does not ship via the `~/.claude/scripts/` symlink)
+because `bug-fix-cycle` emits its telemetry through it. Paired suite at `tests/test_triage_log.py`, picked up
+automatically by the `unittest discover` above; the JSONL it writes is gitignored.
+
+**Benchmarks must name their Criterion target** — `cargo bench -p etch-lib --bench etch_lib`. A bare
+`cargo bench` also runs the lib's default libtest harness, which rejects `--output-format bencher` and aborts
+before any benchmark runs. See #124.
 
 **Coverage floor: 81%** (Linux CI gate). **Exception to global ≥90% standard** — structurally uncoverable code: network ops, package managers, privilege escalation, CLI binary dispatch. Do not raise the gate above 81% without verifying actual CI output.
 
