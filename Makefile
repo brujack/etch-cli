@@ -4,12 +4,13 @@ all: test build
 
 test: lint
 	cargo nextest run
+	python3 -m unittest discover -s tests -p 'test_*.py'
 
 lint:
 	cargo fmt --all -- --check
 	cargo clippy --all-targets -- -D warnings
 	cargo machete
-	ruff check scripts/ tests/
+	ruff check scripts/ tests/ .claude/scripts/
 
 # `grep -c` exits 1 when it counts zero matches, so without the `|| true` this
 # target would fail at exactly the moment the debt is cleared — the success

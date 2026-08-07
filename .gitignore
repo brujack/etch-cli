@@ -33,6 +33,7 @@ lcov.info
 
 # 10-80-10 loop logs — session-local, not source
 .claude/loop-log/*.jsonl
+.claude/triage-log/*.jsonl
 
 # docs skill audit manifests — session-local, not source
 .claude/docs-audit/*.jsonl
