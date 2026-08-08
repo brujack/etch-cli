@@ -9,5 +9,5 @@ disable=SC2154
 #
 # This repo keeps `enable=all` and `source-path=SCRIPTDIR` on top of that
 # baseline deliberately — that extra strictness is a per-repo choice, not
-# drift from the shared minimal config the other three repos use.
+# drift from the shared minimal config the other four repos use.
 disable=SC1091
