@@ -1,5 +1,15 @@
 .PHONY: all test lint build build-linux install-hooks mutants bench changelog fuzz fuzz-manifest fuzz-path semver validate-plan docs-debt
 
+# Derived from the tracked set (git ls-files), not a hand-maintained list --
+# an omitted file would leave a hand-list's coverage unchanged rather than
+# lowering it (tdd.md "Coverage Denominators"). The env -u prefix strips a
+# GIT_DIR that git exports into a worktree pre-push hook's environment
+# (ci.md/shell.md); without it this parse-time assignment can silently
+# resolve against the wrong repository.
+SHELLCHECK := $(shell command -v shellcheck 2>/dev/null)
+SHELL_FILES := $(shell env -u GIT_DIR -u GIT_WORK_TREE -u GIT_COMMON_DIR -u GIT_INDEX_FILE \
+                 git ls-files '*.sh' '*.bash')
+
 all: test build
 
 test: lint
@@ -11,6 +21,11 @@ lint:
 	cargo clippy --all-targets -- -D warnings
 	cargo machete
 	ruff check scripts/ tests/ .claude/scripts/
+	@if [ -n "$(SHELLCHECK)" ]; then \
+	  if [ -n "$(SHELL_FILES)" ]; then shellcheck $(SHELL_FILES) && printf "shellcheck OK\n" || exit 1; fi; \
+	else \
+	  printf "shellcheck not found, skipping (install: brew install shellcheck)\n"; \
+	fi
 
 # `grep -c` exits 1 when it counts zero matches, so without the `|| true` this
 # target would fail at exactly the moment the debt is cleared — the success
