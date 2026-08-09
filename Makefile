@@ -8,7 +8,7 @@
 # resolve against the wrong repository.
 SHELLCHECK := $(shell command -v shellcheck 2>/dev/null)
 SHELL_FILES := $(shell env -u GIT_DIR -u GIT_WORK_TREE -u GIT_COMMON_DIR -u GIT_INDEX_FILE \
-                 git ls-files '*.sh' '*.bash')
+                 git ls-files '*.sh' '*.bash' 'scripts/pre-commit' 'scripts/pre-push' 'scripts/commit-msg')
 
 all: test build
 

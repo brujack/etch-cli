@@ -5,14 +5,18 @@ set -e
 
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"
 if [[ -z "${REPO_ROOT}" ]]; then
-    REPO_ROOT="$(cd "$(git rev-parse --git-common-dir)/.." && pwd)"
+    _git_common="$(git rev-parse --git-common-dir)" || exit 1
+    REPO_ROOT="$(cd "${_git_common}/.." && pwd)" || exit 1
 fi
 
 needs_test=0
+# shellcheck disable=SC2034 # git's pre-push protocol supplies four whitespace-separated
+# fields per ref on stdin; local_ref and remote_ref must be named to consume the line
+# positionally even though only the two SHAs are read below.
 while read -r local_ref local_sha remote_ref remote_sha; do
-    [ "${local_sha}" = "0000000000000000000000000000000000000000" ] && continue
+    [[ "${local_sha}" == "0000000000000000000000000000000000000000" ]] && continue
 
-    if [ "${remote_sha}" = "0000000000000000000000000000000000000000" ]; then
+    if [[ "${remote_sha}" == "0000000000000000000000000000000000000000" ]]; then
         base="$(git merge-base "${local_sha}" origin/master 2>/dev/null \
             || git rev-list --max-parents=0 "${local_sha}")"
         range="${base}..${local_sha}"
@@ -20,12 +24,21 @@ while read -r local_ref local_sha remote_ref remote_sha; do
         range="${remote_sha}..${local_sha}"
     fi
 
-    if git diff --name-only "${range}" | grep -qE '\.rs$|^Cargo\.(toml|lock)$|^tests/'; then
+    # Fail closed, per ADR-0017's finding in dotfiles: piping git diff into grep
+    # discards git's exit status, so an unresolvable range (a remote_sha naming
+    # an object this checkout lacks) yields no matches and reads as "nothing
+    # changed" — silently skipping the tests this hook exists to run. Capture
+    # the status before anything else can clobber it.
+    _changed="$(git diff --name-only "${range}")"; _diff_rc=$?
+    if [[ "${_diff_rc}" -ne 0 ]]; then
+        printf 'pre-push: cannot resolve %s — running tests rather than assuming nothing changed\n' "${range}" >&2
+        needs_test=1
+    elif printf '%s\n' "${_changed}" | grep -qE '\.rs$|^Cargo\.(toml|lock)$|^tests/'; then
         needs_test=1
     fi
 done
 
-[ "${needs_test}" -eq 0 ] && exit 0
+[[ "${needs_test}" -eq 0 ]] && exit 0
 
 printf "Running tests locally (pre-push)...\n"
 make -C "${REPO_ROOT}" test
