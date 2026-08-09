@@ -2,6 +2,12 @@ enable=all
 source-path=SCRIPTDIR
 disable=SC2154
 
-# If you're having issues with shellcheck following source, disable the errors via:
-# disable=SC1090
-# disable=SC1091
+# Shared fleet baseline (dotfiles/.shellcheckrc, ai-config/.shellcheckrc,
+# math/.shellcheckrc, terraform_ansible/.shellcheckrc): SC1091 is structurally
+# unavoidable wherever a script sources a path resolved at runtime via
+# $(dirname "${BASH_SOURCE[0]}"), which does not exist at lint time.
+#
+# This repo keeps `enable=all` and `source-path=SCRIPTDIR` on top of that
+# baseline deliberately — that extra strictness is a per-repo choice, not
+# drift from the shared minimal config the other four repos use.
+disable=SC1091
