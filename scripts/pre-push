@@ -17,7 +17,7 @@ while read -r local_ref local_sha remote_ref remote_sha; do
     [[ "${local_sha}" == "0000000000000000000000000000000000000000" ]] && continue
 
     if [[ "${remote_sha}" == "0000000000000000000000000000000000000000" ]]; then
-        base="$(git merge-base "${local_sha}" origin/master 2>/dev/null \
+        base="$(git merge-base "${local_sha}" origin/main 2>/dev/null \
             || git rev-list --max-parents=0 "${local_sha}")"
         range="${base}..${local_sha}"
     else
@@ -29,7 +29,14 @@ while read -r local_ref local_sha remote_ref remote_sha; do
     # an object this checkout lacks) yields no matches and reads as "nothing
     # changed" — silently skipping the tests this hook exists to run. Capture
     # the status before anything else can clobber it.
-    _changed="$(git diff --name-only "${range}")"; _diff_rc=$?
+    # `|| _diff_rc=$?` rather than `; _diff_rc=$?`: set -e is on, and a bare
+    # assignment is a simple command, so errexit aborts the shell on git's
+    # non-zero status before the following statement can run. Putting it in an
+    # AND-OR list exempts it from errexit and captures the status in the same
+    # breath. Verified by A/B: the bare form exits 128 and never reaches the
+    # branch below.
+    _diff_rc=0
+    _changed="$(git diff --name-only "${range}")" || _diff_rc=$?
     if [[ "${_diff_rc}" -ne 0 ]]; then
         printf 'pre-push: cannot resolve %s — running tests rather than assuming nothing changed\n' "${range}" >&2
         needs_test=1
