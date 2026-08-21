@@ -290,3 +290,41 @@ class TestThresholdsAgreeWithCI(unittest.TestCase):
             f"ci.yml pins Python {pinned[0]} but CLAUDE.md's coverage-floor justification "
             f"depends on {flat}. That justification is now false.",
         )
+
+
+class TestHelperBoundariesAndErrors(unittest.TestCase):
+    """Mandatory categories for the two helpers this module introduces.
+
+    Both are exercised indirectly by the assertions above, but only on the real
+    files, which are well-formed by construction. A helper verified solely
+    against valid input is verified only on the branch that cannot fail.
+    """
+
+    def test_read_raises_naming_the_path_when_the_file_is_absent(self):
+        with self.assertRaises(AssertionError) as ctx:
+            _read("no/such/file.md")
+        self.assertIn("no/such/file.md", str(ctx.exception))
+
+    def test_hashes_per_package_on_empty_input(self):
+        self.assertEqual(_hashes_per_package(""), {})
+
+    def test_hashes_per_package_counts_a_single_package(self):
+        text = "pkg==1.0 \\\n    --hash=sha256:aa \\\n    --hash=sha256:bb\n"
+        self.assertEqual(_hashes_per_package(text), {"pkg": 2})
+
+    def test_hashes_per_package_reports_zero_for_an_unhashed_pin(self):
+        """The case the guard exists for -- asserted directly, not only via
+        the real file, which never contains it."""
+        self.assertEqual(_hashes_per_package("pkg==1.0\n"), {"pkg": 0})
+
+    def test_hashes_per_package_attributes_hashes_to_the_right_package(self):
+        """Multi-element: a hash must count against its own pin, not the first
+        or the last. A parser that reset incorrectly would still total right."""
+        text = (
+            "alpha==1.0 \\\n    --hash=sha256:a1\n"
+            "beta==2.0 \\\n    --hash=sha256:b1 \\\n    --hash=sha256:b2\n"
+        )
+        self.assertEqual(_hashes_per_package(text), {"alpha": 1, "beta": 2})
+
+    def test_hashes_per_package_ignores_hashes_before_any_pin(self):
+        self.assertEqual(_hashes_per_package("--hash=sha256:orphan\n"), {})
