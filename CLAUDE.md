@@ -301,7 +301,11 @@ repo-structure, shell).
 
 ## Testing
 
-**Run tests:** `make test` — `cargo nextest run` plus `python3 -m unittest discover -s tests -p 'test_*.py'`.
+**Run tests:** `make test` — `cargo nextest run` plus `pytest tests/ -v`.
+
+The Python runner moved from `unittest discover` to `pytest` on 2026-08-21 to match ai-config and
+state-ledger; it is **invocation-only** — pytest runs the existing `unittest.TestCase` classes
+natively and no test file changed. Verified both ways at the same interpreter.
 
 The Python step was added 2026-08-07 (#124). CI had run it all along via ci.yml's "Run Python tests" step, but
 `make test` had not, so 42 Python tests — including the pre-existing `tests/test_test_metrics.py` — only ever
@@ -329,7 +333,7 @@ put the log in the right repo. Sibling scripts need no vendoring — `cost_log.p
 `~/.claude/scripts/<name>`. Retiring this one means fixing the resolver (ai-config spec
 `2026-07-29-telemetry-home-anchoring-design.md`, still Status: Spec)
 because `bug-fix-cycle` emits its telemetry through it. Paired suite at `tests/test_triage_log.py`, picked up
-automatically by the `unittest discover` above; the JSONL it writes is gitignored.
+automatically by the `pytest tests/` run above; the JSONL it writes is gitignored.
 
 **Benchmarks must name their Criterion target** — `cargo bench -p etch-lib --bench etch_lib`. A bare
 `cargo bench` also runs the lib's default libtest harness, which rejects `--output-format bencher` and aborts
@@ -343,7 +347,7 @@ Single workflow `.github/workflows/ci.yml`, triggers on `pull_request` to `main`
 
 | Job            | What it does                                                                                                   |
 | -------------- | -------------------------------------------------------------------------------------------------------------- |
-| `test`         | `ruff check scripts/ tests/` + `make test` (fmt check + clippy + cargo test) + Python unittest + tarpaulin ≥81% (excluding jsonschemagen) |
+| `test`         | `ruff check scripts/ tests/ .claude/scripts/` + `make test` (fmt check + clippy + cargo test) + `pytest` with Python coverage ≥87% + tarpaulin ≥81% (excluding jsonschemagen) |
 | `cargo-audit`  | `cargo audit` — advisory scan (non-blocking)                                                                   |
 | `secret-scan`  | gitleaks v8.30.1 binary (advisory, non-blocking)                                                               |
 | `snyk-scan`    | Snyk code test (advisory, non-blocking)                                                                        |
@@ -352,12 +356,28 @@ Single workflow `.github/workflows/ci.yml`, triggers on `pull_request` to `main`
 | `semver-check` | `cargo semver-checks` vs `origin/main` baseline (advisory, `continue-on-error: true`, not in auto-merge needs) |
 | `auto-merge`   | Squash-merges the PR when all required jobs pass                                                               |
 
-**Python linting.** `ruff==0.16.1` is pinned in the `test` job and installed *before*
-`Run tests`, because `make lint` invokes ruff — an install ordered after it fails the job
-on every PR and blocks auto-merge. Scope is `scripts/ tests/`, never the repo root: this
-repo holds 3 `.py` and 166 `.md`, so bounding the gate makes a stray `.py` elsewhere an
-explicit decision rather than a silent CI break. Shared rule set in `ruff.toml`; see
+**Python linting.** ruff comes from `requirements-ci.txt`, a hash-verified rendering of
+the shared dev-venv package set (`pyproject.toml` + `uv.lock`, dotfiles#226/#228) that
+installs with stock pip and no uv on the runner. It is installed *before* `Run tests`,
+because `make lint` invokes ruff — an install ordered after it fails the job on every PR
+and blocks auto-merge. Scope is `scripts/ tests/ .claude/scripts/`, never the repo root:
+this repo holds 5 `.py` and 166 `.md`, so bounding the gate makes a stray `.py` elsewhere
+an explicit decision rather than a silent CI break. Shared rule set in `ruff.toml`; see
 ai-config ADR-0058.
+
+Adopting the rendering moved ruff 0.16.1 → 0.16.4; verified clean against this repo's
+scope before the swap. The trade is 65 packages to get one tool, taken because the four
+hand-pinned `ruff==` copies across the fleet were the real drift surface, and because
+the pip step is nowhere near the long pole. Measured on run 31288456643: the `Test` job
+totals 1419s, of which `Install ruff` is **4s** and the three `cargo install` steps are
+**431s**. Installing 65 wheels instead of one took 8s locally with a warm cache
+(macOS/arm64 — a cold `ubuntu-latest` figure will be higher, and is still noise against
+1419s). The committed copy is kept **byte-identical** to dotfiles master, which is what
+makes `diff requirements-ci.txt ~/git-repos/personal/dotfiles/requirements-ci.txt` the
+staleness check; do not add a local header to it. Sync is manual and periodic by design
+(dotfiles is private, so cross-repo writes and CI-time fetches were both rejected).
+Note the hashed file cannot be mixed with extras — `pip install -r <hashed> extra-pkg`
+fails `--require-hashes`; a second dep needs its own `pip install` line.
 
 Known gap: `scripts/pre-push`'s trigger pattern matches neither `scripts/*.py`,
 `ruff.toml`, nor `Makefile`, so a Python-only change skips the local hook entirely. The
@@ -409,7 +429,8 @@ gh pr create --repo brujack/etch-cli
 
 The universal DoD in `behavior.md` applies. etch-cli adds:
 
-- [ ] Coverage ≥81% on Linux CI — verify from CI output, not local macOS measurement (exception to global ≥90% — structurally uncoverable code)
+- [ ] Rust coverage ≥81% on Linux CI — verify from CI output, not local macOS measurement (exception to global ≥90% — structurally uncoverable code)
+- [ ] Python coverage ≥87% (`--cov-fail-under=87`) — measured floor, not the 90% target; the gap is `scripts/test_metrics.py` at 79%
 - [ ] Plan index updated (`docs/cursor/README.md`) if this PR implements a tracked spec
 - [ ] Action catalog updated in `README.md` if a new action was added
 - [ ] `examples/<action>/` updated when a new action or field variant is added — at minimum one `.yaml` per option combination, with inline comments on every field

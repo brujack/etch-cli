@@ -53,3 +53,8 @@ tarpaulin-report.json
 
 # Firecrawl cache
 .firecrawl/
+
+# Python test/coverage artifacts (pytest + pytest-cov, added with the pytest migration)
+.coverage
+.pytest_cache/
+htmlcov/

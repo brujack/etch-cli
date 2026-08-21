@@ -14,7 +14,7 @@ all: test build
 
 test: lint
 	cargo nextest run
-	python3 -m unittest discover -s tests -p 'test_*.py'
+	pytest tests/ -v
 
 lint:
 	cargo fmt --all -- --check
