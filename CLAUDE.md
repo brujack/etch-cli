@@ -379,6 +379,26 @@ staleness check; do not add a local header to it. Sync is manual and periodic by
 Note the hashed file cannot be mixed with extras — `pip install -r <hashed> extra-pkg`
 fails `--require-hashes`; a second dep needs its own `pip install` line.
 
+**Why an 87% floor measured on macOS is legitimate here, when the standing rule forbids
+it.** ADR-0061 and `shell.md` are explicit that a coverage floor comes from CI's own
+measurement and never a local one — `dotfiles` measures 92% on macOS against 91% in CI,
+and ratcheting to the local figure would have failed its own PR. That rule is not being
+excepted here. What was measured is that **its cause is absent in this suite**: the two
+covered files contain zero `sys.platform` / `platform.system()` / `darwin` / `win32` /
+`uname` branches, and the whole Python suite has exactly **one** conditional skip —
+`@unittest.skipUnless(_HAS_ZSTD, ...)`, gated on `compression.zstd` being 3.14+. CI pins
+Python 3.13, so that test skips on the runner and on any 3.13 interpreter alike; it is
+the only thing that can move the number, and it moves it identically in both places. The
+denominator is therefore platform-invariant by construction rather than by luck, which is
+what makes the local figure transferable. The gate was also mutation-checked — it passes
+at 87 and fails at 99 — so it can actually go red.
+
+Do not read this as licence to set a floor from a local run in general. If a
+platform-conditional branch or a `sys.platform` guard ever enters `scripts/` or
+`.claude/scripts/`, this justification expires and the figure must come from CI output.
+Note the corollary while it holds: that zstd test has never executed in CI, under either
+runner, by design.
+
 Known gap: `scripts/pre-push`'s trigger pattern matches neither `scripts/*.py`,
 `ruff.toml`, nor `Makefile`, so a Python-only change skips the local hook entirely. The
 gate is closed on the CI side only.
