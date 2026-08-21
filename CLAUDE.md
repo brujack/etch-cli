@@ -360,7 +360,9 @@ Single workflow `.github/workflows/ci.yml`, triggers on `pull_request` to `main`
 the shared dev-venv package set (`pyproject.toml` + `uv.lock`, dotfiles#226/#228) that
 installs with stock pip and no uv on the runner. It is installed *before* `Run tests`,
 because `make lint` invokes ruff — an install ordered after it fails the job on every PR
-and blocks auto-merge. Scope is `scripts/ tests/ .claude/scripts/`, never the repo root:
+and blocks auto-merge. Both `ruff check` and `ruff format --check` run, matching ai-config and math; the
+formatter is listed alongside the linter in `python.md`'s mechanical table, and etch-cli
+gated only the linter until 2026-08-21. Scope is `scripts/ tests/ .claude/scripts/`, never the repo root:
 this repo holds 5 `.py` and 166 `.md`, so bounding the gate makes a stray `.py` elsewhere
 an explicit decision rather than a silent CI break. Shared rule set in `ruff.toml`; see
 ai-config ADR-0058.
