@@ -348,13 +348,22 @@ Single workflow `.github/workflows/ci.yml`, triggers on `pull_request` to `main`
 | Job            | What it does                                                                                                   |
 | -------------- | -------------------------------------------------------------------------------------------------------------- |
 | `test`         | `ruff check scripts/ tests/ .claude/scripts/` + `make test` (fmt check + clippy + cargo test) + `pytest` with Python coverage ≥87% + tarpaulin ≥81% (excluding jsonschemagen) |
-| `cargo-audit`  | `cargo audit` — advisory scan (non-blocking)                                                                   |
-| `secret-scan`  | gitleaks v8.30.1 binary (advisory, non-blocking)                                                               |
-| `snyk-scan`    | Snyk code test (advisory, non-blocking)                                                                        |
+| `cargo-audit`  | **`cargo deny check advisories`** — reads `deny.toml`'s ignore list. **Blocking** (in `auto-merge` `needs:`). Despite the job name it does *not* run `cargo audit`, which ignores `deny.toml` entirely |
+| `secret-scan`  | gitleaks v8.30.1 binary. **Blocking** (in `auto-merge` `needs:`)                                               |
+| `snyk-scan`    | Snyk code test. **Blocking** (in `auto-merge` `needs:`)                                                        |
 | `docs-lint`    | Lints mdbook docs                                                                                              |
 | `docs-build`   | Builds mdbook docs                                                                                             |
 | `semver-check` | `cargo semver-checks` vs `origin/main` baseline (advisory, `continue-on-error: true`, not in auto-merge needs) |
 | `auto-merge`   | Squash-merges the PR when all required jobs pass                                                               |
+
+**Which jobs actually block.** `auto-merge` declares
+`needs: [test, cargo-audit, secret-scan, snyk-scan, docs-lint, docs-build]`, so all six
+gate the merge. Until 2026-08-21 this table described `cargo-audit`, `secret-scan` and
+`snyk-scan` as "advisory, non-blocking" — wrong for all three, and the kind of wrong that
+only surfaces when one goes red and someone waits for a merge that never comes. `semver-check`
+is the sole genuinely non-blocking job: it sets `continue-on-error: true` **and** is absent
+from `needs:`, and both halves are required — either alone is insufficient. Read the
+`needs:` list, not this sentence, if they ever disagree.
 
 **Python linting.** ruff comes from `requirements-ci.txt`, a hash-verified rendering of
 the shared dev-venv package set (`pyproject.toml` + `uv.lock`, dotfiles#226/#228) that
