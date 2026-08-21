@@ -19,3 +19,4 @@ Repo-specific decisions for etch-cli. Cross-cutting decisions that apply across 
 | [0013](0013-binary-github-version-drift-sidecar.md)      | binary.github version drift detection via sidecar files   | 2026-06-09 | Accepted |
 | [0014](0014-state-manifest-etch-history.md)              | State manifest and etch history subcommand                | 2026-06-12 | Accepted |
 | [0015](0015-debug-supertrait-on-atom-finalizer-initializer.md) | Debug supertrait on Atom, Finalizer, and Initializer       | 2026-08-02 | Accepted |
+| [0016](0016-python-toolchain-from-shared-rendering.md) | Python toolchain from the shared pinned rendering          | 2026-08-21 | Accepted |
