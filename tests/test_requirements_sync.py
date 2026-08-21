@@ -85,7 +85,9 @@ class TestReferencesAgree(unittest.TestCase):
         install = _INSTALL_RE.findall(self.ci)
         diff = _DIFF_RE.findall(self.ci)
         self.assertTrue(install, "no 'pip install -r' line found in ci.yml")
-        self.assertTrue(diff, "no 'diff <local> <dotfiles/...>' command found in ci.yml")
+        self.assertTrue(
+            diff, "no 'diff <local> <dotfiles/...>' command found in ci.yml"
+        )
         self.assertEqual(
             install[0],
             diff[0][0],
@@ -159,7 +161,9 @@ class TestTargetIsReal(unittest.TestCase):
         pins = re.findall(r"^([A-Za-z0-9._-]+)==", text, re.MULTILINE)
         loose = re.findall(r"^[A-Za-z0-9._-]+(?:>=|<=|~=|>|<)", text, re.MULTILINE)
         self.assertTrue(pins, f"{self.target} declares no '==' pinned packages")
-        self.assertEqual(loose, [], f"{self.target} contains unpinned specifiers: {loose}")
+        self.assertEqual(
+            loose, [], f"{self.target} contains unpinned specifiers: {loose}"
+        )
 
     def test_every_pinned_package_carries_its_own_hash(self):
         """Per package, not in aggregate.
@@ -195,7 +199,8 @@ class TestExtractionIsNotVacuous(unittest.TestCase):
 
     def test_install_regex_captures_the_filename(self):
         self.assertEqual(
-            _INSTALL_RE.findall("run: pip install -r some-file.txt\n"), ["some-file.txt"]
+            _INSTALL_RE.findall("run: pip install -r some-file.txt\n"),
+            ["some-file.txt"],
         )
 
     def test_diff_regex_rejects_a_diff_not_against_dotfiles(self):
@@ -228,8 +233,12 @@ class TestThresholdsAgreeWithCI(unittest.TestCase):
 
     def test_python_coverage_floor_matches_every_documented_figure(self):
         gate = re.findall(r"--cov-fail-under=(\d+)", self.ci)
-        self.assertEqual(len(gate), 1, f"expected one Python coverage gate, found {gate}")
-        documented = re.findall(r"Python coverage ≥(\d+)%|≥(\d+)% \(`--cov-fail-under", self.claude_md)
+        self.assertEqual(
+            len(gate), 1, f"expected one Python coverage gate, found {gate}"
+        )
+        documented = re.findall(
+            r"Python coverage ≥(\d+)%|≥(\d+)% \(`--cov-fail-under", self.claude_md
+        )
         flat = sorted({v for pair in documented for v in pair if v})
         self.assertTrue(flat, "CLAUDE.md documents no Python coverage floor")
         self.assertEqual(
@@ -241,7 +250,10 @@ class TestThresholdsAgreeWithCI(unittest.TestCase):
     def test_rust_coverage_floor_matches_every_documented_figure(self):
         gate = re.findall(r"tarpaulin[^\n]*--fail-under (\d+)", self.ci)
         self.assertEqual(len(gate), 1, f"expected one tarpaulin gate, found {gate}")
-        documented = re.findall(r"Coverage floor: (\d+)%|tarpaulin ≥(\d+)%|Rust coverage ≥(\d+)%", self.claude_md)
+        documented = re.findall(
+            r"Coverage floor: (\d+)%|tarpaulin ≥(\d+)%|Rust coverage ≥(\d+)%",
+            self.claude_md,
+        )
         flat = sorted({v for triple in documented for v in triple if v})
         self.assertTrue(flat, "CLAUDE.md documents no Rust coverage floor")
         self.assertEqual(
@@ -259,8 +271,13 @@ class TestThresholdsAgreeWithCI(unittest.TestCase):
         so the dependency is asserted rather than assumed.
         """
         pinned = re.findall(r'python-version:\s*"([\d.]+)"', self.ci)
-        self.assertEqual(len(pinned), 1, f"expected one python-version pin, found {pinned}")
-        claimed = re.findall(r"CI pins\s*\n?Python ([\d.]+)|Python ([\d.]+), so that test skips", self.claude_md)
+        self.assertEqual(
+            len(pinned), 1, f"expected one python-version pin, found {pinned}"
+        )
+        claimed = re.findall(
+            r"CI pins\s*\n?Python ([\d.]+)|Python ([\d.]+), so that test skips",
+            self.claude_md,
+        )
         flat = sorted({v for pair in claimed for v in pair if v})
         self.assertTrue(
             flat,

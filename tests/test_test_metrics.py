@@ -138,7 +138,10 @@ class TestComputeSlow(unittest.TestCase):
         """A valid-JSON-wrong-shape historical artifact (e.g. a top-level
         list or null) must be skipped, not crash with AttributeError on
         `.get` — the real dict entries around it still contribute."""
-        hist = [{"all_timings": {"a": 100.0}} for _ in range(4)] + [None, ["not", "a", "dict"]]
+        hist = [{"all_timings": {"a": 100.0}} for _ in range(4)] + [
+            None,
+            ["not", "a", "dict"],
+        ]
         result = compute_slow({"a": 500.0}, hist)
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0]["name"], "a")
@@ -165,7 +168,9 @@ def _fake_run_factory(artifact_ids, writers):
 
     def fake_run(cmd, **kwargs):
         if "--jq" in cmd:
-            return subprocess.CompletedProcess(cmd, 0, stdout=json.dumps(artifact_ids), stderr="")
+            return subprocess.CompletedProcess(
+                cmd, 0, stdout=json.dumps(artifact_ids), stderr=""
+            )
         out_path = cmd[cmd.index("--output") + 1]
         writers[state["downloads"]](out_path)
         state["downloads"] += 1
@@ -181,14 +186,16 @@ def _make_corrupt_deflate_zip(path):
     — while making the deflate bitstream itself invalid. Reproduces the
     zlib.error a genuinely mid-stream-corrupted upload-artifact zip raises,
     distinct from a truncated file (OSError) or a CRC mismatch (BadZipFile)."""
-    payload = json.dumps({"all_timings": {f"t{i}": float(i) for i in range(50)}}).encode()
+    payload = json.dumps(
+        {"all_timings": {f"t{i}": float(i) for i in range(50)}}
+    ).encode()
     with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED) as z:
         z.writestr("test-metrics.json", payload)
     with open(path, "rb") as f:
         raw = bytearray(f.read())
     idx = raw.find(b"PK\x03\x04")
-    name_len = int.from_bytes(raw[idx + 26:idx + 28], "little")
-    extra_len = int.from_bytes(raw[idx + 28:idx + 30], "little")
+    name_len = int.from_bytes(raw[idx + 26 : idx + 28], "little")
+    extra_len = int.from_bytes(raw[idx + 28 : idx + 30], "little")
     data_start = idx + 30 + name_len + extra_len
     raw[data_start + 2] ^= 0xFF
     with open(path, "wb") as f:
@@ -197,11 +204,13 @@ def _make_corrupt_deflate_zip(path):
 
 def _write_valid_artifact(path, timing_name="x", timing_ms=1.0):
     with zipfile.ZipFile(path, "w") as z:
-        z.writestr("test-metrics.json", json.dumps({"all_timings": {timing_name: timing_ms}}))
+        z.writestr(
+            "test-metrics.json", json.dumps({"all_timings": {timing_name: timing_ms}})
+        )
 
 
 def _patch_u16(raw, offset, value):
-    raw[offset:offset + 2] = int(value).to_bytes(2, "little")
+    raw[offset : offset + 2] = int(value).to_bytes(2, "little")
 
 
 def _make_unsupported_compression_zip(path):
@@ -230,14 +239,16 @@ def _make_corrupt_lzma_zip(path):
     Reproduces the lzma.LZMAError a genuinely mid-stream-corrupted
     LZMA-compressed artifact raises — distinct from zlib.error (deflate) and
     from a CRC mismatch (BadZipFile)."""
-    payload = json.dumps({"all_timings": {f"t{i}": float(i) for i in range(50)}}).encode()
+    payload = json.dumps(
+        {"all_timings": {f"t{i}": float(i) for i in range(50)}}
+    ).encode()
     with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_LZMA) as z:
         z.writestr("test-metrics.json", payload)
     with open(path, "rb") as f:
         raw = bytearray(f.read())
     idx = raw.find(b"PK\x03\x04")
-    name_len = int.from_bytes(raw[idx + 26:idx + 28], "little")
-    extra_len = int.from_bytes(raw[idx + 28:idx + 30], "little")
+    name_len = int.from_bytes(raw[idx + 26 : idx + 28], "little")
+    extra_len = int.from_bytes(raw[idx + 28 : idx + 30], "little")
     data_start = idx + 30 + name_len + extra_len
     raw[data_start + 9] ^= 0xFF
     with open(path, "wb") as f:
@@ -250,14 +261,16 @@ def _make_corrupt_zstd_zip(path):
     offset). Reproduces the compression.zstd.ZstdError a genuinely
     mid-stream-corrupted zstd-compressed artifact raises. Only called from a
     test gated on _HAS_ZSTD (interpreter has 3.14+'s compression.zstd)."""
-    payload = json.dumps({"all_timings": {f"t{i}": float(i) for i in range(50)}}).encode()
+    payload = json.dumps(
+        {"all_timings": {f"t{i}": float(i) for i in range(50)}}
+    ).encode()
     with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_ZSTANDARD) as z:
         z.writestr("test-metrics.json", payload)
     with open(path, "rb") as f:
         raw = bytearray(f.read())
     idx = raw.find(b"PK\x03\x04")
-    name_len = int.from_bytes(raw[idx + 26:idx + 28], "little")
-    extra_len = int.from_bytes(raw[idx + 28:idx + 30], "little")
+    name_len = int.from_bytes(raw[idx + 26 : idx + 28], "little")
+    extra_len = int.from_bytes(raw[idx + 28 : idx + 30], "little")
     data_start = idx + 30 + name_len + extra_len
     raw[data_start + 9] ^= 0xFF
     with open(path, "wb") as f:
@@ -277,10 +290,10 @@ def _make_encrypted_flag_zip(path):
     with open(path, "rb") as f:
         raw = bytearray(f.read())
     lh_idx = raw.find(b"PK\x03\x04")
-    lh_flags = int.from_bytes(raw[lh_idx + 6:lh_idx + 8], "little")
+    lh_flags = int.from_bytes(raw[lh_idx + 6 : lh_idx + 8], "little")
     _patch_u16(raw, lh_idx + 6, lh_flags | 0x1)
     cd_idx = raw.find(b"PK\x01\x02")
-    cd_flags = int.from_bytes(raw[cd_idx + 8:cd_idx + 10], "little")
+    cd_flags = int.from_bytes(raw[cd_idx + 8 : cd_idx + 10], "little")
     _patch_u16(raw, cd_idx + 8, cd_flags | 0x1)
     with open(path, "wb") as f:
         f.write(raw)
@@ -299,8 +312,10 @@ class TestFetchHistorical(unittest.TestCase):
         fake_run = _fake_run_factory([1, 2], [write_corrupt, _write_valid_artifact])
         stderr_capture = io.StringIO()
 
-        with patch("scripts.test_metrics.subprocess.run", side_effect=fake_run), \
-                contextlib.redirect_stderr(stderr_capture):
+        with (
+            patch("scripts.test_metrics.subprocess.run", side_effect=fake_run),
+            contextlib.redirect_stderr(stderr_capture),
+        ):
             result = fetch_historical("etch-cli")
 
         self.assertEqual(len(result), 1)
@@ -315,7 +330,9 @@ class TestFetchHistorical(unittest.TestCase):
         mid-payload raises zlib.error — not OSError, BadZipFile, KeyError, or
         ValueError. It must still be skipped so a later good artifact in the
         same fetch is aggregated, not abort the whole loop."""
-        fake_run = _fake_run_factory([1, 2], [_make_corrupt_deflate_zip, _write_valid_artifact])
+        fake_run = _fake_run_factory(
+            [1, 2], [_make_corrupt_deflate_zip, _write_valid_artifact]
+        )
 
         with patch("scripts.test_metrics.subprocess.run", side_effect=fake_run):
             result = fetch_historical("etch-cli")
@@ -330,7 +347,9 @@ class TestFetchHistorical(unittest.TestCase):
 
         def write_non_utf8(path):
             with zipfile.ZipFile(path, "w") as z:
-                z.writestr("test-metrics.json", b'{"all_timings": {"a": "\x80\x81bad"}}')
+                z.writestr(
+                    "test-metrics.json", b'{"all_timings": {"a": "\x80\x81bad"}}'
+                )
 
         fake_run = _fake_run_factory([1, 2], [write_non_utf8, _write_valid_artifact])
 
@@ -346,7 +365,8 @@ class TestFetchHistorical(unittest.TestCase):
         BadZipFile, KeyError, ValueError, or zlib.error. It must still be
         skipped so a later good artifact in the same fetch is aggregated."""
         fake_run = _fake_run_factory(
-            [1, 2], [_make_unsupported_compression_zip, _write_valid_artifact])
+            [1, 2], [_make_unsupported_compression_zip, _write_valid_artifact]
+        )
 
         with patch("scripts.test_metrics.subprocess.run", side_effect=fake_run):
             result = fetch_historical("etch-cli")
@@ -358,11 +378,15 @@ class TestFetchHistorical(unittest.TestCase):
         """A member with the encrypted general-purpose flag bit set must be
         skipped via the up-front flag_bits check (not a bare RuntimeError
         catch), so a later good artifact in the same fetch is aggregated."""
-        fake_run = _fake_run_factory([1, 2], [_make_encrypted_flag_zip, _write_valid_artifact])
+        fake_run = _fake_run_factory(
+            [1, 2], [_make_encrypted_flag_zip, _write_valid_artifact]
+        )
         stderr_capture = io.StringIO()
 
-        with patch("scripts.test_metrics.subprocess.run", side_effect=fake_run), \
-                contextlib.redirect_stderr(stderr_capture):
+        with (
+            patch("scripts.test_metrics.subprocess.run", side_effect=fake_run),
+            contextlib.redirect_stderr(stderr_capture),
+        ):
             result = fetch_historical("etch-cli")
 
         self.assertEqual(len(result), 1)
@@ -375,7 +399,9 @@ class TestFetchHistorical(unittest.TestCase):
         mid-payload raises lzma.LZMAError — not any of the other enumerated
         types. It must still be skipped so a later good artifact in the same
         fetch is aggregated."""
-        fake_run = _fake_run_factory([1, 2], [_make_corrupt_lzma_zip, _write_valid_artifact])
+        fake_run = _fake_run_factory(
+            [1, 2], [_make_corrupt_lzma_zip, _write_valid_artifact]
+        )
 
         with patch("scripts.test_metrics.subprocess.run", side_effect=fake_run):
             result = fetch_historical("etch-cli")
@@ -390,7 +416,9 @@ class TestFetchHistorical(unittest.TestCase):
         still be skipped so a later good artifact in the same fetch is
         aggregated. Skipped on interpreters without compression.zstd
         (< 3.14) — CI runs 3.13."""
-        fake_run = _fake_run_factory([1, 2], [_make_corrupt_zstd_zip, _write_valid_artifact])
+        fake_run = _fake_run_factory(
+            [1, 2], [_make_corrupt_zstd_zip, _write_valid_artifact]
+        )
 
         with patch("scripts.test_metrics.subprocess.run", side_effect=fake_run):
             result = fetch_historical("etch-cli")
@@ -410,8 +438,10 @@ class TestFetchHistorical(unittest.TestCase):
         with."""
         fake_run = _fake_run_factory([1], [_write_valid_artifact])
 
-        with patch("scripts.test_metrics.subprocess.run", side_effect=fake_run), \
-                patch("scripts.test_metrics.json.load", side_effect=AttributeError("boom")):
+        with (
+            patch("scripts.test_metrics.subprocess.run", side_effect=fake_run),
+            patch("scripts.test_metrics.json.load", side_effect=AttributeError("boom")),
+        ):
             with self.assertRaises(AttributeError):
                 fetch_historical("etch-cli")
 
