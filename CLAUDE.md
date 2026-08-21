@@ -368,11 +368,12 @@ an explicit decision rather than a silent CI break. Shared rule set in `ruff.tom
 ai-config ADR-0058.
 
 Adopting the rendering moved ruff 0.16.1 → 0.16.4; verified clean against this repo's
-scope before the swap. The trade is 65 packages to get one tool, taken because the four
+scope before the swap. The trade is 80 packages to get three tools — ruff, pytest and pytest-cov are this
+repo's entire consumption — taken because the four
 hand-pinned `ruff==` copies across the fleet were the real drift surface, and because
 the pip step is nowhere near the long pole. Measured on run 31288456643: the `Test` job
 totals 1419s, of which `Install ruff` is **4s** and the three `cargo install` steps are
-**431s**. Installing 65 wheels instead of one took 8s locally with a warm cache
+**431s**. Installing 80 wheels instead of one took 8s locally with a warm cache
 (macOS/arm64 — a cold `ubuntu-latest` figure will be higher, and is still noise against
 1419s). The committed copy is kept **byte-identical** to dotfiles master, which is what
 makes `diff requirements-ci.txt ~/git-repos/personal/dotfiles/requirements-ci.txt` the
@@ -380,6 +381,13 @@ staleness check; do not add a local header to it. Sync is manual and periodic by
 (dotfiles is private, so cross-repo writes and CI-time fetches were both rejected).
 Note the hashed file cannot be mixed with extras — `pip install -r <hashed> extra-pkg`
 fails `--require-hashes`; a second dep needs its own `pip install` line.
+
+The set is not static: it was 65 when this was written, 86 after dotfiles#231 moved
+cosmic-ray into the test-lint group, and 80 after dotfiles#233 dropped pylint (GPL-2.0-or-later,
+invoked by nothing fleet-wide) along with astroid, dill, isort, mccabe and tomlkit. Treat any
+count here as of its commit date; `grep -cE '^[A-Za-z0-9._-]+==' requirements-ci.txt` is the
+current figure. The proportionality question — 77 packages installed but never run — is open
+and tracked in dotfiles, not resolved by the pylint removal.
 
 **Why an 87% floor measured on macOS is legitimate here, when the standing rule forbids
 it.** ADR-0061 and `shell.md` are explicit that a coverage floor comes from CI's own
