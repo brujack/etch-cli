@@ -210,3 +210,66 @@ class TestExtractionIsNotVacuous(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestThresholdsAgreeWithCI(unittest.TestCase):
+    """CI is authoritative; the docs must not claim a different number.
+
+    Same duplicated-reference shape as the rendering filename above, applied to
+    values rather than paths. A threshold raised in ``ci.yml`` and not in
+    ``CLAUDE.md`` leaves prose that reads as current and is false, with nothing
+    to report the drift -- the docs are a check on the gate that has quietly
+    stopped describing it.
+    """
+
+    def setUp(self):
+        self.ci = _read(".github/workflows/ci.yml")
+        self.claude_md = _read("CLAUDE.md")
+
+    def test_python_coverage_floor_matches_every_documented_figure(self):
+        gate = re.findall(r"--cov-fail-under=(\d+)", self.ci)
+        self.assertEqual(len(gate), 1, f"expected one Python coverage gate, found {gate}")
+        documented = re.findall(r"Python coverage ≥(\d+)%|≥(\d+)% \(`--cov-fail-under", self.claude_md)
+        flat = sorted({v for pair in documented for v in pair if v})
+        self.assertTrue(flat, "CLAUDE.md documents no Python coverage floor")
+        self.assertEqual(
+            flat,
+            [gate[0]],
+            f"ci.yml gates Python coverage at {gate[0]}% but CLAUDE.md claims {flat}.",
+        )
+
+    def test_rust_coverage_floor_matches_every_documented_figure(self):
+        gate = re.findall(r"tarpaulin[^\n]*--fail-under (\d+)", self.ci)
+        self.assertEqual(len(gate), 1, f"expected one tarpaulin gate, found {gate}")
+        documented = re.findall(r"Coverage floor: (\d+)%|tarpaulin ≥(\d+)%|Rust coverage ≥(\d+)%", self.claude_md)
+        flat = sorted({v for triple in documented for v in triple if v})
+        self.assertTrue(flat, "CLAUDE.md documents no Rust coverage floor")
+        self.assertEqual(
+            flat,
+            [gate[0]],
+            f"ci.yml gates Rust coverage at {gate[0]}% but CLAUDE.md claims {flat}.",
+        )
+
+    def test_ci_python_version_matches_the_platform_invariance_argument(self):
+        """CLAUDE.md justifies a locally-measured coverage floor on the grounds
+        that the suite's only conditional skip is gated to 3.14+ and CI pins
+        3.13, so it skips identically in both places. Bump CI to 3.14 and that
+        justification is silently false: the skipped test starts running and the
+        measured figure moves. The argument depends on a value in another file,
+        so the dependency is asserted rather than assumed.
+        """
+        pinned = re.findall(r'python-version:\s*"([\d.]+)"', self.ci)
+        self.assertEqual(len(pinned), 1, f"expected one python-version pin, found {pinned}")
+        claimed = re.findall(r"CI pins\s*\n?Python ([\d.]+)|Python ([\d.]+), so that test skips", self.claude_md)
+        flat = sorted({v for pair in claimed for v in pair if v})
+        self.assertTrue(
+            flat,
+            "CLAUDE.md's platform-invariance argument names no Python version; if that "
+            "reasoning was removed, remove this assertion with it.",
+        )
+        self.assertEqual(
+            flat,
+            [pinned[0]],
+            f"ci.yml pins Python {pinned[0]} but CLAUDE.md's coverage-floor justification "
+            f"depends on {flat}. That justification is now false.",
+        )
