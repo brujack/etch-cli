@@ -5,6 +5,7 @@ Parse nextest JUnit XML → normalized test-metrics.json.
 Usage:
     python3 scripts/test_metrics.py --repo REPO --run-id RUN_ID [--junit junit.xml]
 """
+
 import argparse
 import json
 import lzma
@@ -20,6 +21,7 @@ from datetime import datetime, timezone
 
 try:
     from compression.zstd import ZstdError
+
     _ZSTD_ERRORS = (ZstdError,)
 except ImportError:  # compression.zstd is 3.14+ only; CI runs 3.13.
     _ZSTD_ERRORS = ()
@@ -47,8 +49,14 @@ except ImportError:  # compression.zstd is 3.14+ only; CI runs 3.13.
 # script (or a genuinely new corruption mode worth naming explicitly) and
 # must propagate rather than be swallowed.
 _ARTIFACT_READ_ERRORS = (
-    OSError, zipfile.BadZipFile, KeyError, ValueError, zlib.error,
-    NotImplementedError, lzma.LZMAError, *_ZSTD_ERRORS,
+    OSError,
+    zipfile.BadZipFile,
+    KeyError,
+    ValueError,
+    zlib.error,
+    NotImplementedError,
+    lzma.LZMAError,
+    *_ZSTD_ERRORS,
 )
 
 
@@ -71,7 +79,9 @@ def parse_junit(path: str):
             total += 1
 
             if reruns and not failures:
-                flaky.append({"name": name, "attempts": len(reruns) + 1, "final": "pass"})
+                flaky.append(
+                    {"name": name, "attempts": len(reruns) + 1, "final": "pass"}
+                )
                 passed += 1
             elif failures:
                 failed += 1
@@ -91,10 +101,20 @@ def parse_junit(path: str):
 def fetch_historical(repo: str, artifact_name: str = "test-metrics") -> list:
     """Download last 10 test-metrics artifacts. Returns list of parsed JSON dicts."""
     r = subprocess.run(
-        ["gh", "api", f"repos/brujack/{repo}/actions/artifacts",
-         "--field", f"name={artifact_name}", "--field", "per_page=10",
-         "--jq", "[.artifacts[].id]"],
-        capture_output=True, text=True, check=False,
+        [
+            "gh",
+            "api",
+            f"repos/brujack/{repo}/actions/artifacts",
+            "--field",
+            f"name={artifact_name}",
+            "--field",
+            "per_page=10",
+            "--jq",
+            "[.artifacts[].id]",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
     )
     if r.returncode != 0 or not r.stdout.strip():
         return []
@@ -105,9 +125,15 @@ def fetch_historical(repo: str, artifact_name: str = "test-metrics") -> list:
         with tempfile.TemporaryDirectory() as d:
             zp = os.path.join(d, "a.zip")
             dl = subprocess.run(
-                ["gh", "api", f"repos/brujack/{repo}/actions/artifacts/{aid}/zip",
-                 "--output", zp],
-                capture_output=True, check=False,
+                [
+                    "gh",
+                    "api",
+                    f"repos/brujack/{repo}/actions/artifacts/{aid}/zip",
+                    "--output",
+                    zp,
+                ],
+                capture_output=True,
+                check=False,
             )
             if dl.returncode != 0:
                 continue
@@ -154,7 +180,9 @@ def compute_slow(timings: dict, historical: list, z_threshold: float = 3.0) -> l
             # dropping it silently — a silent drop here would make a
             # producer-schema regression look like "no slow tests" instead
             # of surfacing the bad data.
-            print(f"WARNING: skipping non-dict historical run: {run!r}", file=sys.stderr)
+            print(
+                f"WARNING: skipping non-dict historical run: {run!r}", file=sys.stderr
+            )
             continue
         for name, ms in run.get("all_timings", {}).items():
             by_name.setdefault(name, []).append(ms)
@@ -170,7 +198,9 @@ def compute_slow(timings: dict, historical: list, z_threshold: float = 3.0) -> l
             # Stable baseline: flag only clear magnitude outliers (>3x mean).
             # This handles zero-std baselines without division-by-zero.
             if mean > 0 and ms > mean * 3:
-                slow.append({"name": name, "duration_ms": ms, "z_score": round(ms / mean, 2)})
+                slow.append(
+                    {"name": name, "duration_ms": ms, "z_score": round(ms / mean, 2)}
+                )
             continue
         z = (ms - mean) / std
         if z >= z_threshold:
@@ -210,8 +240,10 @@ def main():
     with open("test-metrics.json", "w") as f:
         json.dump(result, f, indent=2)
 
-    print(f"test-metrics.json: {stats['total']} tests, "
-          f"{stats['flaky']} flaky, {len(slow)} slow")
+    print(
+        f"test-metrics.json: {stats['total']} tests, "
+        f"{stats['flaky']} flaky, {len(slow)} slow"
+    )
 
 
 if __name__ == "__main__":

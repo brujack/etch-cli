@@ -37,6 +37,14 @@ lcov.info
 
 # docs skill audit manifests — session-local, not source
 .claude/docs-audit/*.jsonl
+# Session-local telemetry written by the Phase 3 gate chain. The list above was
+# hand-maintained and incomplete, so a `git add -A` committed a review-cycle log
+# (caught by pr-review). cost_log.py in particular resolves .claude/cost-log/
+# relative to the cwd, so it lands in whichever repo the gates are run from.
+.claude/review-cycle/*.jsonl
+.claude/cost-log/*.jsonl
+.claude/dod-log/*.jsonl
+.claude/skip-ledger/*.jsonl
 
 # cargo-fuzz artifacts (crashes, slow inputs) — not committed
 fuzz/artifacts/
@@ -53,3 +61,8 @@ tarpaulin-report.json
 
 # Firecrawl cache
 .firecrawl/
+
+# Python test/coverage artifacts (pytest + pytest-cov, added with the pytest migration)
+.coverage
+.pytest_cache/
+htmlcov/

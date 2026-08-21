@@ -30,8 +30,13 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: "3.13"
-      - name: Install ruff
-        run: pip install "ruff==0.16.1"
+      - name: Install pinned Python toolchain
+        # Rendered from dotfiles' uv.lock (pyproject.toml + uv.lock, dotfiles#226).
+        # Hash-verified; installs with stock pip, no uv on the runner. Committed
+        # copy is kept BYTE-IDENTICAL to dotfiles master so that
+        #   diff requirements-ci.txt ~/git-repos/personal/dotfiles/requirements-ci.txt
+        # is itself the staleness check. Sync is manual and periodic by design.
+        run: pip install -r requirements-ci.txt
       - name: Install shellcheck (pinned)
         env:
           SC_VER: "0.11.0"
@@ -46,7 +51,11 @@ jobs:
       - name: Run tests
         run: make lint && cargo nextest run --profile ci
       - name: Run Python tests
-        run: python3 -m unittest discover -s tests -p 'test_*.py' -v
+        # Coverage floor is the MEASURED figure (87%), not the 90% target — a
+        # floor set to an aspiration fails its own first PR. Gap is
+        # scripts/test_metrics.py at 79% (22 uncovered statements); raising it
+        # is a separate change with its own tests.
+        run: pytest tests/ -v --cov=scripts --cov=.claude/scripts --cov-report=term --cov-fail-under=87
       - name: Generate test metrics
         if: always()
         env:

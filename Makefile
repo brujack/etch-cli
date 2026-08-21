@@ -14,13 +14,14 @@ all: test build
 
 test: lint
 	cargo nextest run
-	python3 -m unittest discover -s tests -p 'test_*.py'
+	pytest tests/ -v
 
 lint:
 	cargo fmt --all -- --check
 	cargo clippy --all-targets -- -D warnings
 	cargo machete
 	ruff check scripts/ tests/ .claude/scripts/
+	ruff format --check scripts/ tests/ .claude/scripts/
 	@if [ -z "$(SHELL_FILES)" ]; then \
 	  printf 'lint: derived shell file list is EMPTY — refusing to report a pass having linted nothing.\n' >&2; \
 	  exit 1; \
