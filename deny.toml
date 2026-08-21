@@ -18,6 +18,11 @@ ignore = [
     # clap_derive. No security impact — proc macro crate only affects compile time.
     # Will resolve when clap updates its derive machinery.
     "RUSTSEC-2026-0173",
+    # smartstring 1.0.1: unmaintained (RUSTSEC-2026-0249). Reached only via rhai, which
+    # is already at the latest 1.x (1.25.1, checked 2026-08-21) and still depends on it,
+    # so there is no fix to take. Unmaintained, not vulnerable — it is a small-string
+    # storage optimisation with no known advisory. Resolves when rhai drops it.
+    "RUSTSEC-2026-0249",
 ]
 
 [licenses]
