@@ -57,6 +57,36 @@ That justification depends on a value in another file, so it is asserted rather 
 
 **Licence exposure is now gated rather than assumed.** Adoption was blocked by a `dependency-review` HOLD: `pylint` is `GPL-2.0-or-later`, carried only in PEP 639's `License-Expression` field — its legacy `License` field is `None` and its classifiers are empty, so a conventional check reports it clean. It was invoked by nothing in any repo containing Python, and ruff is the fleet standard, so it was removed at the root in dotfiles#233 rather than waived here with an allow-list entry.
 
+## Amendment — 2026-08-22: the open proportionality question is closed
+
+The Consequences above record "etch-cli installs **80 packages to obtain three**" and state
+the proportionality question as **open**. It is now closed, so the decision stands with a
+narrower consequence rather than being superseded — the architecture is unchanged, only its
+cost.
+
+dotfiles#235 split the renderings by **CI purpose** rather than by repo or by
+CI-versus-local: `ci-test` (ruff, pytest, pytest-cov, hypothesis — 11 pins) and
+`ci-mutation` (cosmic-ray — 30 pins), alongside the existing `runtime` and the unchanged
+`test-lint` group that still backs the developer venv. This repo consumes **`ci-test` only**
+and never `ci-mutation`, because its mutation testing is `cargo-mutants` against Rust, not
+`cosmic-ray`. So the file this repo vendors is now `requirements-ci-test.txt`, and every
+reference above to `requirements-ci.txt` should be read as naming it.
+
+**80 packages for three tools became 11.** Two facts settled the shape, both measured rather
+than argued. The obvious union group — test-lint minus whatever no CI runs — takes 80 to 73,
+which does not answer the complaint. And two hashed requirement files compose
+(`pip install -r a.txt -r b.txt` succeeds), so a job needing two groups names both, which is
+what makes a per-purpose split viable at all rather than forcing one file per consumer.
+
+**Nothing was deleted to achieve this, and that is the point.** `bandit`, `radon`, `vulture`
+and `pytest-xdist` all remain in the developer venv — `bandit` because `security-review`
+invokes it at `SKILL.md:110` on a developer machine, the others by operator decision, with
+`python.md` continuing to name `radon` and `vulture` as advisory toolchain. The framing that
+made the design correct arrived only after both sessions had spent a round on the wrong one:
+**this was never a deletion problem.** The packages are legitimately in the venv because a
+human might use any of them; the defect was that CI inherited the venv's shape. A job simply
+had to stop installing what it does not run.
+
 ## Related
 
 - [ADR-0004](0004-ci-coverage-floor.md) — Rust coverage floor exception; same shape, different language
