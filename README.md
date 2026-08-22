@@ -425,7 +425,7 @@ fields; deriving `Debug` on either would print the secret.
 Prerequisites:
 
 - `brew install git-cliff` — CHANGELOG generation (`make changelog`)
-- `pip install -r requirements-ci.txt` — Python lint and test toolchain, supplying both
+- `pip install -r requirements-ci-test.txt` — Python lint and test toolchain, supplying both
   `ruff` (`make lint` runs `ruff check scripts/ tests/ .claude/scripts/`) and `pytest`
   (`make test` runs `pytest tests/ -v`). Without these on PATH, `make lint`, `make test`,
   and the pre-push hook all fail. The file is a hash-verified rendering of the shared

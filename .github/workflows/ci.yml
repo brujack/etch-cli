@@ -34,9 +34,9 @@ jobs:
         # Rendered from dotfiles' uv.lock (pyproject.toml + uv.lock, dotfiles#226).
         # Hash-verified; installs with stock pip, no uv on the runner. Committed
         # copy is kept BYTE-IDENTICAL to dotfiles master so that
-        #   diff requirements-ci.txt ~/git-repos/personal/dotfiles/requirements-ci.txt
+        #   diff requirements-ci-test.txt ~/git-repos/personal/dotfiles/requirements-ci-test.txt
         # is itself the staleness check. Sync is manual and periodic by design.
-        run: pip install -r requirements-ci.txt
+        run: pip install -r requirements-ci-test.txt
       - name: Install shellcheck (pinned)
         env:
           SC_VER: "0.11.0"
