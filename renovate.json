@@ -1,5 +1,21 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["github>brujack/ai-config//renovate-presets/default.json"],
-  "enabledManagers": ["github-actions", "cargo"]
+  "extends": [
+    "github>brujack/ai-config//renovate-presets/default.json"
+  ],
+  "enabledManagers": [
+    "github-actions",
+    "cargo"
+  ],
+  "description": [
+    "pip is deliberately NOT enabled. The only Python dependency surface is",
+    "requirements-ci-test.txt, a byte-identical vendored copy of dotfiles' ci-test",
+    "rendering whose source of truth is dotfiles' uv.lock. Bumping a pin here would edit",
+    "a generated artifact, break the diff-based staleness check, and be overwritten by the",
+    "next sync -- so the update would be silently discarded. Upgrades belong upstream.",
+    "Note the current filename does not match Renovate's pip_requirements pattern anyway",
+    "(it allows one [-._]\\w+ segment after 'requirements', and '-ci-test' is two), but that",
+    "is luck rather than design: renaming this to requirements-test.txt would pull it into",
+    "scope with no signal. This exclusion is the deliberate part."
+  ]
 }
