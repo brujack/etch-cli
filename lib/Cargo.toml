@@ -46,7 +46,7 @@ xz2 = "0.1"
 zip = "2"
 indexmap = { version = "2", features = ["serde"] }
 file-owner = "0.1.2"
-gix = { version = "0.80.0", features = [
+gix = { version = "0.87.0", features = [
     "status",
     "tracing",
     "tracing-detail",

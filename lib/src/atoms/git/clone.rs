@@ -110,7 +110,7 @@ mod tests {
     #[test]
     fn display_format() {
         let atom = Clone {
-            repository: gix::url::parse("https://github.com/example/repo.git".into()).unwrap(),
+            repository: gix::url::parse("https://github.com/example/repo.git".as_bytes()).unwrap(),
             directory: std::path::PathBuf::from("/tmp/repo"),
             update_existing: false,
         };
@@ -124,7 +124,7 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let target = tmp.path().join("not_yet_cloned");
         let atom = Clone {
-            repository: gix::url::parse("https://github.com/example/repo.git".into()).unwrap(),
+            repository: gix::url::parse("https://github.com/example/repo.git".as_bytes()).unwrap(),
             directory: target,
             update_existing: false,
         };
@@ -135,7 +135,7 @@ mod tests {
     fn plan_skips_when_dir_exists_update_existing_false() {
         let tmp = tempfile::tempdir().unwrap();
         let atom = Clone {
-            repository: gix::url::parse("https://github.com/example/repo.git".into()).unwrap(),
+            repository: gix::url::parse("https://github.com/example/repo.git".as_bytes()).unwrap(),
             directory: tmp.path().to_path_buf(),
             update_existing: false,
         };
@@ -148,7 +148,7 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         std::fs::create_dir_all(tmp.path().join(".git")).unwrap();
         let atom = Clone {
-            repository: gix::url::parse("https://github.com/example/repo.git".into()).unwrap(),
+            repository: gix::url::parse("https://github.com/example/repo.git".as_bytes()).unwrap(),
             directory: tmp.path().to_path_buf(),
             update_existing: true,
         };
@@ -161,7 +161,7 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         // No .git directory — not a git repo
         let atom = Clone {
-            repository: gix::url::parse("https://github.com/example/repo.git".into()).unwrap(),
+            repository: gix::url::parse("https://github.com/example/repo.git".as_bytes()).unwrap(),
             directory: tmp.path().to_path_buf(),
             update_existing: true,
         };
@@ -173,7 +173,7 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let target = tmp.path().join("not_yet");
         let atom = Clone {
-            repository: gix::url::parse("https://github.com/example/repo.git".into()).unwrap(),
+            repository: gix::url::parse("https://github.com/example/repo.git".as_bytes()).unwrap(),
             directory: target,
             update_existing: true,
         };
@@ -200,7 +200,7 @@ mod tests {
         );
 
         let mut atom = Clone {
-            repository: gix::url::parse("https://github.com/example/repo.git".into()).unwrap(),
+            repository: gix::url::parse("https://github.com/example/repo.git".as_bytes()).unwrap(),
             directory: target.clone(),
             update_existing: true,
         };
@@ -233,7 +233,7 @@ mod tests {
         );
 
         let mut atom = Clone {
-            repository: gix::url::parse("https://github.com/example/repo.git".into()).unwrap(),
+            repository: gix::url::parse("https://github.com/example/repo.git".as_bytes()).unwrap(),
             directory: target,
             update_existing: true,
         };
@@ -242,5 +242,70 @@ mod tests {
         std::env::set_var("PATH", &original_path);
 
         assert!(result.is_err(), "expected Err from failed pull");
+    }
+
+    /// Clones a real local repository through the gix branch of `execute()`.
+    ///
+    /// `#[serial]` is load-bearing: two tests in this module mutate process-wide
+    /// `PATH` to install a mock `git`, and Rust tests share a process, so a
+    /// concurrent run would hand this fixture's `git init` the mock and build no
+    /// repository at all.
+    ///
+    /// The destination must not exist. `execute()` returns early via
+    /// `git -C <dir> pull` when `update_existing && directory.exists()`, so a
+    /// test built the obvious way would pass while touching no gix code.
+    #[test]
+    #[serial]
+    fn clone_local_repo_via_gix() {
+        fn git(dir: &std::path::Path, args: &[&str]) {
+            let status = std::process::Command::new("git")
+                .args(args)
+                .current_dir(dir)
+                .env_remove("GIT_DIR")
+                .env_remove("GIT_WORK_TREE")
+                .env_remove("GIT_INDEX_FILE")
+                .status()
+                .expect("git should be on PATH");
+            assert!(status.success(), "git {args:?} failed");
+        }
+
+        let src = tempfile::tempdir().unwrap();
+        git(src.path(), &["init", "--quiet"]);
+        git(
+            src.path(),
+            &["config", "user.email", "fixture@example.invalid"],
+        );
+        git(src.path(), &["config", "user.name", "fixture"]);
+        std::fs::write(src.path().join("hello.txt"), "gix-roundtrip\n").unwrap();
+        git(src.path(), &["add", "hello.txt"]);
+        git(src.path(), &["commit", "--quiet", "-m", "fixture"]);
+
+        let dest_parent = tempfile::tempdir().unwrap();
+        let dest = dest_parent.path().join("clone");
+        assert!(
+            !dest.exists(),
+            "destination must not exist, or execute() takes the pull branch"
+        );
+
+        let mut atom = Clone {
+            repository: gix::url::parse(src.path().to_string_lossy().as_bytes()).unwrap(),
+            directory: dest.clone(),
+            update_existing: false,
+        };
+
+        atom.execute()
+            .expect("local clone through gix should succeed");
+
+        assert!(
+            dest.join(".git").exists(),
+            "cloned repo should have a .git directory"
+        );
+        assert_eq!(
+            std::fs::read_to_string(dest.join("hello.txt"))
+                .unwrap()
+                .trim(),
+            "gix-roundtrip",
+            "cloned file content should match the fixture commit"
+        );
     }
 }

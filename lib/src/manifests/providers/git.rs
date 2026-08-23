@@ -62,7 +62,7 @@ impl GitManifestProvider {
             return Err(ManifestProviderError::NoResolution);
         }
 
-        let url = gix::url::parse(config.repository.clone().as_str().into());
+        let url = gix::url::parse(config.repository.clone().as_bytes());
 
         if url.is_err() {
             return Err(ManifestProviderError::NoResolution);
@@ -305,5 +305,65 @@ mod tests {
         std::fs::remove_dir_all(&cache_path).unwrap();
 
         assert_eq!(result.unwrap(), cache_path);
+    }
+
+    // --- fetch_and_clone ---
+
+    /// Clones a real local repository through `fetch_and_clone`.
+    ///
+    /// Added because `cargo mutants --in-diff` reported this function's body
+    /// replaceable with `Ok(())` and surviving: all 16 tests above exercise
+    /// `looks_familiar` and URL handling, none asserted that the function does
+    /// any work. Asserts on the cloned file so a do-nothing body cannot pass.
+    ///
+    /// `#[serial]` for the same reason as the clone atom's test — this module's
+    /// siblings and the atom tests both mutate process-wide `PATH`, and Rust
+    /// tests share a process.
+    #[test]
+    #[serial_test::serial]
+    fn fetch_and_clone_clones_a_local_repository() {
+        fn git(dir: &std::path::Path, args: &[&str]) {
+            let status = std::process::Command::new("git")
+                .args(args)
+                .current_dir(dir)
+                .env_remove("GIT_DIR")
+                .env_remove("GIT_WORK_TREE")
+                .env_remove("GIT_INDEX_FILE")
+                .status()
+                .expect("git should be on PATH");
+            assert!(status.success(), "git {args:?} failed");
+        }
+
+        let src = tempfile::tempdir().unwrap();
+        git(src.path(), &["init", "--quiet"]);
+        git(
+            src.path(),
+            &["config", "user.email", "fixture@example.invalid"],
+        );
+        git(src.path(), &["config", "user.name", "fixture"]);
+        std::fs::write(src.path().join("manifest.yaml"), "provider-roundtrip\n").unwrap();
+        git(src.path(), &["add", "manifest.yaml"]);
+        git(src.path(), &["commit", "--quiet", "-m", "fixture"]);
+
+        let cache_parent = tempfile::tempdir().unwrap();
+        let cache = cache_parent.path().join("cache");
+
+        let config = GitConfig {
+            repository: src.path().to_string_lossy().to_string(),
+            branch: None,
+            path: None,
+        };
+
+        provider()
+            .fetch_and_clone(&cache, &config)
+            .expect("cloning a local fixture repository should succeed");
+
+        assert_eq!(
+            std::fs::read_to_string(cache.join("manifest.yaml"))
+                .unwrap()
+                .trim(),
+            "provider-roundtrip",
+            "fetch_and_clone must actually clone; a do-nothing body leaves this absent"
+        );
     }
 }
