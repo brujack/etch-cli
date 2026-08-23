@@ -1,13 +1,36 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "github>brujack/ai-config//renovate-presets/default.json"
+    "config:recommended"
   ],
   "enabledManagers": [
     "github-actions",
     "cargo"
   ],
   "pinDigests": true,
+  "schedule": [
+    "before 5am on monday"
+  ],
+  "labels": [
+    "renovate"
+  ],
+  "packageRules": [
+    {
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "groupName": "all non-major dependencies",
+      "automerge": true,
+      "automergeType": "pr"
+    },
+    {
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "automerge": false
+    }
+  ],
   "description": [
     "pip is deliberately NOT enabled. The only Python dependency surface is",
     "requirements-ci-test.txt, a byte-identical vendored copy of dotfiles' ci-test",
@@ -22,6 +45,14 @@
     "Measured at enablement: 15 unique action refs, 1 already SHA-pinned, 14 not --",
     "including dtolnay/rust-toolchain@stable, a BRANCH ref that moves with no release",
     "and no signal. Expect a one-time burst of ~14 pin PRs converging the existing refs;",
-    "pinDigests converges what is already there, it does not merely prevent new drift."
+    "pinDigests converges what is already there, it does not merely prevent new drift.",
+    "extends is config:recommended with the shared preset INLINED, not",
+    "github>brujack/ai-config//renovate-presets/default.json. ai-config is private and this",
+    "repo is public; Renovate resolves extends at initRepo BEFORE dependency extraction, so",
+    "an unfetchable preset throws config-validation and abandons the whole repository.",
+    "Measured: zero Renovate PRs on this repo, all time, since 2026-05-24 -- and the fleet",
+    "split is exact, the three private repos got PRs and the three public ones got none.",
+    "The duplication is deliberate: a live inlined policy beats a centralised dead one.",
+    "Keep in sync with ai-config/renovate-presets/default.json by hand."
   ]
 }
