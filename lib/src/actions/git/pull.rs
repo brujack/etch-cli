@@ -32,7 +32,7 @@ impl Action for GitPull {
                 return Ok(vec![]);
             }
         }
-        let _ = gix::url::parse(self.repo_url.as_str().into())?;
+        let _ = gix::url::parse(self.repo_url.as_bytes())?;
         Ok(vec![Step {
             atom: Box::new(crate::atoms::git::Pull {
                 repository: self.repo_url.clone(),

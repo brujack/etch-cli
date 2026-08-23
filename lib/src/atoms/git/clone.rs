@@ -110,7 +110,7 @@ mod tests {
     #[test]
     fn display_format() {
         let atom = Clone {
-            repository: gix::url::parse("https://github.com/example/repo.git".into()).unwrap(),
+            repository: gix::url::parse("https://github.com/example/repo.git".as_bytes()).unwrap(),
             directory: std::path::PathBuf::from("/tmp/repo"),
             update_existing: false,
         };
@@ -124,7 +124,7 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let target = tmp.path().join("not_yet_cloned");
         let atom = Clone {
-            repository: gix::url::parse("https://github.com/example/repo.git".into()).unwrap(),
+            repository: gix::url::parse("https://github.com/example/repo.git".as_bytes()).unwrap(),
             directory: target,
             update_existing: false,
         };
@@ -135,7 +135,7 @@ mod tests {
     fn plan_skips_when_dir_exists_update_existing_false() {
         let tmp = tempfile::tempdir().unwrap();
         let atom = Clone {
-            repository: gix::url::parse("https://github.com/example/repo.git".into()).unwrap(),
+            repository: gix::url::parse("https://github.com/example/repo.git".as_bytes()).unwrap(),
             directory: tmp.path().to_path_buf(),
             update_existing: false,
         };
@@ -148,7 +148,7 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         std::fs::create_dir_all(tmp.path().join(".git")).unwrap();
         let atom = Clone {
-            repository: gix::url::parse("https://github.com/example/repo.git".into()).unwrap(),
+            repository: gix::url::parse("https://github.com/example/repo.git".as_bytes()).unwrap(),
             directory: tmp.path().to_path_buf(),
             update_existing: true,
         };
@@ -161,7 +161,7 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         // No .git directory — not a git repo
         let atom = Clone {
-            repository: gix::url::parse("https://github.com/example/repo.git".into()).unwrap(),
+            repository: gix::url::parse("https://github.com/example/repo.git".as_bytes()).unwrap(),
             directory: tmp.path().to_path_buf(),
             update_existing: true,
         };
@@ -173,7 +173,7 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let target = tmp.path().join("not_yet");
         let atom = Clone {
-            repository: gix::url::parse("https://github.com/example/repo.git".into()).unwrap(),
+            repository: gix::url::parse("https://github.com/example/repo.git".as_bytes()).unwrap(),
             directory: target,
             update_existing: true,
         };
@@ -200,7 +200,7 @@ mod tests {
         );
 
         let mut atom = Clone {
-            repository: gix::url::parse("https://github.com/example/repo.git".into()).unwrap(),
+            repository: gix::url::parse("https://github.com/example/repo.git".as_bytes()).unwrap(),
             directory: target.clone(),
             update_existing: true,
         };
@@ -233,7 +233,7 @@ mod tests {
         );
 
         let mut atom = Clone {
-            repository: gix::url::parse("https://github.com/example/repo.git".into()).unwrap(),
+            repository: gix::url::parse("https://github.com/example/repo.git".as_bytes()).unwrap(),
             directory: target,
             update_existing: true,
         };
@@ -288,7 +288,7 @@ mod tests {
         );
 
         let mut atom = Clone {
-            repository: gix::url::parse(src.path().to_string_lossy().as_bytes().into()).unwrap(),
+            repository: gix::url::parse(src.path().to_string_lossy().as_bytes()).unwrap(),
             directory: dest.clone(),
             update_existing: false,
         };

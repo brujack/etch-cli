@@ -52,7 +52,7 @@ impl Action for ZshOhMyZsh {
         let mut steps: Vec<Step> = vec![];
 
         if !omz_path.exists() {
-            let url = gix::url::parse("https://github.com/ohmyzsh/ohmyzsh".into())?;
+            let url = gix::url::parse("https://github.com/ohmyzsh/ohmyzsh".as_bytes())?;
             steps.push(Step {
                 atom: Box::new(Clone {
                     repository: url,
@@ -70,7 +70,7 @@ impl Action for ZshOhMyZsh {
             })?;
             let plugin_dir = plugins_base.join(&name);
             if !plugin_dir.exists() {
-                let url = gix::url::parse(plugin_url.as_str().into())?;
+                let url = gix::url::parse(plugin_url.as_bytes())?;
                 steps.push(Step {
                     atom: Box::new(Clone {
                         repository: url,
