@@ -87,8 +87,8 @@ make install-hooks # install pre-commit and pre-push hooks (run once per checkou
 
 **API-quality lints.** Each crate's `[lints]` table enables `missing_debug_implementations`
 (`C-DEBUG`) and `clippy::wrong_self_convention` (`C-CONV`) at `warn`, which `-D warnings`
-makes blocking. `missing_docs` (`C-DOCS`) sits at `allow` with a dated count of 402 and a
-backlog row — `make docs-debt` rechecks it. When adding a public type, derive `Debug` on it
+makes blocking. `missing_docs` (`C-DOCS`) sits at `allow` with a
+backlog row — `make docs-debt` reports the current count. When adding a public type, derive `Debug` on it
 or the build fails.
 
 **Two types must keep a hand-written `Debug`.** `Decrypt` (holds a passphrase) and `Exec`
@@ -311,7 +311,7 @@ The Python step was added 2026-08-07 (#124). CI had run it all along via ci.yml'
 `make test` had not, so 42 Python tests — including the pre-existing `tests/test_test_metrics.py` — only ever
 ran on a PR and never on a developer machine. `make lint`'s ruff sweep now also covers `.claude/scripts/`.
 
-Unit tests in `lib/src/`, integration tests in `app/tests/` (assert_cmd + insta snapshots). Coverage ~86.47% macOS / ~82.64% Linux CI — gap is macOS-only tests gated with `#[cfg(target_os = "macos")]`.
+Unit tests in `lib/src/`, integration tests in `app/tests/` (assert_cmd + insta snapshots). Rust coverage differs by platform because macOS-only tests are gated with `#[cfg(target_os = "macos")]`, so read the gate's figure from Linux CI output, never a local macOS run.
 
 To update insta snapshots: `INSTA_UPDATE=new cargo test --test snapshots`, then `cargo insta accept`.
 
@@ -345,16 +345,16 @@ before any benchmark runs. See #124.
 
 Single workflow `.github/workflows/ci.yml`, triggers on `pull_request` to `main`/`master` only.
 
-| Job            | What it does                                                                                                   |
-| -------------- | -------------------------------------------------------------------------------------------------------------- |
-| `test`         | `ruff check scripts/ tests/ .claude/scripts/` + `make test` (fmt check + clippy + cargo test) + `pytest` with Python coverage ≥87% + tarpaulin ≥81% (excluding jsonschemagen) |
-| `cargo-audit`  | **`cargo deny check advisories`** — reads `deny.toml`'s ignore list. **Blocking** (in `auto-merge` `needs:`). Despite the job name it does *not* run `cargo audit`, which ignores `deny.toml` entirely |
-| `secret-scan`  | gitleaks v8.30.1 binary. **Blocking** (in `auto-merge` `needs:`)                                               |
-| `snyk-scan`    | Snyk code test. **Blocking** (in `auto-merge` `needs:`)                                                        |
-| `docs-lint`    | Lints mdbook docs                                                                                              |
-| `docs-build`   | Builds mdbook docs                                                                                             |
-| `semver-check` | `cargo semver-checks` vs `origin/main` baseline (advisory, `continue-on-error: true`, not in auto-merge needs) |
-| `auto-merge`   | Squash-merges the PR when all required jobs pass                                                               |
+| Job            | What it does                                                                                                                                                                                           |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `test`         | `ruff check scripts/ tests/ .claude/scripts/` + `make test` (fmt check + clippy + cargo test) + `pytest` with Python coverage ≥87% + tarpaulin ≥81% (excluding jsonschemagen)                          |
+| `cargo-audit`  | **`cargo deny check advisories`** — reads `deny.toml`'s ignore list. **Blocking** (in `auto-merge` `needs:`). Despite the job name it does _not_ run `cargo audit`, which ignores `deny.toml` entirely |
+| `secret-scan`  | gitleaks v8.30.1 binary. **Blocking** (in `auto-merge` `needs:`)                                                                                                                                       |
+| `snyk-scan`    | Snyk code test. **Blocking** (in `auto-merge` `needs:`)                                                                                                                                                |
+| `docs-lint`    | Lints mdbook docs                                                                                                                                                                                      |
+| `docs-build`   | Builds mdbook docs                                                                                                                                                                                     |
+| `semver-check` | `cargo semver-checks` vs `origin/main` baseline (advisory, `continue-on-error: true`, not in auto-merge needs)                                                                                         |
+| `auto-merge`   | Squash-merges the PR when all required jobs pass                                                                                                                                                       |
 
 **Which jobs actually block.** `auto-merge` declares
 `needs: [test, cargo-audit, secret-scan, snyk-scan, docs-lint, docs-build]`, so all six
@@ -367,39 +367,26 @@ from `needs:`, and both halves are required — either alone is insufficient. Re
 
 **Python linting.** ruff comes from `requirements-ci-test.txt`, a hash-verified rendering of
 the shared dev-venv package set (`pyproject.toml` + `uv.lock`, dotfiles#226/#228) that
-installs with stock pip and no uv on the runner. It is installed *before* `Run tests`,
+installs with stock pip and no uv on the runner. It is installed _before_ `Run tests`,
 because `make lint` invokes ruff — an install ordered after it fails the job on every PR
 and blocks auto-merge. Both `ruff check` and `ruff format --check` run, matching ai-config and math; the
 formatter is listed alongside the linter in `python.md`'s mechanical table, and etch-cli
 gated only the linter until 2026-08-21. Scope is `scripts/ tests/ .claude/scripts/`, never the repo root:
-this repo holds 5 `.py` and 166 `.md`, so bounding the gate makes a stray `.py` elsewhere
+this repo holds far more `.md` than `.py`, so bounding the gate makes a stray `.py` elsewhere
 an explicit decision rather than a silent CI break. Shared rule set in `ruff.toml`; see
 ai-config ADR-0058.
 
-Adopting the rendering moved ruff 0.16.1 → 0.16.4; verified clean against this repo's
-scope before the swap. The install is **11 packages for three tools** — ruff, pytest and pytest-cov are
-this repo's entire consumption — after dotfiles#235 split the rendering per CI purpose. It was 80
-until then. The swap was taken because the four
-hand-pinned `ruff==` copies across the fleet were the real drift surface, and because
-the pip step is nowhere near the long pole. Measured on run 31288456643: the `Test` job
-totals 1419s, of which `Install ruff` is **4s** and the three `cargo install` steps are
-**431s**. Installing 11 wheels instead of one is well under that with a warm cache
-(macOS/arm64 — a cold `ubuntu-latest` figure will be higher, and is still noise against
-1419s). The committed copy is kept **byte-identical** to dotfiles master, which is what
+This repo consumes the `ci-test` group only — ruff, pytest and pytest-cov are its entire
+consumption — and never `ci-mutation`, since its mutation testing is cargo-mutants against
+Rust. The rendering replaced hand-pinned `ruff==` lines because per-repo pins across the
+fleet were the real drift surface. The committed copy is kept **byte-identical** to dotfiles master, which is what
 makes `diff requirements-ci-test.txt ~/git-repos/personal/dotfiles/requirements-ci-test.txt` the
 staleness check; do not add a local header to it. Sync is manual and periodic by design
 (dotfiles is private, so cross-repo writes and CI-time fetches were both rejected).
 Note the hashed file cannot be mixed with extras — `pip install -r <hashed> extra-pkg`
-fails `--require-hashes`; a second dep needs its own `pip install` line.
-
-The set is not static: it was 65 when this was written, 86 after dotfiles#231 moved
-cosmic-ray into the test-lint group, and 80 after dotfiles#233 dropped pylint (GPL-2.0-or-later,
-invoked by nothing fleet-wide) along with astroid, dill, isort, mccabe and tomlkit. Treat any
-count here as of its commit date; `grep -cE '^[A-Za-z0-9._-]+==' requirements-ci-test.txt` is the
-current figure. The proportionality question — 77 packages installed but never run — is **closed**:
-dotfiles#235 split the groups by CI purpose, and this repo consumes `ci-test` only, never
-`ci-mutation` (cosmic-ray and its 29-package closure, which this repo has no use for since its
-mutation testing is cargo-mutants against Rust).
+fails `--require-hashes`; a second dep needs its own `pip install` line. The package set
+changes with dotfiles; `grep -cE '^[A-Za-z0-9._-]+==' requirements-ci-test.txt` gives the
+current count.
 
 **Why an 87% floor measured on macOS is legitimate here, when the standing rule forbids
 it.** ADR-0061 and `shell.md` are explicit that a coverage floor comes from CI's own
@@ -472,7 +459,7 @@ gh pr create --repo brujack/etch-cli
 The universal DoD in `behavior.md` applies. etch-cli adds:
 
 - [ ] Rust coverage ≥81% on Linux CI — verify from CI output, not local macOS measurement (exception to global ≥90% — structurally uncoverable code)
-- [ ] Python coverage ≥87% (`--cov-fail-under=87`) — measured floor, not the 90% target; the gap is `scripts/test_metrics.py` at 79%
+- [ ] Python coverage ≥87% (`--cov-fail-under=87`) — measured floor, not the 90% target
 - [ ] Plan index updated (`docs/cursor/README.md`) if this PR implements a tracked spec
 - [ ] Action catalog updated in `README.md` if a new action was added
 - [ ] `examples/<action>/` updated when a new action or field variant is added — at minimum one `.yaml` per option combination, with inline comments on every field
