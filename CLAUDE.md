@@ -22,20 +22,21 @@ etch-cli/
 │   │       ├── plugin.rs
 │   │       └── version.rs
 │   └── tests/                # Integration tests (assert_cmd)
-│       ├── integration.rs    # 20 e2e tests: file.link, file.copy, command.run, directory.create, file.flags, state+history
-│       ├── snapshots.rs      # 5 snapshot tests locking etch -h, etch apply --help, etch version, --dry-run output
-│       ├── cli_commands.rs   # 11 tests: version, gen-completions, contexts, plugin, help-all
-│       ├── status.rs         # 7 tests: etch status exit codes, --json, --missing-only, stdout structure
-│       ├── rollback.rs       # 7 tests: etch rollback stash/prune/restore integration
+│       ├── integration.rs    # e2e tests: file.link, file.copy, command.run, directory.create, file.flags, state+history
+│       ├── snapshots.rs      # snapshot tests locking etch -h, etch apply --help, etch version, --dry-run output
+│       ├── cli_commands.rs   # version, gen-completions, contexts, plugin, help-all
+│       ├── status.rs         # etch status exit codes, --json, --missing-only, stdout structure
+│       ├── rollback.rs       # etch rollback stash/prune/restore integration
 │       ├── error_paths.rs    # error path integration tests
 │       └── basic_usage.rs
 ├── lib/          # etch-lib — core engine (actions, atoms, contexts, manifests, steps)
 │   └── src/
-│       ├── actions/          # 50 action types (see Action Catalog below)
+│       ├── actions/          # One directory per action type (see Action Catalog below)
 │       ├── atoms/            # Low-level OS operations (file, dir, command, http, plugin)
 │       ├── config/mod.rs     # Config struct (manifest_paths, variables, privilege, etc.)
 │       ├── contexts/         # Context providers: user, os, variables, rhai engine
 │       ├── manifests/        # YAML/TOML parsing, DAG dependency resolution (petgraph)
+│       ├── state/            # State manifest behind etch history
 │       ├── steps/            # Step execution with initializers and finalizers
 │       ├── tera_functions/   # Custom Tera template functions (read_file_contents)
 │       └── values/           # Context value type (string, list, map, bool, number)
@@ -44,7 +45,7 @@ etch-cli/
 ├── examples/      # Example manifests by action type
 ├── docs/          # mdbook documentation (inherited from comtrya, not built in CI)
 │   ├── adr/           # Architectural Decision Records (repo-specific)
-│   ├── knowledge/     # Reference material (architecture, domain docs, curated research)
+│   ├── knowledge/     # Pointer stub and retrospectives — knowledge lives in ai-config
 │   ├── superpowers/   # Implementation plans
 │   └── cursor/        # Cursor docs
 ├── Makefile       # lint, test, build, install-hooks
@@ -70,9 +71,14 @@ The validator (`~/.claude/scripts/validate-plan.py`, shared from ai-config) enfo
 
 ## Knowledge Directory
 
-Reference material lives in `docs/knowledge/`. These documents capture architecture overviews, domain reference sheets, and curated research findings — things too detailed for CLAUDE.md but useful to look up. See `docs/knowledge/README.md` for what belongs there and what doesn't.
+Knowledge for this repo lives in `~/git-repos/personal/ai-config/docs/knowledge/etch-cli-<topic>.md` (ai-config ADR-0020). This repo's `docs/knowledge/README.md` is a pointer stub. Incident write-ups and tool reference go there; dated readings go in the commit or PR body; none of it goes in this file, except a gate or safety rule (ai-config ADR-0077 rule 5).
 
-When web research (web-research skill) or context-mode fetches produce findings worth preserving, save them to `docs/knowledge/<topic>.md`.
+Read the matching file before the work it covers (paths relative to `~/git-repos/personal/ai-config/docs/knowledge/`):
+
+- Before writing a manifest, or editing the `brew.bundle`, `package.install`, `package.repository` or `mas.install` actions, the config loader, or `lib/src/state/`: `etch-cli-manifest-authoring.md` (Homebrew/MAS workflow, machine-profile variables, `etch.yaml` keys, state manifest).
+- Before adding, renaming or documenting an action: `etch-cli-action-catalog.md`.
+- Before changing the Python coverage floor, the ruff scope, the `requirements-ci-test.txt` install, the `auto-merge` `needs:` list, `scripts/pre-push`, or `.claude/scripts/triage_log.py`: `etch-cli-ci-python-tooling.md`.
+- Before triaging a `cargo audit` or `cargo deny` advisory: `etch-cli-cargo-deny-vs-audit.md`.
 
 ## Quick Reference
 
@@ -103,7 +109,7 @@ puts a secret into every `{:?}` of that value, including transitively via `Step`
 
 ## Action Catalog
 
-51 actions — full field reference in [`docs/knowledge/action-catalog.md`](docs/knowledge/action-catalog.md). Includes `powershell.module` (install PowerShell modules from PSGallery; `name`, `list`, `scope`).
+Full field reference for every action: `~/git-repos/personal/ai-config/docs/knowledge/etch-cli-action-catalog.md`.
 
 Actions map to `lib/src/actions/<name>/`. YAML names come from `#[serde(rename = "...")]` — not Rust struct names (e.g. struct `GroupAdd` → YAML `group.add`).
 
@@ -125,7 +131,7 @@ Every new action requires changes in exactly these places:
     - Match arm in `Display` impl (`=> "name.action"`)
 4. **Update the three test YAML lists** in `all_major_action_variants_can_be_deserialized`, `all_action_variants_inner_ref_and_deref`, and `all_action_variants_display` — add a YAML entry for the new action to each, update the action count in the `assert_eq!`, and add a `names.contains` assertion in the display test
 5. **Add `examples/<name>/<name>-install.yaml`** with one entry per option combination
-6. **Update the Action Catalog table** in this file and in `README.md`
+6. **Update the action table in `README.md`** and `etch-cli-action-catalog.md` in ai-config
 
 **Auditing action names:** YAML action names come from `#[serde(rename = "...")]` in `lib/src/actions/mod.rs` — not from Rust struct names. When verifying that docs match implementation, always grep that file for the rename annotations; struct names and YAML names diverge (e.g. struct `GroupAdd` → YAML `group.add`).
 
@@ -135,147 +141,12 @@ Missing any step produces a compile error (missing match arm) or test failure (i
 
 **Editing match arms: use `replace_all: true` for identical `=> a` patterns.** The `inner_ref`, `notify`, and `Deref` match blocks all contain arms like `Actions::MacOSDefault(a) => a,` — identical structure across blocks. When adding a new arm to each block, the Edit tool will refuse with "Found 2 matches" if you target a common pattern. Fix: use `replace_all: true` when both identical blocks need the same addition, or use enough unique surrounding context (the action above/below the insertion point) to disambiguate.
 
-## Homebrew macOS Workflow
+## Manifests and State
 
-All four Homebrew install mechanisms are supported. **Recommended approach for dotfiles migration: use `brew.bundle` with the existing Brewfile** — it handles taps, formulae, casks, and MAS apps in one action.
+Manifest-authoring reference — the Homebrew/MAS workflow, machine-profile variables, `etch.yaml` keys and the state manifest — is in `etch-cli-manifest-authoring.md` (see Knowledge Directory). Two rules apply without reading it:
 
-```yaml
-# All-in-one: delegates to the Brewfile (covers taps + formulae + casks + MAS)
-- action: brew.bundle
-  file: "{{ user.home_dir }}/git-repos/personal/dotfiles/Brewfile"
-```
-
-Piece-by-piece alternative (when you need per-app `where:` conditions):
-
-```yaml
-# 1. Add a custom tap first — required before installing formulae from that tap
-- action: package.repository
-  name: go-task/tap
-  provider: homebrew
-
-# 2. Install a formula from the tap (or any formula)
-- action: package.install
-  name: go-task/tap/go-task
-  provider: homebrew
-
-# 3. Install a cask (GUI app)
-- action: package.install
-  name: alfred
-  provider: homebrew
-  cask: true
-
-# 4. Install a Mac App Store app (requires `mas` CLI: brew install mas)
-- action: mas.install
-  name: "Better Rename 9"
-  id: 414209656
-  where: 'os.name == "macos"'
-```
-
-**Key gotchas:**
-
-- `mas.install` requires the `mas` CLI to be installed first (`brew install mas`). Always pair with `where: 'os.name == "macos"'` since `mas` is macOS-only.
-- `brew.bundle cleanup: true` removes all packages NOT listed in the Brewfile — destructive, use carefully.
-- `package.repository` for Homebrew taps is always idempotent (re-tapping is fast; etch always runs `brew tap` rather than checking first).
-- `package.install cask: true` is Homebrew-only; other providers silently ignore the field. If a base package has `cask: true` but an OS variant exists without explicitly setting `cask:`, the variant defaults to `cask: false`.
-
-## Machine Profiles
-
-etch-cli does not have built-in profile concepts — use the `variables:` section of `etch.yaml` to define a machine's profile and capabilities. Manifests use `where:` conditions to apply actions selectively.
-
-**Convention:** define `profile` (a human-readable name) and one `has_<capability>: true` boolean per capability your machine supports.
-
-```yaml
-# Mac Studio — ~/.config/etch/etch.yaml
-manifest_paths:
-    - ~/git-repos/personal/dotfiles/manifests
-
-variables:
-    profile: "mac_workstation"
-    has_gui: true
-    has_devtools: true
-    has_k8s: true
-    has_docker: true
-    has_rust: true
-    has_printing: true
-```
-
-```yaml
-# Linux workstation — ~/.config/etch/etch.yaml
-manifest_paths:
-    - ~/git-repos/personal/dotfiles/manifests
-
-variables:
-    profile: "linux_workstation"
-    has_gui: true
-    has_devtools: true
-    has_k8s: true
-    has_docker: true
-    has_rust: true
-    has_snap: true
-```
-
-**Manifest usage:**
-
-```yaml
-# Entire manifest skips on machines without k8s capability
-where: "variables.has_k8s"
-
-actions:
-    - action: package.install
-      list: [kubectl, helm, k9s]
-      provider: homebrew
-```
-
-```yaml
-# Per-action capability guard
-actions:
-    - action: package.install
-      name: gh
-      provider: homebrew
-      where: "variables.has_devtools"
-```
-
-**Capability naming convention:**
-
-| Variable       | Meaning                                         |
-| -------------- | ----------------------------------------------- |
-| `has_gui`      | Machine runs a graphical desktop                |
-| `has_devtools` | Install developer tools (gh, jq, etc.)          |
-| `has_k8s`      | Install Kubernetes tooling (kubectl, helm, k9s) |
-| `has_docker`   | Install Docker and container tools              |
-| `has_rust`     | Install Rust toolchain                          |
-| `has_printing` | Install printer drivers                         |
-| `has_snap`     | Use snap package manager (Linux only)           |
-
-New capabilities can be added freely — the convention is the only constraint. See `examples/machine-profiles/` for complete example files.
-
-## State Manifest
-
-After each successful `etch apply`, etch writes `~/.local/share/etch/state.yaml` recording every atom executed: manifest name, action type, canonical key, applied-at timestamp, sha256 (file atoms only, currently always `null`), and whether the atom produced a change.
-
-**`etch history`** reads the state file:
-
-```
-etch history                       # table of all recorded atoms
-etch history --manifest <substr>   # filter by manifest name substring
-etch history --json                # NDJSON, one object per atom
-```
-
-**State path override:** set `ETCH_STATE_DIR` env var to redirect state to a different directory (used by integration tests; `state.yaml` is always the filename within that dir).
-
-**Implementation:** `lib/src/state/` — `StateStore::record()` merges on `(manifest, action, key)` triple so re-running the same action updates the row rather than appending.
-
-## Config File
-
-etch reads `etch.yaml` from the current directory or `~/.config/etch/etch.yaml`. Key fields:
-
-```yaml
-manifest_paths: [] # override manifest search paths
-variables: {} # static key/value context variables
-include_variables: [] # pull variables from DNS TXT or file
-disable_update_check: false # suppress crates.io update check at startup
-privilege: sudo # sudo | doas | run0
-```
+- **`brew.bundle cleanup: true` is destructive.** It removes every package not listed in the Brewfile.
+- **Tests that run `etch apply` set `ETCH_STATE_DIR`** to a temporary directory. Without it, etch writes the operator's real `~/.local/share/etch/state.yaml`.
 
 ## Committing Work
 
@@ -303,14 +174,6 @@ repo-structure, shell).
 
 **Run tests:** `make test` — `cargo nextest run` plus `pytest tests/ -v`.
 
-The Python runner moved from `unittest discover` to `pytest` on 2026-08-21 to match ai-config and
-state-ledger; it is **invocation-only** — pytest runs the existing `unittest.TestCase` classes
-natively and no test file changed. Verified both ways at the same interpreter.
-
-The Python step was added 2026-08-07 (#124). CI had run it all along via ci.yml's "Run Python tests" step, but
-`make test` had not, so 42 Python tests — including the pre-existing `tests/test_test_metrics.py` — only ever
-ran on a PR and never on a developer machine. `make lint`'s ruff sweep now also covers `.claude/scripts/`.
-
 Unit tests in `lib/src/`, integration tests in `app/tests/` (assert_cmd + insta snapshots). Rust coverage differs by platform because macOS-only tests are gated with `#[cfg(target_os = "macos")]`, so read the gate's figure from Linux CI output, never a local macOS run.
 
 To update insta snapshots: `INSTA_UPDATE=new cargo test --test snapshots`, then `cargo insta accept`.
@@ -324,16 +187,7 @@ cargo test -p etch-cli                                              # integratio
 cargo tarpaulin --exclude-files 'jsonschemagen/*' --fail-under 81  # coverage (matches CI)
 ```
 
-**`.claude/scripts/triage_log.py`** — vendored per-repo because of its resolver, not its availability. It
-does ship via the `~/.claude/scripts/` symlink like every other script there; what fails is that its output
-dir is `Path(__file__).resolve().parent.parent / "triage-log"` and `.resolve()` follows the symlink, so
-invoking it through the home path writes this repo's triage log into ai-config. The vendored copy exists to
-put the log in the right repo. Sibling scripts need no vendoring — `cost_log.py`/`cost_summary.py` resolve
-`.claude/cost-log/` relative to the cwd and `dod_log.py` is home-anchored, so both are correct to invoke as
-`~/.claude/scripts/<name>`. Retiring this one means fixing the resolver (ai-config spec
-`2026-07-29-telemetry-home-anchoring-design.md`, still Status: Spec)
-because `bug-fix-cycle` emits its telemetry through it. Paired suite at `tests/test_triage_log.py`, picked up
-automatically by the `pytest tests/` run above; the JSONL it writes is gitignored.
+**Invoke the vendored `.claude/scripts/triage_log.py`, never `~/.claude/scripts/triage_log.py`.** The home-path copy writes this repo's triage log into ai-config. Paired suite: `tests/test_triage_log.py`. `cost_log.py`, `cost_summary.py` and `dod_log.py` are correct to invoke from `~/.claude/scripts/`.
 
 **Benchmarks must name their Criterion target** — `cargo bench -p etch-lib --bench etch_lib`. A bare
 `cargo bench` also runs the lib's default libtest harness, which rejects `--output-format bencher` and aborts
@@ -356,61 +210,30 @@ Single workflow `.github/workflows/ci.yml`, triggers on `pull_request` to `main`
 | `semver-check` | `cargo semver-checks` vs `origin/main` baseline (advisory, `continue-on-error: true`, not in auto-merge needs)                                                                                         |
 | `auto-merge`   | Squash-merges the PR when all required jobs pass                                                                                                                                                       |
 
-**Which jobs actually block.** `auto-merge` declares
-`needs: [test, cargo-audit, secret-scan, snyk-scan, docs-lint, docs-build]`, so all six
-gate the merge. Until 2026-08-21 this table described `cargo-audit`, `secret-scan` and
-`snyk-scan` as "advisory, non-blocking" — wrong for all three, and the kind of wrong that
-only surfaces when one goes red and someone waits for a merge that never comes. `semver-check`
-is the sole genuinely non-blocking job: it sets `continue-on-error: true` **and** is absent
-from `needs:`, and both halves are required — either alone is insufficient. Read the
-`needs:` list, not this sentence, if they ever disagree.
+**Which jobs block.** Every job in `auto-merge`'s
+`needs: [test, cargo-audit, secret-scan, snyk-scan, docs-lint, docs-build]` blocks the merge.
+`semver-check` is the only non-blocking job: it needs both `continue-on-error: true` **and**
+absence from `needs:`, and either alone is insufficient. If this table and the `needs:` list
+disagree, trust the `needs:` list.
 
-**Python linting.** ruff comes from `requirements-ci-test.txt`, a hash-verified rendering of
-the shared dev-venv package set (`pyproject.toml` + `uv.lock`, dotfiles#226/#228) that
-installs with stock pip and no uv on the runner. It is installed _before_ `Run tests`,
-because `make lint` invokes ruff — an install ordered after it fails the job on every PR
-and blocks auto-merge. Both `ruff check` and `ruff format --check` run, matching ai-config and math; the
-formatter is listed alongside the linter in `python.md`'s mechanical table, and etch-cli
-gated only the linter until 2026-08-21. Scope is `scripts/ tests/ .claude/scripts/`, never the repo root:
-this repo holds far more `.md` than `.py`, so bounding the gate makes a stray `.py` elsewhere
-an explicit decision rather than a silent CI break. Shared rule set in `ruff.toml`; see
-ai-config ADR-0058.
+**Python tooling.**
 
-This repo consumes the `ci-test` group only — ruff, pytest and pytest-cov are its entire
-consumption — and never `ci-mutation`, since its mutation testing is cargo-mutants against
-Rust. The rendering replaced hand-pinned `ruff==` lines because per-repo pins across the
-fleet were the real drift surface. The committed copy is kept **byte-identical** to dotfiles master, which is what
-makes `diff requirements-ci-test.txt ~/git-repos/personal/dotfiles/requirements-ci-test.txt` the
-staleness check; do not add a local header to it. Sync is manual and periodic by design
-(dotfiles is private, so cross-repo writes and CI-time fetches were both rejected).
-Note the hashed file cannot be mixed with extras — `pip install -r <hashed> extra-pkg`
-fails `--require-hashes`; a second dep needs its own `pip install` line. The package set
-changes with dotfiles; `grep -cE '^[A-Za-z0-9._-]+==' requirements-ci-test.txt` gives the
-current count.
-
-**Why an 87% floor measured on macOS is legitimate here, when the standing rule forbids
-it.** ADR-0061 and `shell.md` are explicit that a coverage floor comes from CI's own
-measurement and never a local one — `dotfiles` measures 92% on macOS against 91% in CI,
-and ratcheting to the local figure would have failed its own PR. That rule is not being
-excepted here. What was measured is that **its cause is absent in this suite**: the two
-covered files contain zero `sys.platform` / `platform.system()` / `darwin` / `win32` /
-`uname` branches, and the whole Python suite has exactly **one** conditional skip —
-`@unittest.skipUnless(_HAS_ZSTD, ...)`, gated on `compression.zstd` being 3.14+. CI pins
-Python 3.13, so that test skips on the runner and on any 3.13 interpreter alike; it is
-the only thing that can move the number, and it moves it identically in both places. The
-denominator is therefore platform-invariant by construction rather than by luck, which is
-what makes the local figure transferable. The gate was also mutation-checked — it passes
-at 87 and fails at 99 — so it can actually go red.
-
-Do not read this as licence to set a floor from a local run in general. If a
-platform-conditional branch or a `sys.platform` guard ever enters `scripts/` or
-`.claude/scripts/`, this justification expires and the figure must come from CI output.
-Note the corollary while it holds: that zstd test has never executed in CI, under either
-runner, by design.
-
-Known gap: `scripts/pre-push`'s trigger pattern matches neither `scripts/*.py`,
-`ruff.toml`, nor `Makefile`, so a Python-only change skips the local hook entirely. The
-gate is closed on the CI side only.
+- ruff, pytest and pytest-cov install from `requirements-ci-test.txt` **before** `Run tests`,
+  because `make lint` invokes ruff. An install ordered after it fails every PR and blocks
+  auto-merge.
+- `ruff check` and `ruff format --check` both run, scoped to `scripts/ tests/ .claude/scripts/`
+  and never the repo root. Rule set: `ruff.toml`.
+- Keep `requirements-ci-test.txt` byte-identical to dotfiles master and never add a local
+  header. `diff requirements-ci-test.txt ~/git-repos/personal/dotfiles/requirements-ci-test.txt`
+  is the staleness check; `grep -cE '^[A-Za-z0-9._-]+==' requirements-ci-test.txt` gives the
+  current package count.
+- The hashed file cannot be mixed with extras: `pip install -r <hashed> extra-pkg` fails
+  `--require-hashes`. A second dependency needs its own `pip install` line.
+- The 87% Python floor was set from a macOS run, which is valid only while `scripts/` and
+  `.claude/scripts/` contain no platform-conditional branch. If a `sys.platform` guard or
+  similar enters either directory, re-derive the floor from CI output.
+- `scripts/pre-push` does not trigger on `scripts/*.py`, `ruff.toml` or `Makefile`. A push
+  touching only those skips the local hook, and CI is the only gate.
 
 > **Note:** `build` job is temporarily disabled — restore when build times improve.
 
@@ -425,10 +248,9 @@ The release workflow (`release.yml`) checks against the previous git tag. The ta
 
 Adding a new variant to the `Actions` enum always triggers an `enum_variant_added` advisory failure on the `semver-check` CI job. This is expected — every new action adds a public enum variant, which is a semver-breaking change by the spec. The semver-check job is `continue-on-error: true` and is not in the auto-merge `needs:` list, so it never blocks the PR.
 
-## Security Baseline (captured Phase 1)
+## Advisory Triage
 
-- **cargo audit:** 3 unfixable advisories remain — hickory-proto ×2 (DNS DoS, no server surface), rsa (Marvin timing, not a signing oracle). Ignored via `--ignore` flags in `.github/workflows/cargo-audit-scheduled.yml`. **`cargo audit` does NOT read `deny.toml`** — that file is for `cargo deny` only. New advisories must be triaged in both places independently.
-- **Dependency drift:** ran `cargo update` post-fork, resolving 13 of 16 original advisories.
+Two advisory ignore lists exist and share nothing. `deny.toml`'s `[advisories].ignore` is read by `cargo deny check advisories`, which the blocking `cargo-audit` job runs. The `--ignore` flags in `.github/workflows/cargo-audit-scheduled.yml` are read by raw `cargo audit`, which never reads `deny.toml`. Triage every new advisory in both places.
 
 ## Branch Workflow
 
