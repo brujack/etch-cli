@@ -270,7 +270,7 @@ class TestThresholdsAgreeWithCI(unittest.TestCase):
         ai-config's etch-cli-ci-python-tooling knowledge file, so the invariant
         is asserted here against ci.yml directly rather than against prose.
         """
-        pinned = re.findall(r'python-version:\s*"(\d+)\.(\d+)"', self.ci)
+        pinned = re.findall(r'python-version:\s*"(\d+)\.(\d+)(?:\.\d+)?"', self.ci)
         self.assertEqual(
             len(pinned), 1, f"expected one python-version pin, found {pinned}"
         )
