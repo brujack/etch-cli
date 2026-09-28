@@ -262,33 +262,25 @@ class TestThresholdsAgreeWithCI(unittest.TestCase):
             f"ci.yml gates Rust coverage at {gate[0]}% but CLAUDE.md claims {flat}.",
         )
 
-    def test_ci_python_version_matches_the_platform_invariance_argument(self):
-        """CLAUDE.md justifies a locally-measured coverage floor on the grounds
-        that the suite's only conditional skip is gated to 3.14+ and CI pins
-        3.13, so it skips identically in both places. Bump CI to 3.14 and that
-        justification is silently false: the skipped test starts running and the
-        measured figure moves. The argument depends on a value in another file,
-        so the dependency is asserted rather than assumed.
+    def test_ci_python_pin_keeps_the_zstd_test_skipped(self):
+        """The Python coverage floor was measured with the suite's only
+        conditional skip (the compression.zstd test, 3.14+) not running. That
+        holds only while CI pins below 3.14; bump the pin and the skipped test
+        starts running and the measured figure moves. The reasoning lives in
+        ai-config's etch-cli-ci-python-tooling knowledge file, so the invariant
+        is asserted here against ci.yml directly rather than against prose.
         """
-        pinned = re.findall(r'python-version:\s*"([\d.]+)"', self.ci)
+        pinned = re.findall(r'python-version:\s*"(\d+)\.(\d+)(?:\.\d+)?"', self.ci)
         self.assertEqual(
             len(pinned), 1, f"expected one python-version pin, found {pinned}"
         )
-        claimed = re.findall(
-            r"CI pins\s*\n?Python ([\d.]+)|Python ([\d.]+), so that test skips",
-            self.claude_md,
-        )
-        flat = sorted({v for pair in claimed for v in pair if v})
-        self.assertTrue(
-            flat,
-            "CLAUDE.md's platform-invariance argument names no Python version; if that "
-            "reasoning was removed, remove this assertion with it.",
-        )
-        self.assertEqual(
-            flat,
-            [pinned[0]],
-            f"ci.yml pins Python {pinned[0]} but CLAUDE.md's coverage-floor justification "
-            f"depends on {flat}. That justification is now false.",
+        version = tuple(int(part) for part in pinned[0])
+        self.assertLess(
+            version,
+            (3, 14),
+            f"ci.yml pins Python {version[0]}.{version[1]}; the compression.zstd "
+            "test now runs in CI, so re-derive the Python coverage floor from CI "
+            "output before raising this bound.",
         )
 
 
