@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1788229740694,
+  "lastUpdate": 1790822296222,
   "repoUrl": "https://github.com/brujack/etch-cli",
   "entries": {
     "Benchmark": [
@@ -45,6 +45,52 @@ window.BENCHMARK_DATA = {
             "name": "file_link_resolve/nested_path",
             "value": 1823,
             "range": "± 40",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "Bruce Jackson",
+            "username": "brujack",
+            "email": "bjackson@pobox.com"
+          },
+          "committer": {
+            "name": "GitHub",
+            "username": "web-flow",
+            "email": "noreply@github.com"
+          },
+          "id": "f1be54deb6b1ca330da64829bc8823c59e957adc",
+          "message": "fix(deps): bump rustls to 0.23.45 for RUSTSEC-2026-0285 (#130)\n\n* fix(deps): bump rustls to 0.23.45 for RUSTSEC-2026-0285\n\nrustls 0.23.40 accepts TLS 1.3 handshake messages across encryption\nlevel boundaries. etch is a TLS client on this path (octocrab,\nreqwest, gix transport, update-informer).\n\n`cargo update -p rustls` stops at 0.23.43: 0.23.44+ needs a newer\naws-lc-rs, which plain -p keeps locked. `--precise 0.23.45` also\nmoves rustls-webpki 0.103.15, aws-lc-rs 1.18.1, aws-lc-sys 0.45.0.\n\nScheduled cargo-audit has failed since 2026-09-21; the blocking\ncargo-deny PR job failed on main for the same advisory.\n\nCo-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01JpgnFhAKUzzmpqSKqmDiZz\n\n* docs(backlog): note fuzz/Cargo.lock still pins rustls 0.23.40\n\nCo-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01JpgnFhAKUzzmpqSKqmDiZz\n\n* test: assert CI Python pin directly, not via CLAUDE.md\n\n5110f6b moved the platform-invariance reasoning to ai-config\nknowledge, so the regex over CLAUDE.md matched nothing and main's\nmake test has failed since. The invariant that matters is that CI\npins below 3.14, keeping the compression.zstd test skipped while\nthe Python coverage floor stands; assert that against ci.yml.\n\nMutation-checked: pin set to 3.14 turns the test red.\n\nCo-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01JpgnFhAKUzzmpqSKqmDiZz\n\n* fix(test-quality): accept a patch-level Python pin\n\nA \"3.13.1\" pin failed with \"expected one python-version pin, found []\",\nnaming the wrong cause. Match an optional patch component; compare on\nmajor.minor only.\n\nCo-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01JpgnFhAKUzzmpqSKqmDiZz\n\n---------\n\nCo-authored-by: Claude Opus 5.5 (1M context) <noreply@anthropic.com>",
+          "timestamp": "2026-09-28T16:31:39Z",
+          "url": "https://github.com/brujack/etch-cli/commit/f1be54deb6b1ca330da64829bc8823c59e957adc"
+        },
+        "date": 1790822295056,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "manifest_yaml",
+            "value": 11802,
+            "range": "± 342",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "manifest_toml",
+            "value": 845,
+            "range": "± 19",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "file_link_resolve/single_dotfile",
+            "value": 1535,
+            "range": "± 37",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "file_link_resolve/nested_path",
+            "value": 2286,
+            "range": "± 53",
             "unit": "ns/iter"
           }
         ]
