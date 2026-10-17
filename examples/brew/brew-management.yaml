@@ -29,6 +29,7 @@ actions:
   # cleanup: true — remove packages NOT listed in the Brewfile after install.
   # Destructive: treats the Brewfile as the complete desired state.
   # Omit or set false (default) to leave unmanaged packages in place.
+  # Runs `brew bundle install --force-cleanup`, which needs Homebrew 5.1.15 or later.
   - action: brew.bundle
     file: "{{ user.home_dir }}/git-repos/personal/dotfiles/Brewfile"
     cleanup: true

@@ -40,8 +40,10 @@ impl Action for BrewBundle {
         if self.no_upgrade {
             args.push(String::from("--no-upgrade"));
         }
+        // Homebrew 5.1.15 disabled `--cleanup` (it now errors with "There is no
+        // replacement"); `--force-cleanup` keeps the old remove-without-asking behaviour.
         if self.cleanup {
-            args.push(String::from("--cleanup"));
+            args.push(String::from("--force-cleanup"));
         }
 
         Ok(vec![Step {
@@ -136,9 +138,36 @@ mod tests {
             .unwrap();
         assert_eq!(1, steps.len());
         let display = steps[0].atom.to_string();
+        let args: Vec<&str> = display.split_whitespace().collect();
         assert!(
-            display.contains("--cleanup"),
-            "expected '--cleanup' in: {display}"
+            args.contains(&"--force-cleanup"),
+            "expected '--force-cleanup' in: {display}"
+        );
+        assert!(
+            !args.contains(&"--cleanup"),
+            "'--cleanup' is disabled in Homebrew 5.1.15+: {display}"
+        );
+    }
+
+    #[test]
+    fn plan_omits_cleanup_flags_by_default() {
+        use super::BrewBundle;
+        use crate::actions::Action;
+        let action = BrewBundle {
+            file: String::from("/tmp/Brewfile"),
+            no_upgrade: false,
+            cleanup: false,
+        };
+        let steps = action
+            .plan(
+                &crate::manifests::Manifest::default(),
+                &crate::contexts::Contexts::default(),
+            )
+            .unwrap();
+        let display = steps[0].atom.to_string();
+        assert!(
+            !display.contains("cleanup"),
+            "unexpected cleanup flag in: {display}"
         );
     }
 }
