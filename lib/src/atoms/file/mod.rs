@@ -1,3 +1,4 @@
+pub mod bsd_flags;
 #[cfg(target_os = "macos")]
 pub mod chflags;
 #[cfg(target_os = "macos")]

@@ -50,9 +50,9 @@ impl Action for FileFlags {
                 use std::os::unix::ffi::OsStrExt;
                 use std::path::Path;
 
-                // Read current flags to determine the full desired flag set.
-                // chflags replaces ALL user flags — passing only the delta would
-                // clobber flags not mentioned in this action.
+                use crate::atoms::file::bsd_flags::symbolic_delta;
+
+                // Read current flags so the plan names only the managed flags that change.
                 let path = Path::new(&self.path);
                 let cstr = CString::new(path.as_os_str().as_bytes())
                     .map_err(|e| anyhow!("invalid path: {e}"))?;
@@ -67,24 +67,8 @@ impl Action for FileFlags {
                 let current = sb.st_flags;
                 let desired = compute_desired(current, &self.flags)?;
 
-                if current == desired {
+                let Some(flags_str) = symbolic_delta(current, desired) else {
                     return Ok(vec![]);
-                }
-
-                // Convert desired bitmask back to chflags flag names.
-                // chflags replaces all user flags with exactly what you name,
-                // so we must name the full desired state, not just the delta.
-                let mut names: Vec<&str> = Vec::new();
-                if desired & crate::atoms::file::chflags::UF_HIDDEN != 0 {
-                    names.push("hidden");
-                }
-                if desired & crate::atoms::file::chflags::UF_IMMUTABLE != 0 {
-                    names.push("uchg");
-                }
-                let flags_str = if names.is_empty() {
-                    "none".to_string()
-                } else {
-                    names.join(",")
                 };
 
                 let privilege_provider = utilities::get_privilege_provider(_contexts)
@@ -270,5 +254,38 @@ mod tests {
             steps[0].atom.to_string().contains("chflags")
                 || steps[0].atom.to_string().contains("CommandExec")
         );
+    }
+
+    #[test]
+    #[cfg(target_os = "macos")]
+    fn plan_clears_a_flag_with_no_prefix_when_privileged() {
+        use super::FileFlags;
+        use crate::actions::file::FileActionConfig;
+        use crate::actions::Action;
+
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("test.txt");
+        std::fs::write(&path, "").unwrap();
+        let status = std::process::Command::new("chflags")
+            .arg("hidden")
+            .arg(&path)
+            .status()
+            .unwrap();
+        assert!(status.success());
+
+        let action = FileFlags {
+            path: path.display().to_string(),
+            flags: vec!["nohidden".to_string()],
+            config: FileActionConfig { privileged: true },
+        };
+        let steps = action
+            .plan(
+                &crate::manifests::Manifest::default(),
+                &crate::contexts::Contexts::default(),
+            )
+            .unwrap();
+        assert_eq!(1, steps.len());
+        let expected = format!("chflags nohidden {}", path.display());
+        assert!(steps[0].atom.to_string().ends_with(&expected));
     }
 }

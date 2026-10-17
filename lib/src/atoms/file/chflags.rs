@@ -3,8 +3,7 @@ use anyhow::anyhow;
 use std::ffi::CString;
 use std::path::PathBuf;
 
-pub const UF_HIDDEN: u32 = 0x8000;
-pub const UF_IMMUTABLE: u32 = 0x0002;
+pub use super::bsd_flags::{UF_HIDDEN, UF_IMMUTABLE};
 
 #[derive(Debug)]
 pub struct Chflags {
