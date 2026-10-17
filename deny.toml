@@ -23,6 +23,11 @@ ignore = [
     # so there is no fix to take. Unmaintained, not vulnerable — it is a small-string
     # storage optimisation with no known advisory. Resolves when rhai drops it.
     "RUSTSEC-2026-0249",
+    # unsafe-libyaml 0.2.11: unmaintained (RUSTSEC-2024-0449). Reached only via
+    # serde_yaml_ng, already at the latest release (0.10.0, checked 2026-10-17) and
+    # still depending on it, so there is no fix to take. Unmaintained, not vulnerable;
+    # no advisory against it. Resolves when serde_yaml_ng drops it or etch moves parser.
+    "RUSTSEC-2024-0449",
 ]
 
 [licenses]
@@ -41,6 +46,10 @@ allow = [
     "CC0-1.0",
     "MPL-2.0",
     "CDLA-Permissive-2.0",
+    # BSD-style permissive licence of bzip2 itself. Arrives with zip 9 through
+    # libbz2-rs-sys, a Rust port of the bzip2 C library that zip 2 already linked
+    # through bzip2-sys, so the licensed code is not new to the binary.
+    "bzip2-1.0.6",
 ]
 confidence-threshold = 0.8
 exceptions = []
