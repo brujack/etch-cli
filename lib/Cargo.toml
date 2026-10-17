@@ -43,7 +43,7 @@ whoami = "2.1"
 tar = "0.4.44"
 flate2 = "1.1.9"
 xz2 = "0.1"
-zip = "2"
+zip = "9"
 indexmap = { version = "2", features = ["serde"] }
 file-owner = "0.1.2"
 gix = { version = "0.87.0", features = [
@@ -53,7 +53,8 @@ gix = { version = "0.87.0", features = [
     "blocking-http-transport-reqwest-rust-tls",
     "blocking-network-client",
 ] }
-tealr = { version = "0.10.0", features = [
+tealr = { version = "0.10.0", default-features = false, features = [
+    "derive",
     "mlua_lua54",
     "mlua_anyhow",
     "mlua_async",
