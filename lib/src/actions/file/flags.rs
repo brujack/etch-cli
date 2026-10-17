@@ -255,4 +255,37 @@ mod tests {
                 || steps[0].atom.to_string().contains("CommandExec")
         );
     }
+
+    #[test]
+    #[cfg(target_os = "macos")]
+    fn plan_clears_a_flag_with_no_prefix_when_privileged() {
+        use super::FileFlags;
+        use crate::actions::file::FileActionConfig;
+        use crate::actions::Action;
+
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("test.txt");
+        std::fs::write(&path, "").unwrap();
+        let status = std::process::Command::new("chflags")
+            .arg("hidden")
+            .arg(&path)
+            .status()
+            .unwrap();
+        assert!(status.success());
+
+        let action = FileFlags {
+            path: path.display().to_string(),
+            flags: vec!["nohidden".to_string()],
+            config: FileActionConfig { privileged: true },
+        };
+        let steps = action
+            .plan(
+                &crate::manifests::Manifest::default(),
+                &crate::contexts::Contexts::default(),
+            )
+            .unwrap();
+        assert_eq!(1, steps.len());
+        let expected = format!("chflags nohidden {}", path.display());
+        assert!(steps[0].atom.to_string().ends_with(&expected));
+    }
 }
