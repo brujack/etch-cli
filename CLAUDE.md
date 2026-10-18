@@ -140,11 +140,9 @@ Invoke `caveman:caveman-commit` skill to generate the commit message before runn
 
 ## Language Standards
 
-Language-specific standards for this repo. These supplement the universal standards loaded
-from `~/.claude/CLAUDE.md` (tdd, behavior, git-workflow, ci, code-standards, logic-review,
-repo-structure, shell).
-
-@~/.claude/standards/rust.md
+Read `~/.claude/standards/rust.md` before writing or changing any Rust code, or the clippy,
+cargo-deny, tarpaulin, Cargo workspace or Rust CI configuration; it is not loaded at session
+start. It supplements the always-loaded `~/.claude/standards/core.md`.
 
 ## Testing
 
