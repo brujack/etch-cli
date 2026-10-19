@@ -2,9 +2,20 @@ name: CI
 
 on:
   pull_request:
+    # ready_for_review re-runs the workflow when a draft is marked ready; the
+    # default types omit it. labeled re-runs the guard when automerge-ok is
+    # applied after the PR opens.
+    types: [opened, synchronize, reopened, ready_for_review, labeled]
     branches:
       - master
       - main
+
+# Renovate applies labels in a burst, each firing a `labeled` run; cancel the
+# superseded ones. A job-level label filter that skips reads as passing, so the
+# filter is not used -- the guard step decides instead.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
@@ -209,7 +220,7 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@v6
-      - name: Hold unlabelled Renovate PRs for triage
+      - name: Hold unlabelled bot PRs for triage
         id: hold
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -221,13 +232,11 @@ jobs:
         # way labelling can break yields a PR without the label, which an exclusion
         # then merges. Requiring `automerge-ok` fails CLOSED.
         #
-        # SCOPED TO RENOVATE: the label comes from renovate.json, so no human PR can
-        # carry it; an unscoped check would hold every PR in the repo.
-        #
-        # `app/renovate` is what `gh pr view --json author` returns. REST says
-        # `renovate[bot]` for the SAME PR, and mixing them fails open. Do NOT settle
-        # it with `gh pr list --author`: it accepts BOTH and bare `renovate` returns
-        # 0, indistinguishable from "no PRs".
+        # KEYED ON is_bot, not a login string. Matching `app/renovate` alone let
+        # every other bot (dependabot, github-actions[bot], a changed login form)
+        # fall through to merge. Any bot needs the AFFIRMATIVE `automerge-ok`
+        # label; humans merge as before. An empty login or an unreadable is_bot
+        # exits red: unknown is not safe.
         #
         # The GITHUB_OUTPUT + `if:` on the merge step is load-bearing. An earlier
         # draft used `exit 0` in this step to hold -- which does NOT stop the next
@@ -235,20 +244,32 @@ jobs:
         # re-split this into an exit-code guard.
         #
         # Exit codes differ on purpose: a missing label is NORMAL (green, held); a
-        # failed author query is a BROKEN INSTRUMENT (red), because falling through
-        # to merge on a query failure is the guard disabling itself quietly.
+        # failed author or label query is a BROKEN INSTRUMENT (red), because
+        # falling through to merge on a query failure is the guard disabling
+        # itself quietly.
         run: |
-          author=$(gh pr view "${PR_NUMBER}" --json author --jq '.author.login') \
+          author=$(gh pr view "${PR_NUMBER}" --json author --jq '[.author.is_bot, .author.login] | @tsv') \
             || { echo "cannot determine PR author -- refusing to auto-merge" >&2; exit 1; }
-          if [ "${author}" = "app/renovate" ]; then
-            gh pr view "${PR_NUMBER}" --json labels --jq '.labels[].name' \
-              | grep -qx 'automerge-ok' \
-              || { echo "renovate PR lacks automerge-ok -- leaving open for triage"
+          is_bot=${author%%$'\t'*}
+          login=${author#*$'\t'}
+          if [ -z "${login}" ]; then
+            echo "empty PR author login -- refusing to auto-merge" >&2
+            exit 1
+          fi
+          if [ "${is_bot}" != "true" ] && [ "${is_bot}" != "false" ]; then
+            echo "unreadable is_bot (${is_bot}) -- refusing to auto-merge" >&2
+            exit 1
+          fi
+          if [ "${is_bot}" = "true" ]; then
+            labels=$(gh pr view "${PR_NUMBER}" --json labels --jq '.labels[].name') \
+              || { echo "cannot read PR labels -- refusing to auto-merge" >&2; exit 1; }
+            printf '%s\n' "${labels}" | grep -qx 'automerge-ok' \
+              || { echo "bot PR (${login}) lacks automerge-ok -- leaving open for triage"
                    echo "merge=false" >> "${GITHUB_OUTPUT}"
                    exit 0; }
           fi
           echo "merge=true" >> "${GITHUB_OUTPUT}"
-          echo "cleared to merge (author=${author})"
+          echo "cleared to merge (author=${login}, is_bot=${is_bot})"
 
       - name: Auto merge on CI pass
         if: steps.hold.outputs.merge == 'true'
