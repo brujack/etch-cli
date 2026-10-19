@@ -16,9 +16,21 @@
   ],
   "packageRules": [
     {
+      "matchManagers": [
+        "!terraform",
+        "!gomod"
+      ],
       "matchUpdateTypes": [
         "minor",
         "patch"
+      ],
+      "matchDepNames": [
+        "!python",
+        "!library/python",
+        "!docker.io/library/python"
+      ],
+      "matchPackageNames": [
+        "!actions/python-versions"
       ],
       "groupName": "all non-major dependencies",
       "automerge": true,
@@ -34,16 +46,44 @@
       "automerge": false
     },
     {
+      "matchManagers": [
+        "!terraform",
+        "!gomod"
+      ],
       "matchUpdateTypes": [
         "pin",
         "pinDigest",
         "digest"
+      ],
+      "matchDepNames": [
+        "!python",
+        "!library/python",
+        "!docker.io/library/python"
+      ],
+      "matchPackageNames": [
+        "!actions/python-versions"
       ],
       "automerge": true,
       "automergeType": "pr",
       "addLabels": [
         "automerge-ok"
       ]
+    },
+    {
+      "description": "Python interpreter versions (any manager: setup-python, requires-python, .python-version, mise/asdf, poetry, FROM python) are never automerged; a human moves the related pins together (dotfiles#350).",
+      "matchDepNames": [
+        "python",
+        "library/python",
+        "docker.io/library/python"
+      ],
+      "automerge": false
+    },
+    {
+      "description": "setup-python's interpreter source, matched by package name in case a Renovate version names its dependency differently.",
+      "matchPackageNames": [
+        "actions/python-versions"
+      ],
+      "automerge": false
     }
   ],
   "description": [
