@@ -154,6 +154,23 @@ CASES = [
         "merge=false\n",
         id="10-github-actions-unlabelled",
     ),
+    # Real Renovate PRs carry `renovate` and `automerge-ok` (renovate.json
+    # labels + addLabels). Single-label fixtures let a string-equality or a
+    # position-dependent match pass while it holds every real Renovate PR.
+    pytest.param(
+        fx(True, "app/renovate", ["renovate", "automerge-ok"]),
+        False,
+        0,
+        "merge=true\n",
+        id="11-several-labels-automerge-ok-last",
+    ),
+    pytest.param(
+        fx(True, "app/renovate", ["automerge-ok", "renovate"]),
+        False,
+        0,
+        "merge=true\n",
+        id="12-several-labels-automerge-ok-first",
+    ),
 ]
 
 
