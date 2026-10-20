@@ -10,7 +10,7 @@ use tokio::runtime::Runtime;
 
 pub fn txt_record_values(url: &Url, contexts: &mut HashMap<String, String>) -> Result<()> {
     let resolver =
-        Resolver::builder_with_config(ResolverConfig::default(), TokioRuntimeProvider::default())
+        Resolver::builder_with_config(resolver_config(), TokioRuntimeProvider::default())
             .build()?;
 
     let host = url
@@ -23,6 +23,15 @@ pub fn txt_record_values(url: &Url, contexts: &mut HashMap<String, String>) -> R
     insert_txt_answers(lookup.answers(), contexts);
 
     Ok(())
+}
+
+/// Resolver configuration for TXT lookups: Google Public DNS over UDP and TCP.
+///
+/// hickory 0.25 made this the `ResolverConfig::default()`; 0.26 derives an empty
+/// default (no name servers), so every lookup would fail with "no connections
+/// available". Naming the servers keeps the 0.25 behaviour explicit.
+fn resolver_config() -> ResolverConfig {
+    ResolverConfig::udp_and_tcp(&hickory_resolver::config::GOOGLE)
 }
 
 /// Collect `key=value` pairs from the TXT records among `answers`.
@@ -49,6 +58,50 @@ mod tests {
 
     fn record(rdata: RData) -> Record {
         Record::from_rdata(Name::from_str("example.com.").unwrap(), 60, rdata)
+    }
+
+    #[test]
+    fn resolver_config_uses_google_name_servers() {
+        let config = resolver_config();
+        let ips: Vec<_> = config.name_servers().iter().map(|ns| ns.ip).collect();
+        assert!(!ips.is_empty(), "resolver config has no name servers");
+        let google: Vec<_> = hickory_resolver::config::GOOGLE.ips.to_vec();
+        assert_eq!(ips, google);
+    }
+
+    #[test]
+    fn txt_value_keeps_later_equals_signs() {
+        let answers = vec![record(RData::TXT(TXT::new(vec!["k=v=w".to_string()])))];
+        let mut contexts = HashMap::new();
+        insert_txt_answers(&answers, &mut contexts);
+        assert_eq!(contexts.get("k").map(String::as_str), Some("v=w"));
+        assert_eq!(contexts.len(), 1);
+    }
+
+    #[test]
+    fn every_txt_answer_is_inserted() {
+        let answers = vec![
+            record(RData::TXT(TXT::new(vec!["a=1".to_string()]))),
+            record(RData::TXT(TXT::new(vec!["b=2".to_string()]))),
+        ];
+        let mut contexts = HashMap::new();
+        insert_txt_answers(&answers, &mut contexts);
+        assert_eq!(contexts.get("a").map(String::as_str), Some("1"));
+        assert_eq!(contexts.get("b").map(String::as_str), Some("2"));
+    }
+
+    #[test]
+    fn txt_after_non_txt_answer_is_still_inserted() {
+        let answers = vec![
+            record(RData::CNAME(CNAME(
+                Name::from_labels([b"a=b".as_slice(), b"example".as_slice()]).unwrap(),
+            ))),
+            record(RData::TXT(TXT::new(vec!["k=v".to_string()]))),
+        ];
+        let mut contexts = HashMap::new();
+        insert_txt_answers(&answers, &mut contexts);
+        assert_eq!(contexts.len(), 1);
+        assert_eq!(contexts.get("k").map(String::as_str), Some("v"));
     }
 
     #[test]
