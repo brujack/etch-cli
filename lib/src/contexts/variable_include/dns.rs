@@ -52,6 +52,15 @@ fn insert_txt_answers(answers: &[Record], contexts: &mut HashMap<String, String>
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn url_without_host_is_an_error_and_inserts_nothing() {
+        let url = Url::parse("dns+txt:nohost").unwrap();
+        let mut contexts = HashMap::new();
+        let err = txt_record_values(&url, &mut contexts).unwrap_err();
+        assert_eq!(err.to_string(), "Failed to parse host");
+        assert!(contexts.is_empty());
+    }
     use hickory_resolver::proto::rr::rdata::{CNAME, TXT};
     use hickory_resolver::proto::rr::Name;
     use std::str::FromStr;
