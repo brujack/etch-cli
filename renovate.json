@@ -9,8 +9,14 @@
   ],
   "pinDigests": true,
   "schedule": [
-    "before 5am on monday"
+    "at any time"
   ],
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": [
+      "at any time"
+    ]
+  },
   "labels": [
     "renovate"
   ],
@@ -108,6 +114,8 @@
     "Measured: zero Renovate PRs on this repo, all time, since 2026-05-24 -- and the fleet",
     "split is exact, the three private repos got PRs and the three public ones got none.",
     "The duplication is deliberate: a live inlined policy beats a centralised dead one.",
-    "Keep in sync with ai-config/renovate-presets/default.json by hand."
+    "Keep in sync with ai-config/renovate-presets/default.json by hand.",
+    "lockFileMaintenance is enabled with an explicit schedule of at any time: lock-only PRs are held, because no packageRule matches lockFileMaintenance so they never get the automerge-ok label the merge job requires, and the schedule is explicit because Renovate's default lockFileMaintenance schedule is a Monday window, not the repo schedule.",
+    "schedule aligned to the canonical 'at any time' from ai-config renovate-presets/default.json on 2026-10-20: 0 Renovate PRs were ever opened under the previous 'before 5am on monday' window."
   ]
 }
