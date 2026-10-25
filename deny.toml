@@ -23,6 +23,19 @@ ignore = [
     # still depending on it, so there is no fix to take. Unmaintained, not vulnerable;
     # no advisory against it. Resolves when serde_yaml_ng drops it or etch moves parser.
     "RUSTSEC-2024-0449",
+    # basic-toml 0.1.10: unmaintained (RUSTSEC-2026-0374). Reached only via
+    # age -> i18n-embed-fl -> i18n-config, and i18n-config is at its latest release
+    # (0.4.8, checked 2026-10-25) still requiring basic-toml ^0.1; age 0.12 reaches
+    # the same i18n-config, so there is no fix to take. Unmaintained, not vulnerable.
+    # Resolves when i18n-config moves to toml.
+    "RUSTSEC-2026-0374",
+    # crypto-bigint 0.5.5: timing variability (RUSTSEC-2026-0387), fixed only in 0.7.6.
+    # Reached via octocrab -> jsonwebtoken -> p256/p384 -> elliptic-curve 0.13; the
+    # latest jsonwebtoken (11.1.0, checked 2026-10-25) still requires p256 0.13, so
+    # there is no fix to take. etch calls octocrab unauthenticated and never signs a
+    # JWT, so no secret-dependent operation runs. Resolves when jsonwebtoken moves to
+    # p256 0.14.
+    "RUSTSEC-2026-0387",
 ]
 
 [licenses]
