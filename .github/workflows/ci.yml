@@ -115,7 +115,7 @@ jobs:
           cd /tmp/cov-data
           git add .
           git diff --staged --quiet && exit 0
-          for i in 1 2 3; do
+          for _ in 1 2 3; do
             git pull origin coverage-data --rebase 2>/dev/null || true
             git diff --staged --quiet || git commit -m "coverage: coverage.json → ${PCT}%"
             git push origin coverage-data && break
