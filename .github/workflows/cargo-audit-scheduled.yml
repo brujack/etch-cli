@@ -21,7 +21,10 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: Install cargo-audit
-        run: cargo install cargo-audit --locked
+        uses: taiki-e/install-action@1168f6810a3cb30a3514bf5756a3b7f0422c6df8  # v2.87.28
+        with:
+          tool: cargo-audit@0.22.2
+          fallback: none
 
       - name: Run cargo audit
         run: |
