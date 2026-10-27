@@ -12,7 +12,7 @@ Repo-specific decisions for etch-cli. Cross-cutting decisions that apply across 
 | [0006](0006-native-action-expansion-strategy.md)         | Native action expansion strategy                          | 2026-05-19 | Accepted |
 | [0007](0007-etch-status-drift-detection-subcommand.md)   | etch status drift detection subcommand                    | 2026-05-19 | Accepted |
 | [0008](0008-etch-update-subcommand.md)                   | etch update subcommand                                    | 2026-05-24 | Accepted |
-| [0009](0009-release-strategy-git-cliff-cosign-sha256.md) | Release strategy — git-cliff changelog, cosign v4, SHA256 | 2026-05-23 | Accepted |
+| [0009](0009-release-strategy-git-cliff-cosign-sha256.md) | Release strategy — git-cliff changelog, cosign v4, SHA256 | 2026-05-23 | Accepted (changelog clause superseded by 0017) |
 | [0010](0010-mutation-testing-cargo-mutants.md)           | Mutation testing with cargo-mutants                       | 2026-05-24 | Accepted |
 | [0011](0011-version-pinning-error-on-mismatch.md)        | package.install version pinning uses error-on-mismatch    | 2026-06-02 | Accepted |
 | [0012](0012-etch-doctor-subcommand.md)                   | etch doctor subcommand                                    | 2026-06-06 | Accepted |
@@ -20,3 +20,4 @@ Repo-specific decisions for etch-cli. Cross-cutting decisions that apply across 
 | [0014](0014-state-manifest-etch-history.md)              | State manifest and etch history subcommand                | 2026-06-12 | Accepted |
 | [0015](0015-debug-supertrait-on-atom-finalizer-initializer.md) | Debug supertrait on Atom, Finalizer, and Initializer       | 2026-08-02 | Accepted |
 | [0016](0016-python-toolchain-from-shared-rendering.md) | Python toolchain from the shared pinned rendering          | 2026-08-21 | Accepted |
+| [0017](0017-release-notes-in-release-body.md) | Release notes in the release body only | 2026-10-27 | Accepted |
