@@ -81,15 +81,43 @@ def logical_lines(body):
     return joined
 
 
+VERIFY_RE = re.compile(r"\bsha256sum -c(?:\s+-)?\s*$")
+GUARD_RE = re.compile(r"^\s*(?:if|while|until)\b|(?:^|\s)!\s|\|\||&|;")
+
+
+def mentions(path, line):
+    """Return True if line names path as a whole token, not as a substring."""
+    return re.search(rf"(?<![\w./-]){re.escape(path)}(?![\w./-])", line) is not None
+
+
+def is_verifying(line, path):
+    """Return True if line is a plain pipeline that fails the step on mismatch.
+
+    A `sha256sum -c` inside `if`/`!`/`||`/`&&`/`;` cannot fail the step, so it
+    does not count.
+    """
+    return (
+        mentions(path, line)
+        and VERIFY_RE.search(line) is not None
+        and GUARD_RE.search(line) is None
+    )
+
+
 def check_block(body):
-    """Return (number of downloads, list of rule violations) for one block."""
+    """Return (number of downloads, list of rule violations) for one block.
+
+    Any curl/wget line is a download, so a variable or http:// URL is flagged
+    rather than skipped.
+    """
     lines = logical_lines(body)
     downloads = 0
     problems = []
     for idx, line in enumerate(lines):
-        if not (FETCH_RE.search(line) and "https://" in line):
+        if not FETCH_RE.search(line):
             continue
         downloads += 1
+        if "https://" not in line:
+            problems.append(f"no pinned https URL visible: {line}")
         if "/latest/" in line:
             problems.append(f"unpinned /latest/ URL: {line}")
         if "|" in line:
@@ -100,14 +128,16 @@ def check_block(body):
             continue
         path = out.group(1).strip("\"'")
         verified = False
+        used_early = False
         for later in lines[idx + 1 :]:
-            if "sha256sum -c" in later and path in later:
+            if is_verifying(later, path):
                 verified = True
                 break
-            if path in later:
+            if mentions(path, later):
                 problems.append(f"{path} used before checksum: {later}")
+                used_early = True
                 break
-        if not verified and not any("used before" in p for p in problems):
+        if not verified and not used_early:
             problems.append(f"no sha256sum -c naming {path}: {line}")
     return downloads, problems
 
@@ -267,3 +297,44 @@ def test_yaml_extension_is_scanned(tmp_path):
     (tmp_path / "evil.yaml").write_text(bad, encoding="utf-8")
     total, problems = scan_workflows(str(tmp_path))
     assert total == 1 and problems
+
+
+def test_variable_url_download_is_flagged():
+    body = ["URL=https://e.com/latest/x", 'curl -o /tmp/x "$URL"']
+    count, problems = check_block(body)
+    assert count == 1 and any("https" in p for p in problems)
+
+
+def test_http_url_download_is_flagged():
+    count, problems = check_block(["wget -O /tmp/y http://e.com/y"])
+    assert count == 1 and any("https" in p for p in problems)
+
+
+def test_checksum_of_a_longer_path_is_flagged():
+    for other in ("/tmp/x.tgz.sha", "/tmp/x.tgz.bak"):
+        body = [GOOD[0], GOOD[1], f'echo "${{SHA}}  {other}" | sha256sum -c -', GOOD[3]]
+        _, problems = check_block(body)
+        assert problems, other
+
+
+def test_checksum_that_cannot_fail_is_flagged():
+    forms = [
+        'if ! echo "${SHA}  /tmp/x.tgz" | sha256sum -c -; then echo hi; fi',
+        'echo "${SHA}  /tmp/x.tgz" | sha256sum -c - || true',
+        'echo "${SHA}  /tmp/x.tgz" | sha256sum -c - && echo ok',
+        'echo "${SHA}  /tmp/x.tgz" | sha256sum -c - ; true',
+    ]
+    for form in forms:
+        _, problems = check_block([GOOD[0], GOOD[1], form, GOOD[3]])
+        assert problems, form
+
+
+def test_earlier_problem_does_not_hide_later_missing_checksum():
+    bad_first = [
+        "curl -fsSL -o /tmp/a https://e.com/a",
+        "chmod +x /tmp/a",
+        "curl -fsSL -o /tmp/b https://e.com/b",
+    ]
+    _, problems = check_block(bad_first)
+    assert any("used before" in p for p in problems)
+    assert any("/tmp/b" in p and "no sha256sum" in p for p in problems)
