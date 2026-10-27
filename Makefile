@@ -1,4 +1,4 @@
-.PHONY: all test lint build build-linux install-hooks mutants bench changelog fuzz fuzz-manifest fuzz-path semver validate-plan docs-debt
+.PHONY: all test lint build build-linux install-hooks mutants bench fuzz fuzz-manifest fuzz-path semver validate-plan docs-debt
 
 # Derived from the tracked set (git ls-files), not a hand-maintained list --
 # an omitted file would leave a hand-list's coverage unchanged rather than
@@ -76,9 +76,6 @@ bench:
 
 semver:
 	cargo semver-checks check-release -p etch-lib --baseline-rev origin/main
-
-changelog:
-	git-cliff -o CHANGELOG.md
 
 # 10-80-10 cycle (ai-config ADR-0009/0010) — validate a plan file
 validate-plan:

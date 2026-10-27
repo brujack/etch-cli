@@ -1,7 +1,7 @@
 # ADR-0009: Release strategy — git-cliff changelog, cosign v4, SHA256
 
 **Date:** 2026-05-23
-**Status:** Accepted
+**Status:** Accepted; changelog clause superseded by [ADR-0017](0017-release-notes-in-release-body.md)
 
 ## Context
 

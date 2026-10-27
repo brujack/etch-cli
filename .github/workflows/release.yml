@@ -26,6 +26,25 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Validate version
+        id: validate
+        run: |
+          fail() {
+            printf 'error: %s\n' "$1" >&2
+            exit 1
+          }
+          cargo_version() {
+            sed -n 's/^version = "\(.*\)"$/\1/p' "$1" | head -1
+          }
+          [[ "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "version is not MAJOR.MINOR.PATCH: $(printf '%q' "${VERSION}")"
+          [[ "${GITHUB_REF}" == "refs/heads/main" ]] || fail "release must be dispatched from refs/heads/main"
+          for manifest in app/Cargo.toml lib/Cargo.toml; do
+            [[ "$(cargo_version "${manifest}")" == "${VERSION}" ]] || fail "${manifest} version does not equal ${VERSION}"
+          done
+          if git rev-parse -q --verify "refs/tags/v${VERSION}" > /dev/null; then
+            fail "tag v${VERSION} already exists"
+          fi
+
       - uses: dtolnay/rust-toolchain@stable
 
       - uses: Swatinem/rust-cache@v2
@@ -67,33 +86,27 @@ jobs:
       - name: Build release binary
         run: cargo build --release
 
-      - name: Generate CHANGELOG
-        uses: orhun/git-cliff-action@f50e11560dce63f7c33227798f90b924471a88b5  # v4
-        with:
-          config: cliff.toml
-          args: --verbose
-        env:
-          OUTPUT: CHANGELOG.md
-          GITHUB_REPO: ${{ github.repository }}
+      - name: Release notes range
+        id: range
+        run: |
+          PREV=$(git tag --sort=-version:refname | grep '^v' | head -1)
+          if [[ -n "${PREV}" ]]; then
+            printf 'base=%s\n' "$(git merge-base "${PREV}" HEAD)" >> "${GITHUB_OUTPUT}"
+          fi
 
-      - name: Generate release notes (latest only)
+      - name: Generate release notes
         uses: orhun/git-cliff-action@f50e11560dce63f7c33227798f90b924471a88b5  # v4
         with:
           config: cliff.toml
-          args: --latest --strip all
+          args: ${{ steps.range.outputs.base && format('{0}..HEAD', steps.range.outputs.base) || '' }} --tag v${{ env.VERSION }} --strip all
         env:
           OUTPUT: /tmp/release-notes.md
           GITHUB_REPO: ${{ github.repository }}
 
-      - name: Commit CHANGELOG
-        continue-on-error: true
+      - name: Require non-empty release notes
+        id: notes_check
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add CHANGELOG.md
-          git diff --staged --quiet && exit 0
-          git commit -m "chore(changelog): update for v${VERSION}"
-          git push
+          [[ -s /tmp/release-notes.md ]] || { printf 'error: %s\n' 'release notes are empty; nothing releasable since the previous tag' >&2; exit 1; }
 
       - name: Create and push tag
         run: |

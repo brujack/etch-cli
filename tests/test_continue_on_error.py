@@ -42,10 +42,6 @@ ALLOWED = {
         "workflows/release.yml",
         "Check semver compatibility",
     ): "advisory on release, as in semver-check.",
-    (
-        "workflows/release.yml",
-        "Commit CHANGELOG",
-    ): "removed by PR B (Task 4).",
 }
 
 
