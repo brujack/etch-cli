@@ -177,8 +177,8 @@ Single workflow `.github/workflows/ci.yml`, triggers on `pull_request` to `main`
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `test`         | `ruff check scripts/ tests/ .claude/scripts/` + `make test` (fmt check + clippy + cargo test) + `pytest` with Python coverage ≥87% + tarpaulin ≥81% (excluding jsonschemagen)                          |
 | `cargo-audit`  | **`cargo deny check advisories`** — reads `deny.toml`'s ignore list. **Blocking** (in `auto-merge` `needs:`). Despite the job name it does _not_ run `cargo audit`, which ignores `deny.toml` entirely |
-| `secret-scan`  | gitleaks v8.30.1 binary. **Blocking** (in `auto-merge` `needs:`)                                                                                                                                       |
-| `snyk-scan`    | Snyk code test. **Blocking** (in `auto-merge` `needs:`)                                                                                                                                                |
+| `secret-scan`  | gitleaks v8.30.1, pinned and checksum-verified. **Blocking** (in `auto-merge` `needs:`) |
+| `snyk-scan`    | Snyk CLI v1.1308.0, pinned and checksum-verified; `.snyk` excludes two false-positive files. **Blocking** (in `auto-merge` `needs:`) |
 | `docs-lint`    | Lints mdbook docs                                                                                                                                                                                      |
 | `docs-build`   | Builds mdbook docs                                                                                                                                                                                     |
 | `semver-check` | `cargo semver-checks` vs `origin/main` baseline (advisory, `continue-on-error: true`, not in auto-merge needs)                                                                                         |
@@ -187,7 +187,7 @@ Single workflow `.github/workflows/ci.yml`, triggers on `pull_request` to `main`
 **Which jobs block.** Every job in `auto-merge`'s
 `needs: [test, cargo-audit, secret-scan, snyk-scan, docs-lint, docs-build]` blocks the merge.
 `semver-check` is the only non-blocking job: it needs both `continue-on-error: true` **and**
-absence from `needs:`, and either alone is insufficient. If this table and the `needs:` list
+absence from `needs:`, and either alone is insufficient. A new `continue-on-error` anywhere in `.github/` also needs an entry in `ALLOWED` in `tests/test_continue_on_error.py`, which fails on any unlisted site. If this table and the `needs:` list
 disagree, trust the `needs:` list.
 
 **Python tooling.**

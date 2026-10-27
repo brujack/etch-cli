@@ -41,3 +41,45 @@ Pinned values, each at least 14 days old on 2026-10-27 and checked against the p
 | taiki-e/install-action                     | v2.87.28 (2026-10-12)             | `1168f6810a3cb30a3514bf5756a3b7f0422c6df8`                         |
 | cargo-machete / nextest / tarpaulin / deny | 0.9.2 / 0.9.148 / 0.37.5 / 0.20.2 | install-action manifest                                            |
 | cargo-semver-checks / audit / mutants      | 0.51.0 / 0.22.2 / 27.1.0          | install-action manifest                                            |
+
+## Amendments
+
+- finding R5 (2026-10-27, reviewer both): NOT-BUILT — Looked for changes to release.yml that validate `version` as MAJOR.MINOR.PATCH against both Cargo.toml files, check for an existing tag and the refs/heads/main ref, ahead of other steps. release.yml does not appear in the diff.
+- R5 reviewed: not in scope for PR A (plan Tasks 1-3, R1-R4); delivered by PR B (plan Task 4) of the same plan — the spec delivers in four ordered PRs
+- finding R6 (2026-10-27, reviewer both): NOT-BUILT — release.yml is unchanged in the diff. The 'Commit CHANGELOG' push step is still present (ALLOWED keeps it, 'removed by PR B'), and no notes range using `git merge-base <previous tag> HEAD` appears.
+- R6 reviewed: not in scope for PR A (plan Tasks 1-3, R1-R4); delivered by PR B (plan Task 4) of the same plan — the spec delivers in four ordered PRs
+- finding R7 (2026-10-27, reviewer both): NOT-BUILT — The diff neither deletes CHANGELOG.md nor adds an ADR reversing ADR-0009's committed-changelog clause.
+- R7 reviewed: not in scope for PR A (plan Tasks 1-3, R1-R4); delivered by PR B (plan Task 5) of the same plan — the spec delivers in four ordered PRs
+- finding R8 (2026-10-27, reviewer both): NOT-BUILT — The diff has no taiki-e/install-action step, no removal of `cargo install`, and no test enforcing `tool: <name>@<X.Y.Z>` / `fallback: none`.
+- R8 reviewed: not in scope for PR A (plan Tasks 1-3, R1-R4); delivered by PR C (plan Task 6) of the same plan — the spec delivers in four ordered PRs
+- finding R9 (2026-10-27, reviewer both): NOT-BUILT — The Makefile is not in the diff, so there is no change to build or build-linux output locations and no `make install` target writing to ${XDG_BIN_HOME:-$HOME/.local/bin}/etch.
+- R9 reviewed: not in scope for PR A (plan Tasks 1-3, R1-R4); delivered by PR D (plan Task 7) of the same plan — the spec delivers in four ordered PRs
+
+## Spec alignment (2026-10-27)
+
+- spec: docs/superpowers/specs/2026-10-27-ci-release-hardening-design.md
+- anchor: 7aed05129a66996511e6f4e5b7cb1b0e075e03d8
+- in scope: R1, R2, R3, R4, R5, R6, R7, R8, R9
+- out of scope: none
+
+### Findings
+
+| ID | Reviewer | Verdict | Reason | Amendment |
+| --- | --- | --- | --- | --- |
+| R5 | both | NOT-BUILT | Looked for changes to release.yml that validate `version` as MAJOR.MINOR.PATCH against both Cargo.toml files, check for an existing tag and the refs/heads/main ref, ahead of other steps. release.yml does not appear in the diff. | - R5 reviewed: not in scope for PR A (plan Tasks 1-3, R1-R4); delivered by PR B (plan Task 4) of the same plan — the spec delivers in four ordered PRs |
+| R6 | both | NOT-BUILT | release.yml is unchanged in the diff. The 'Commit CHANGELOG' push step is still present (ALLOWED keeps it, 'removed by PR B'), and no notes range using `git merge-base <previous tag> HEAD` appears. | - R6 reviewed: not in scope for PR A (plan Tasks 1-3, R1-R4); delivered by PR B (plan Task 4) of the same plan — the spec delivers in four ordered PRs |
+| R7 | both | NOT-BUILT | The diff neither deletes CHANGELOG.md nor adds an ADR reversing ADR-0009's committed-changelog clause. | - R7 reviewed: not in scope for PR A (plan Tasks 1-3, R1-R4); delivered by PR B (plan Task 5) of the same plan — the spec delivers in four ordered PRs |
+| R8 | both | NOT-BUILT | The diff has no taiki-e/install-action step, no removal of `cargo install`, and no test enforcing `tool: <name>@<X.Y.Z>` / `fallback: none`. | - R8 reviewed: not in scope for PR A (plan Tasks 1-3, R1-R4); delivered by PR C (plan Task 6) of the same plan — the spec delivers in four ordered PRs |
+| R9 | both | NOT-BUILT | The Makefile is not in the diff, so there is no change to build or build-linux output locations and no `make install` target writing to ${XDG_BIN_HOME:-$HOME/.local/bin}/etch. | - R9 reviewed: not in scope for PR A (plan Tasks 1-3, R1-R4); delivered by PR D (plan Task 7) of the same plan — the spec delivers in four ordered PRs |
+
+### Reviewed
+
+- R5 reviewed: not in scope for PR A (plan Tasks 1-3, R1-R4); delivered by PR B (plan Task 4) of the same plan — the spec delivers in four ordered PRs
+- R6 reviewed: not in scope for PR A (plan Tasks 1-3, R1-R4); delivered by PR B (plan Task 4) of the same plan — the spec delivers in four ordered PRs
+- R7 reviewed: not in scope for PR A (plan Tasks 1-3, R1-R4); delivered by PR B (plan Task 5) of the same plan — the spec delivers in four ordered PRs
+- R8 reviewed: not in scope for PR A (plan Tasks 1-3, R1-R4); delivered by PR C (plan Task 6) of the same plan — the spec delivers in four ordered PRs
+- R9 reviewed: not in scope for PR A (plan Tasks 1-3, R1-R4); delivered by PR D (plan Task 7) of the same plan — the spec delivers in four ordered PRs
+
+### Verifications
+
+- none
