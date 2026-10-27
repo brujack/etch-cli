@@ -18,6 +18,7 @@ Pushing the CHANGELOG through a pull request instead would need the release to o
 
 - **Release notes live in the GitHub release body only.** `CHANGELOG.md` and the `make changelog` target are deleted. The workflow pushes nothing but the tag.
 - **The notes range is explicit.** A `range` step sets the base to `git merge-base <previous tag> HEAD`, and git-cliff renders `<base>..HEAD` under `--tag v<version>`. The merge-base is needed because the previous tags are off `main`: `--unreleased` would treat everything since v0.10.4, the last tag on `main`, as unreleased.
+- **Empty notes stop the release.** A `notes_check` step fails the job when the rendered notes are empty (a range of only skipped commit types renders nothing), before the tag is created, so a blank release is never published.
 - **The version is validated first.** A `validate` step, before any other step reads `VERSION`, requires `MAJOR.MINOR.PATCH`, a dispatch from `refs/heads/main`, a match with both `app/Cargo.toml` and `lib/Cargo.toml`, and no existing `v<version>` tag.
 
 The cosign and SHA-256 parts of ADR-0009 are unchanged.
