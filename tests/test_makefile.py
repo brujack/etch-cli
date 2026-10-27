@@ -1,11 +1,12 @@
 """Tests for the Makefile build and install targets, using `make -n` only.
 
 `make -n` prints the recipe lines without running them, so nothing is built or
-installed. The Makefile's top-level `$(shell ...)` lines still run. CARGO_NIGHTLY
-and NIGHTLY_BIN are set empty on the command line, which overrides their
-`$(shell rustup ...)` assignments: with HOME redirected, rustup takes about 7 s per
-call, so the remaining `$(shell ...)` lines (`command -v`, `git ls-files`) are the
-only ones that run, and neither cargo nor rustup is needed.
+installed. The Makefile's top-level `$(shell ...)` lines still run, including
+`rustup which --toolchain nightly`. Given a fresh HOME, rustup builds a new
+~/.rustup there and spends about 7 s doing it, so RUSTUP_HOME and CARGO_HOME are
+pinned to the invoking user's real ones; a command-line override of
+CARGO_NIGHTLY would not help, because make still evaluates the `:=` right-hand
+side. Neither cargo nor a nightly toolchain needs to be installed.
 The environment is constructed here: HOME points at a temp dir, git's exported
 variables and make's flag variables are removed, and XDG_BIN_HOME is set only by
 the test that wants it.
@@ -27,8 +28,13 @@ STRIPPED = (
 )
 
 
+REAL_HOME = Path.home()
+
+
 def _make_env(home, xdg_bin_home):
     env = {k: v for k, v in os.environ.items() if k not in STRIPPED}
+    env.setdefault("RUSTUP_HOME", str(REAL_HOME / ".rustup"))
+    env.setdefault("CARGO_HOME", str(REAL_HOME / ".cargo"))
     env["HOME"] = str(home)
     if xdg_bin_home is not None:
         env["XDG_BIN_HOME"] = xdg_bin_home
@@ -38,7 +44,7 @@ def _make_env(home, xdg_bin_home):
 def dry_run(target, home, xdg_bin_home=None):
     """Return the stdout lines of `make -n <target>`; fail if make fails or is silent."""
     result = subprocess.run(
-        ["make", "-n", "-C", ROOT, "CARGO_NIGHTLY=", "NIGHTLY_BIN=", target],
+        ["make", "-n", "-C", ROOT, target],
         env=_make_env(home, xdg_bin_home),
         capture_output=True,
         text=True,
