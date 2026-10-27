@@ -1,0 +1,10 @@
+# Snyk Code cannot ignore a single finding from the repo (only via the web UI),
+# so these files are excluded whole. All three findings were LOW false positives
+# (2026-10-27): the test feeds its own fixed env to a bash run of ci.yml's hold
+# step and opens a constant path; test_metrics.py parses our own JUnit report on
+# Python 3.13, where the XXE finding does not apply. See the 2026-10-27 spec.
+version: v1.25.0
+exclude:
+    global:
+        - tests/test_automerge_bot_hold.py
+        - scripts/test_metrics.py

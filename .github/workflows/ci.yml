@@ -151,7 +151,6 @@ jobs:
           sudo mv /tmp/gitleaks /usr/local/bin/gitleaks
       - name: Run gitleaks
         run: gitleaks detect --config .gitleaks.toml --source . --log-opts "HEAD~50..HEAD"
-        continue-on-error: true
 
   snyk-scan:
     name: Snyk Security Scan
@@ -167,7 +166,6 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: snyk code test
-        continue-on-error: true
 
   docs-lint:
     name: Docs Lint
