@@ -395,6 +395,7 @@ sudo env DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true NEEDRES
 make test     # lint + test
 make lint     # cargo clippy -D warnings
 make build    # cargo build --release
+make install  # build, then copy the binary to ${XDG_BIN_HOME:-$HOME/.local/bin}/etch
 make semver   # check for API-breaking changes vs origin/main (advisory)
 make docs-debt      # count undocumented public items (see API lints below)
 make install-hooks  # install pre-commit and pre-push hooks (run once per checkout)

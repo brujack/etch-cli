@@ -86,7 +86,8 @@ Read the matching file before the work it covers (paths relative to `~/git-repos
 make lint          # cargo fmt --check + cargo clippy --all-targets -D warnings
 make test          # lint, then cargo test
 make build         # cargo build --release → target/release/etch (macOS aarch64)
-make build-linux   # cargo zigbuild → target/x86_64-unknown-linux-gnu/release/etch + ~/Downloads/etch-linux
+make build-linux   # cargo zigbuild → target/x86_64-unknown-linux-gnu/release/etch
+make install       # build, then copy target/release/etch to ${XDG_BIN_HOME:-$HOME/.local/bin}/etch
 make docs-debt     # count undocumented public items (missing_docs is at allow, not warn)
 make install-hooks # install pre-commit and pre-push hooks (run once per checkout)
 ```

@@ -1,4 +1,4 @@
-.PHONY: all test lint build build-linux install-hooks mutants bench fuzz fuzz-manifest fuzz-path semver validate-plan docs-debt
+.PHONY: all test lint build build-linux install install-hooks mutants bench fuzz fuzz-manifest fuzz-path semver validate-plan docs-debt
 
 # Derived from the tracked set (git ls-files), not a hand-maintained list --
 # an omitted file would leave a hand-list's coverage unchanged rather than
@@ -41,11 +41,16 @@ docs-debt:
 
 build:
 	cargo build --release
-	cp target/release/etch ~/Downloads/etch
 
 build-linux:
 	cargo zigbuild --release --target x86_64-unknown-linux-gnu
-	cp target/x86_64-unknown-linux-gnu/release/etch ~/Downloads/etch-linux
+
+# make treats an empty XDG_BIN_HOME as unset in $(or ...), so it falls back to HOME.
+INSTALL_DIR ?= $(or $(XDG_BIN_HOME),$(HOME)/.local/bin)
+
+install: build
+	mkdir -p "$(INSTALL_DIR)"
+	install -m 755 target/release/etch "$(INSTALL_DIR)/etch"
 
 install-hooks:
 	cp scripts/pre-commit .git/hooks/pre-commit
