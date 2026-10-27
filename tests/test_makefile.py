@@ -25,6 +25,7 @@ STRIPPED = (
     "MAKEFLAGS",
     "MFLAGS",
     "XDG_BIN_HOME",
+    "INSTALL_DIR",
 )
 
 
@@ -65,16 +66,19 @@ def index_starting(lines, prefix):
     raise AssertionError(f"no line starts with {prefix!r} in {lines}")
 
 
+def recipe(lines):
+    """The recipe lines, without make's own `make: Entering/Leaving directory` lines."""
+    return [ln for ln in lines if not ln.startswith("make")]
+
+
 def test_build_stays_in_repo(tmp_path):
-    lines = dry_run("build", tmp_path)
-    index_starting(lines, "cargo build --release")
-    assert not any("Downloads" in ln for ln in lines)
+    assert recipe(dry_run("build", tmp_path)) == ["cargo build --release"]
 
 
 def test_build_linux_stays_in_repo(tmp_path):
-    lines = dry_run("build-linux", tmp_path)
-    index_starting(lines, "cargo zigbuild")
-    assert not any("Downloads" in ln for ln in lines)
+    assert recipe(dry_run("build-linux", tmp_path)) == [
+        "cargo zigbuild --release --target x86_64-unknown-linux-gnu"
+    ]
 
 
 def test_install_uses_xdg_bin_home_after_build(tmp_path):
