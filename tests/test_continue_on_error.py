@@ -1,11 +1,11 @@
-"""Allow-list for every `continue-on-error` site in .github/workflows/*.yml.
+"""Allow-list for every `continue-on-error` site in .github/workflows and composite actions.
 
 A `continue-on-error: true` on a security scan turns a failing gate into a green
 tick; gitleaks and Snyk were masked this way unnoticed. Each site must be listed
 in ALLOWED with the reason it is safe, so adding a new mask is a reviewed
 decision in this file rather than a one-line change in a workflow.
 
-Workflows are read as text (no PyYAML). A site is keyed by (file name, nearest
+Workflows are read as text (no PyYAML). A site is keyed by (path relative to .github/, nearest
 preceding `name:` value). Point COE_WORKFLOW_DIR at a directory of older
 workflows to confirm the test fails against a pre-change tree.
 """
@@ -13,31 +13,35 @@ workflows to confirm the test fails against a pre-change tree.
 import glob
 import os
 import re
+import sys
+from collections import Counter
 
 WORKFLOW_DIR = os.environ.get("COE_WORKFLOW_DIR", ".github/workflows")
 
 SITE_RE = re.compile(r"^\s*continue-on-error:\s*(?!false\s*$)\S")
+MENTION_RE = re.compile(r"continue-on-error")
+FALSE_RE = re.compile(r"^\s*continue-on-error:\s*false\s*$")
 NAME_RE = re.compile(r"^\s*(-\s+)?name:\s*(.+?)\s*$")
 
 ALLOWED = {
     (
-        "ci.yml",
+        "workflows/ci.yml",
         "Coverage with network tests (informational)",
     ): "network-dependent tests are informational; the main coverage step gates.",
     (
-        "ci.yml",
+        "workflows/ci.yml",
         "Semver Check",
     ): "job-level and kept out of auto-merge needs:; every new action adds an enum variant.",
     (
-        "mutation-testing.yml",
+        "workflows/mutation-testing.yml",
         "Run mutants",
     ): "the Score gate step (if: always()) scores the result.",
     (
-        "release.yml",
+        "workflows/release.yml",
         "Check semver compatibility",
     ): "advisory on release, as in semver-check.",
     (
-        "release.yml",
+        "workflows/release.yml",
         "Commit CHANGELOG",
     ): "removed by PR B (Task 4).",
 }
@@ -77,28 +81,73 @@ def find_sites(filename, text):
     return sites
 
 
+def workflow_files():
+    """Return every workflow and composite-action file, .yml and .yaml."""
+    found = []
+    for pattern in ("*.yml", "*.yaml"):
+        found += glob.glob(os.path.join(WORKFLOW_DIR, pattern))
+    if WORKFLOW_DIR == ".github/workflows":
+        for action in ("action.yml", "action.yaml"):
+            found += glob.glob(
+                os.path.join(".github", "actions", "**", action), recursive=True
+            )
+    return sorted(found)
+
+
+def relative_name(path):
+    """Return the file's path relative to the directory above WORKFLOW_DIR."""
+    return os.path.relpath(path, os.path.dirname(WORKFLOW_DIR) or ".")
+
+
+def find_unrecognised(text):
+    """Return lines that mention the key in a form SITE_RE cannot classify.
+
+    Plain `continue-on-error: false` and whole-line comments are fine; any
+    other spelling (quoted key, flow mapping, ...) must fail closed.
+    """
+    return [
+        line
+        for line in text.splitlines()
+        if MENTION_RE.search(line)
+        and not line.lstrip().startswith("#")
+        and not SITE_RE.match(line)
+        and not FALSE_RE.match(line)
+    ]
+
+
 def scan_workflows():
-    """Return every site across the workflow directory."""
+    """Return every site across the workflow files."""
     sites = []
-    for path in sorted(glob.glob(os.path.join(WORKFLOW_DIR, "*.yml"))):
+    for path in workflow_files():
         with open(path, encoding="utf-8") as fh:
-            sites.extend(find_sites(os.path.basename(path), fh.read()))
+            sites.extend(find_sites(relative_name(path), fh.read()))
     return sites
+
+
+def scan_unrecognised():
+    """Return (file, line) for every unclassifiable mention across the files."""
+    found = []
+    for path in workflow_files():
+        with open(path, encoding="utf-8") as fh:
+            found.extend((relative_name(path), x) for x in find_unrecognised(fh.read()))
+    return found
+
+
+def allow_list_problems(sites):
+    """Return sites that differ from ALLOWED as an exact multiset."""
+    expected = Counter(dict.fromkeys(ALLOWED, 1))
+    actual = Counter(sites)
+    return actual - expected, expected - actual
 
 
 def test_scanner_finds_at_least_one_site():
     assert scan_workflows(), "no continue-on-error site found; scanner is broken"
 
 
-def test_every_site_is_allow_listed():
-    unlisted = [s for s in scan_workflows() if s not in ALLOWED]
-    assert not unlisted, f"continue-on-error not in ALLOWED: {unlisted}"
-
-
-def test_every_allowed_entry_still_occurs():
-    found = set(scan_workflows())
-    stale = [k for k in ALLOWED if k not in found]
-    assert not stale, f"ALLOWED entries with no matching site: {stale}"
+def test_sites_match_allow_list_exactly():
+    extra, missing = allow_list_problems(scan_workflows())
+    assert not extra, f"continue-on-error not in ALLOWED (or duplicated): {extra}"
+    assert not missing, f"ALLOWED entries with no matching site: {missing}"
 
 
 def test_every_reason_is_non_empty():
@@ -149,3 +198,56 @@ def test_nested_name_does_not_override_step_name():
 def test_scanner_ignores_explicit_false():
     sample = "- name: Keep\n  continue-on-error: false\n"
     assert find_sites("s.yml", sample) == []
+
+
+def _write(tmp_path, monkeypatch, relname, text):
+    wf = tmp_path / "workflows"
+    target = tmp_path / relname
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(text, encoding="utf-8")
+    monkeypatch.setattr(sys.modules[__name__], "WORKFLOW_DIR", str(wf))
+
+
+def test_yaml_extension_is_scanned(tmp_path, monkeypatch):
+    _write(
+        tmp_path,
+        monkeypatch,
+        "workflows/evil.yaml",
+        "- name: Sneaky\n  continue-on-error: true\n",
+    )
+    assert scan_workflows() == [("workflows/evil.yaml", "Sneaky")]
+
+
+def test_sites_are_keyed_by_path_not_basename(tmp_path, monkeypatch):
+    _write(
+        tmp_path,
+        monkeypatch,
+        "workflows/ci.yml",
+        "- name: Run mutants\n  continue-on-error: true\n",
+    )
+    assert scan_workflows() == [("workflows/ci.yml", "Run mutants")]
+
+
+def test_flow_mapping_spelling_fails_closed():
+    assert find_unrecognised("- name: x\n  {continue-on-error: true}\n")
+    assert find_unrecognised('- name: x\n  "continue-on-error": true\n')
+
+
+def test_plain_false_and_comments_are_recognised():
+    assert not find_unrecognised("- name: x\n  continue-on-error: false\n")
+    assert not find_unrecognised("  # continue-on-error: true\n")
+    assert not find_unrecognised("  continue-on-error: true\n")
+
+
+def test_real_tree_has_no_unrecognised_spelling():
+    assert not scan_unrecognised()
+
+
+def test_duplicate_site_with_allowed_key_is_rejected():
+    sample = (
+        "- name: Run mutants\n  continue-on-error: true\n"
+        "- name: Run mutants\n  continue-on-error: true\n"
+    )
+    key = ("workflows/mutation-testing.yml", "Run mutants")
+    extra, _ = allow_list_problems(find_sites(key[0], sample))
+    assert extra == {key: 1}
