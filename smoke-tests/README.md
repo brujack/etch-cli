@@ -9,8 +9,8 @@ Run these on the Proxmox VM in order. Snapshot before step 3 (packages).
 scp -r smoke-tests/ <user>@<vm-ip>:~/etch-smoke/
 
 # Build and copy the Linux x86_64 release binary (cross-compiled from Mac)
-make build-linux   # → ~/Downloads/etch-linux
-scp ~/Downloads/etch-linux <user>@<vm-ip>:~/bin/etch
+make build-linux   # → target/x86_64-unknown-linux-gnu/release/etch
+scp target/x86_64-unknown-linux-gnu/release/etch <user>@<vm-ip>:~/bin/etch
 ssh <user>@<vm-ip> "chmod +x ~/bin/etch"
 
 # Or build from source on the VM

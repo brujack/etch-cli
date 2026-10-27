@@ -82,6 +82,22 @@ Pinned values, each at least 14 days old on 2026-10-27 and checked against the p
 - R7 reviewed: delivered by PR B (#149), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs
 - finding R9 (2026-10-27, reviewer both): NOT-BUILT — Looked for Makefile changes to build/build-linux and a new install target copying to ${XDG_BIN_HOME:-$HOME/.local/bin}/etch; no Makefile change in the diff (the backlog row for it remains).
 - R9 reviewed: not in scope for PR C (plan Task 6, R8); delivered by PR D (plan Task 7) — the spec delivers in four ordered PRs
+- finding R1 (2026-10-27, reviewer both): NOT-BUILT — Looked for workflow continue-on-error changes and a test listing allowed sites with reasons; the diff touches no .github/workflows file and adds no such test (only tests/test_makefile.py).
+- R1 reviewed: delivered by PR A (#148), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs; this branch is PR D (R9)
+- finding R2 (2026-10-27, reviewer both): NOT-BUILT — Looked for changes unmasking the gitleaks and Snyk steps in a workflow; the diff contains no workflow file.
+- R2 reviewed: delivered by PR A (#148), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs; this branch is PR D (R9)
+- finding R3 (2026-10-27, reviewer both): NOT-BUILT — Looked for a .snyk file with an exclude naming tests/test_automerge_bot_hold.py and scripts/test_metrics.py; no .snyk file appears in the diff.
+- R3 reviewed: delivered by PR A (#148), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs; this branch is PR D (R9)
+- finding R4 (2026-10-27, reviewer both): NOT-BUILT — Looked for pinned, sha256sum -c verified downloads in workflows and an enforcing test; neither appears in the diff.
+- R4 reviewed: delivered by PR A (#148), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs; this branch is PR D (R9)
+- finding R5 (2026-10-27, reviewer both): NOT-BUILT — Looked for version validation (MAJOR.MINOR.PATCH, Cargo.toml match, no existing tag, refs/heads/main) in release.yml; release.yml is not in the diff.
+- R5 reviewed: delivered by PR B (#149), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs; this branch is PR D (R9)
+- finding R6 (2026-10-27, reviewer both): NOT-BUILT — Looked for release.yml pushing only the tag and a merge-base release-notes range; release.yml is not in the diff.
+- R6 reviewed: delivered by PR B (#149), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs; this branch is PR D (R9)
+- finding R7 (2026-10-27, reviewer both): NOT-BUILT — Looked for CHANGELOG.md deletion and a new ADR reversing ADR-0009's changelog clause; neither appears in the diff.
+- R7 reviewed: delivered by PR B (#149), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs; this branch is PR D (R9)
+- finding R8 (2026-10-27, reviewer both): NOT-BUILT — Looked for removal of cargo install from workflows, taiki-e/install-action pinned by SHA with tool: name@X.Y.Z and fallback: none, and an enforcing test; none appears in the diff.
+- R8 reviewed: delivered by PR C (#150), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs; this branch is PR D (R9)
 
 ## Spec alignment (2026-10-27)
 
@@ -94,14 +110,14 @@ Pinned values, each at least 14 days old on 2026-10-27 and checked against the p
 
 | ID | Reviewer | Verdict | Reason | Amendment |
 | --- | --- | --- | --- | --- |
-| R1 | both | NOT-BUILT | Looked for a test listing allowed continue-on-error sites with reasons and failing on unlisted or stale sites; none in the diff (release.yml still carries continue-on-error on 'Check semver compatibility' with no test). | - R1 reviewed: delivered by PR A (#148), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs |
-| R2 | both | NOT-BUILT | Looked for changes unmasking the gitleaks and Snyk steps in ci.yml; the diff's ci.yml hunks touch only tool installs and a loop variable. | - R2 reviewed: delivered by PR A (#148), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs |
-| R3 | both | NOT-BUILT | Looked for a .snyk file with an exclude naming tests/test_automerge_bot_hold.py and scripts/test_metrics.py; no .snyk appears in the diff. | - R3 reviewed: delivered by PR A (#148), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs |
-| R4 | both | NOT-BUILT | Looked for sha256sum -c verification of direct downloads and a test enforcing it; the diff adds neither (the shellcheck step appears only as unchanged context). | - R4 reviewed: delivered by PR A (#148), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs |
-| R5 | both | NOT-BUILT | Looked for a release.yml version-validation step (MAJOR.MINOR.PATCH, Cargo.toml parity, no existing tag, refs/heads/main); release.yml hunks only replace cargo install steps. | - R5 reviewed: delivered by PR B (#149), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs |
-| R6 | both | NOT-BUILT | Looked for release.yml changes pushing only the tag and scoping notes from git merge-base <previous tag> HEAD; none in the diff. | - R6 reviewed: delivered by PR B (#149), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs |
-| R7 | both | NOT-BUILT | Looked for CHANGELOG.md deletion and an ADR reversing ADR-0009's changelog clause; neither is in the diff (only a backlog row mentions ADR-0017). | - R7 reviewed: delivered by PR B (#149), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs |
-| R9 | both | NOT-BUILT | Looked for Makefile changes to build/build-linux and a new install target copying to ${XDG_BIN_HOME:-$HOME/.local/bin}/etch; no Makefile change in the diff (the backlog row for it remains). | - R9 reviewed: not in scope for PR C (plan Task 6, R8); delivered by PR D (plan Task 7) — the spec delivers in four ordered PRs |
+| R1 | both | NOT-BUILT | Looked for workflow continue-on-error changes and a test listing allowed sites with reasons; the diff touches no .github/workflows file and adds no such test (only tests/test_makefile.py). | - R1 reviewed: delivered by PR A (#148), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs; this branch is PR D (R9) |
+| R2 | both | NOT-BUILT | Looked for changes unmasking the gitleaks and Snyk steps in a workflow; the diff contains no workflow file. | - R2 reviewed: delivered by PR A (#148), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs; this branch is PR D (R9) |
+| R3 | both | NOT-BUILT | Looked for a .snyk file with an exclude naming tests/test_automerge_bot_hold.py and scripts/test_metrics.py; no .snyk file appears in the diff. | - R3 reviewed: delivered by PR A (#148), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs; this branch is PR D (R9) |
+| R4 | both | NOT-BUILT | Looked for pinned, sha256sum -c verified downloads in workflows and an enforcing test; neither appears in the diff. | - R4 reviewed: delivered by PR A (#148), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs; this branch is PR D (R9) |
+| R5 | both | NOT-BUILT | Looked for version validation (MAJOR.MINOR.PATCH, Cargo.toml match, no existing tag, refs/heads/main) in release.yml; release.yml is not in the diff. | - R5 reviewed: delivered by PR B (#149), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs; this branch is PR D (R9) |
+| R6 | both | NOT-BUILT | Looked for release.yml pushing only the tag and a merge-base release-notes range; release.yml is not in the diff. | - R6 reviewed: delivered by PR B (#149), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs; this branch is PR D (R9) |
+| R7 | both | NOT-BUILT | Looked for CHANGELOG.md deletion and a new ADR reversing ADR-0009's changelog clause; neither appears in the diff. | - R7 reviewed: delivered by PR B (#149), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs; this branch is PR D (R9) |
+| R8 | both | NOT-BUILT | Looked for removal of cargo install from workflows, taiki-e/install-action pinned by SHA with tool: name@X.Y.Z and fallback: none, and an enforcing test; none appears in the diff. | - R8 reviewed: delivered by PR C (#150), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs; this branch is PR D (R9) |
 
 ### Reviewed
 
@@ -124,6 +140,14 @@ Pinned values, each at least 14 days old on 2026-10-27 and checked against the p
 - R6 reviewed: delivered by PR B (#149), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs
 - R7 reviewed: delivered by PR B (#149), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs
 - R9 reviewed: not in scope for PR C (plan Task 6, R8); delivered by PR D (plan Task 7) — the spec delivers in four ordered PRs
+- R1 reviewed: delivered by PR A (#148), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs; this branch is PR D (R9)
+- R2 reviewed: delivered by PR A (#148), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs; this branch is PR D (R9)
+- R3 reviewed: delivered by PR A (#148), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs; this branch is PR D (R9)
+- R4 reviewed: delivered by PR A (#148), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs; this branch is PR D (R9)
+- R5 reviewed: delivered by PR B (#149), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs; this branch is PR D (R9)
+- R6 reviewed: delivered by PR B (#149), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs; this branch is PR D (R9)
+- R7 reviewed: delivered by PR B (#149), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs; this branch is PR D (R9)
+- R8 reviewed: delivered by PR C (#150), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs; this branch is PR D (R9)
 
 ### Verifications
 
