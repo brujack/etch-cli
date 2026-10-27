@@ -22,7 +22,10 @@ jobs:
           toolchain: stable
 
       - name: Install cargo-mutants
-        run: cargo install cargo-mutants --locked
+        uses: taiki-e/install-action@1168f6810a3cb30a3514bf5756a3b7f0422c6df8  # v2.87.28
+        with:
+          tool: cargo-mutants@27.1.0
+          fallback: none
 
       - name: Detect changed Rust files
         id: detect

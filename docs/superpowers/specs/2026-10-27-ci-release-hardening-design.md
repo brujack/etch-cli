@@ -66,6 +66,22 @@ Pinned values, each at least 14 days old on 2026-10-27 and checked against the p
 - R8 reviewed: not in scope for PR B (plan Tasks 4-5, R5-R7); delivered by PR C (plan Task 6) — the spec delivers in four ordered PRs
 - finding R9 (2026-10-27, reviewer both): NOT-BUILT — The Makefile hunks only drop the changelog target; build/build-linux output locations and a make install target copying to ${XDG_BIN_HOME:-$HOME/.local/bin}/etch are not in the diff.
 - R9 reviewed: not in scope for PR B; delivered by PR D (plan Task 7) — the spec delivers in four ordered PRs
+- finding R1 (2026-10-27, reviewer both): NOT-BUILT — Looked for a test listing allowed continue-on-error sites with reasons and failing on unlisted or stale sites; none in the diff (release.yml still carries continue-on-error on 'Check semver compatibility' with no test).
+- R1 reviewed: delivered by PR A (#148), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs
+- finding R2 (2026-10-27, reviewer both): NOT-BUILT — Looked for changes unmasking the gitleaks and Snyk steps in ci.yml; the diff's ci.yml hunks touch only tool installs and a loop variable.
+- R2 reviewed: delivered by PR A (#148), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs
+- finding R3 (2026-10-27, reviewer both): NOT-BUILT — Looked for a .snyk file with an exclude naming tests/test_automerge_bot_hold.py and scripts/test_metrics.py; no .snyk appears in the diff.
+- R3 reviewed: delivered by PR A (#148), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs
+- finding R4 (2026-10-27, reviewer both): NOT-BUILT — Looked for sha256sum -c verification of direct downloads and a test enforcing it; the diff adds neither (the shellcheck step appears only as unchanged context).
+- R4 reviewed: delivered by PR A (#148), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs
+- finding R5 (2026-10-27, reviewer both): NOT-BUILT — Looked for a release.yml version-validation step (MAJOR.MINOR.PATCH, Cargo.toml parity, no existing tag, refs/heads/main); release.yml hunks only replace cargo install steps.
+- R5 reviewed: delivered by PR B (#149), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs
+- finding R6 (2026-10-27, reviewer both): NOT-BUILT — Looked for release.yml changes pushing only the tag and scoping notes from git merge-base <previous tag> HEAD; none in the diff.
+- R6 reviewed: delivered by PR B (#149), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs
+- finding R7 (2026-10-27, reviewer both): NOT-BUILT — Looked for CHANGELOG.md deletion and an ADR reversing ADR-0009's changelog clause; neither is in the diff (only a backlog row mentions ADR-0017).
+- R7 reviewed: delivered by PR B (#149), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs
+- finding R9 (2026-10-27, reviewer both): NOT-BUILT — Looked for Makefile changes to build/build-linux and a new install target copying to ${XDG_BIN_HOME:-$HOME/.local/bin}/etch; no Makefile change in the diff (the backlog row for it remains).
+- R9 reviewed: not in scope for PR C (plan Task 6, R8); delivered by PR D (plan Task 7) — the spec delivers in four ordered PRs
 
 ## Spec alignment (2026-10-27)
 
@@ -78,12 +94,14 @@ Pinned values, each at least 14 days old on 2026-10-27 and checked against the p
 
 | ID | Reviewer | Verdict | Reason | Amendment |
 | --- | --- | --- | --- | --- |
-| R1 | both | NOT-BUILT | The diff only removes the stale ("workflows/release.yml", "Commit CHANGELOG") entry from ALLOWED in tests/test_continue_on_error.py (and the matching continue-on-error site in release.yml); the test's logic that fails on unlisted and on vanished listed sites is not in the diff, so there is no evidence here that it does either. | - R1 reviewed: delivered by PR A (#148, merged to main before this branch; tests/test_continue_on_error.py), so it is in the base, not this diff — the spec delivers in four ordered PRs |
-| R2 | both | NOT-BUILT | No change to the gitleaks or Snyk steps (no ci.yml hunk) appears in the diff. | - R2 reviewed: delivered by PR A (#148, merged); its CI run showed gitleaks and Snyk unmasked and passing — the spec delivers in four ordered PRs |
-| R3 | both | NOT-BUILT | Looked for a .snyk file with an exclude naming tests/test_automerge_bot_hold.py and scripts/test_metrics.py; none is in the diff. | - R3 reviewed: delivered by PR A (#148, merged; .snyk) — the spec delivers in four ordered PRs |
-| R4 | both | NOT-BUILT | No workflow download, sha256sum -c line, or test enforcing download pinning/verification appears in the diff. | - R4 reviewed: delivered by PR A (#148, merged; tests/test_workflow_downloads.py and the pinned ci.yml steps) — the spec delivers in four ordered PRs |
-| R8 | both | NOT-BUILT | Looked for removal of cargo install, taiki-e/install-action pinned by SHA with tool: <name>@<X.Y.Z> and fallback: none, and an enforcing test; none is in the diff. | - R8 reviewed: not in scope for PR B (plan Tasks 4-5, R5-R7); delivered by PR C (plan Task 6) — the spec delivers in four ordered PRs |
-| R9 | both | NOT-BUILT | The Makefile hunks only drop the changelog target; build/build-linux output locations and a make install target copying to ${XDG_BIN_HOME:-$HOME/.local/bin}/etch are not in the diff. | - R9 reviewed: not in scope for PR B; delivered by PR D (plan Task 7) — the spec delivers in four ordered PRs |
+| R1 | both | NOT-BUILT | Looked for a test listing allowed continue-on-error sites with reasons and failing on unlisted or stale sites; none in the diff (release.yml still carries continue-on-error on 'Check semver compatibility' with no test). | - R1 reviewed: delivered by PR A (#148), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs |
+| R2 | both | NOT-BUILT | Looked for changes unmasking the gitleaks and Snyk steps in ci.yml; the diff's ci.yml hunks touch only tool installs and a loop variable. | - R2 reviewed: delivered by PR A (#148), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs |
+| R3 | both | NOT-BUILT | Looked for a .snyk file with an exclude naming tests/test_automerge_bot_hold.py and scripts/test_metrics.py; no .snyk appears in the diff. | - R3 reviewed: delivered by PR A (#148), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs |
+| R4 | both | NOT-BUILT | Looked for sha256sum -c verification of direct downloads and a test enforcing it; the diff adds neither (the shellcheck step appears only as unchanged context). | - R4 reviewed: delivered by PR A (#148), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs |
+| R5 | both | NOT-BUILT | Looked for a release.yml version-validation step (MAJOR.MINOR.PATCH, Cargo.toml parity, no existing tag, refs/heads/main); release.yml hunks only replace cargo install steps. | - R5 reviewed: delivered by PR B (#149), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs |
+| R6 | both | NOT-BUILT | Looked for release.yml changes pushing only the tag and scoping notes from git merge-base <previous tag> HEAD; none in the diff. | - R6 reviewed: delivered by PR B (#149), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs |
+| R7 | both | NOT-BUILT | Looked for CHANGELOG.md deletion and an ADR reversing ADR-0009's changelog clause; neither is in the diff (only a backlog row mentions ADR-0017). | - R7 reviewed: delivered by PR B (#149), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs |
+| R9 | both | NOT-BUILT | Looked for Makefile changes to build/build-linux and a new install target copying to ${XDG_BIN_HOME:-$HOME/.local/bin}/etch; no Makefile change in the diff (the backlog row for it remains). | - R9 reviewed: not in scope for PR C (plan Task 6, R8); delivered by PR D (plan Task 7) — the spec delivers in four ordered PRs |
 
 ### Reviewed
 
@@ -98,6 +116,14 @@ Pinned values, each at least 14 days old on 2026-10-27 and checked against the p
 - R4 reviewed: delivered by PR A (#148, merged; tests/test_workflow_downloads.py and the pinned ci.yml steps) — the spec delivers in four ordered PRs
 - R8 reviewed: not in scope for PR B (plan Tasks 4-5, R5-R7); delivered by PR C (plan Task 6) — the spec delivers in four ordered PRs
 - R9 reviewed: not in scope for PR B; delivered by PR D (plan Task 7) — the spec delivers in four ordered PRs
+- R1 reviewed: delivered by PR A (#148), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs
+- R2 reviewed: delivered by PR A (#148), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs
+- R3 reviewed: delivered by PR A (#148), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs
+- R4 reviewed: delivered by PR A (#148), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs
+- R5 reviewed: delivered by PR B (#149), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs
+- R6 reviewed: delivered by PR B (#149), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs
+- R7 reviewed: delivered by PR B (#149), merged to main before this branch, so it is in the base, not this diff — the spec delivers in four ordered PRs
+- R9 reviewed: not in scope for PR C (plan Task 6, R8); delivered by PR D (plan Task 7) — the spec delivers in four ordered PRs
 
 ### Verifications
 
