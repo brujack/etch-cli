@@ -9,6 +9,10 @@ before anything uses it. Rules, per `run:` block containing a download:
 * a later line runs `sha256sum -c` naming that same path, and no line between
   the download and that check mentions the path.
 
+The scanner is deliberately strict and fails closed on unusual shapes: write a
+download as `curl -fsSL -o <path> <https url>` then
+`echo "<sha>  <path>" | sha256sum -c -`.
+
 Workflows are read as text (no PyYAML). To check against an older tree, call
 scan_workflows with a directory holding those workflows.
 """
@@ -81,13 +85,16 @@ def logical_lines(body):
     return joined
 
 
-VERIFY_RE = re.compile(r"\bsha256sum -c(?:\s+-)?\s*$")
+VERIFY_RE = re.compile(r"(?:^|\|)\s*sha256sum -c(?:\s+-)?\s*$")
+PIPE_RE = re.compile(r"(?<!\|)\|(?!\|)")
 GUARD_RE = re.compile(r"^\s*(?:if|while|until)\b|(?:^|\s)!\s|\|\||&|;")
 
 
 def mentions(path, line):
     """Return True if line names path as a whole token, not as a substring."""
-    return re.search(rf"(?<![\w./-]){re.escape(path)}(?![\w./-])", line) is not None
+    path = path.removeprefix("./")
+    pattern = rf"(?<![\w./-])(?:\./)?{re.escape(path)}(?![\w./-])"
+    return re.search(pattern, line) is not None
 
 
 def is_verifying(line, path):
@@ -109,7 +116,7 @@ def check_block(body):
     Any curl/wget line is a download, so a variable or http:// URL is flagged
     rather than skipped.
     """
-    lines = logical_lines(body)
+    lines = [x for x in logical_lines(body) if not x.startswith("#")]
     downloads = 0
     problems = []
     for idx, line in enumerate(lines):
@@ -120,7 +127,7 @@ def check_block(body):
             problems.append(f"no pinned https URL visible: {line}")
         if "/latest/" in line:
             problems.append(f"unpinned /latest/ URL: {line}")
-        if "|" in line:
+        if PIPE_RE.search(line):
             problems.append(f"download piped instead of saved: {line}")
         out = OUT_RE.search(line)
         if not out:
@@ -338,3 +345,32 @@ def test_earlier_problem_does_not_hide_later_missing_checksum():
     _, problems = check_block(bad_first)
     assert any("used before" in p for p in problems)
     assert any("/tmp/b" in p and "no sha256sum" in p for p in problems)
+
+
+D = "curl -fsSL -o /tmp/x https://e.com/v1/x"
+
+
+def test_comment_or_echoed_text_is_not_verification():
+    for fake in ("# /tmp/x sha256sum -c -", "echo /tmp/x sha256sum -c -"):
+        _, problems = check_block([D, fake])
+        assert problems, fake
+
+
+def test_relative_output_path_is_matched_with_or_without_dot_slash():
+    body = [
+        "curl -fsSL -o snyk https://e.com/v1/x",
+        "./snyk auth",
+        'echo "$S  snyk" | sha256sum -c -',
+    ]
+    assert any("used before" in p for p in check_block(body)[1])
+    good = [
+        "curl -fsSL -o ./snyk https://e.com/v1/x",
+        'echo "$S  snyk" | sha256sum -c -',
+        "./snyk auth",
+    ]
+    assert check_block(good) == (1, [])
+
+
+def test_or_exit_is_not_a_pipe():
+    body = [D + " || exit 1", 'echo "$S  /tmp/x" | sha256sum -c -']
+    assert check_block(body) == (1, [])
