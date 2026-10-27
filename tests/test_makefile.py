@@ -1,8 +1,11 @@
 """Tests for the Makefile build and install targets, using `make -n` only.
 
 `make -n` prints the recipe lines without running them, so nothing is built or
-installed. The Makefile's top-level `$(shell ...)` lines still run, but they only
-call `command -v` and `git ls-files`, so neither cargo nor rustup is needed.
+installed. The Makefile's top-level `$(shell ...)` lines still run. CARGO_NIGHTLY
+and NIGHTLY_BIN are set empty on the command line, which overrides their
+`$(shell rustup ...)` assignments: with HOME redirected, rustup takes about 7 s per
+call, so the remaining `$(shell ...)` lines (`command -v`, `git ls-files`) are the
+only ones that run, and neither cargo nor rustup is needed.
 The environment is constructed here: HOME points at a temp dir, git's exported
 variables and make's flag variables are removed, and XDG_BIN_HOME is set only by
 the test that wants it.
@@ -35,7 +38,7 @@ def _make_env(home, xdg_bin_home):
 def dry_run(target, home, xdg_bin_home=None):
     """Return the stdout lines of `make -n <target>`; fail if make fails or is silent."""
     result = subprocess.run(
-        ["make", "-n", "-C", ROOT, target],
+        ["make", "-n", "-C", ROOT, "CARGO_NIGHTLY=", "NIGHTLY_BIN=", target],
         env=_make_env(home, xdg_bin_home),
         capture_output=True,
         text=True,
