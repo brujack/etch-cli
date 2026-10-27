@@ -43,14 +43,35 @@ ALLOWED = {
 }
 
 
+ITEM_RE = re.compile(r"^(\s*)-\s")
+JOB_RE = re.compile(r"^  [A-Za-z0-9_-]+:\s*$")
+
+
 def find_sites(filename, text):
-    """Return (filename, nearest preceding name or None) for each site in text."""
+    """Return (filename, name of the enclosing step or job, or None) per site.
+
+    The name resets at every list item and job key, and only a `name:` at the
+    step's own key indent counts, so an unnamed step cannot inherit a neighbour's
+    name and a nested `name:` (e.g. under `with:`) cannot override the step's.
+    """
     sites = []
     current_name = None
+    key_indent = None
     for line in text.splitlines():
+        item = ITEM_RE.match(line)
+        if item:
+            current_name = None
+            key_indent = len(item.group(1)) + 2
+        elif JOB_RE.match(line):
+            current_name = None
+            key_indent = 4
         match = NAME_RE.match(line)
         if match:
-            current_name = match.group(2).strip("'\"")
+            indent = len(line) - len(line.lstrip())
+            if match.group(1):
+                indent += 2
+            if indent == key_indent:
+                current_name = match.group(2).strip("'\"")
         if SITE_RE.match(line):
             sites.append((filename, current_name))
     return sites
@@ -87,6 +108,42 @@ def test_every_reason_is_non_empty():
 def test_scanner_keys_unnamed_site_as_none():
     sample = "jobs:\n  x:\n    continue-on-error: true\n"
     assert find_sites("s.yml", sample) == [("s.yml", None)]
+
+
+def test_unnamed_step_does_not_inherit_previous_step_name():
+    sample = (
+        "steps:\n"
+        "  - name: Run mutants\n"
+        "    run: x\n"
+        "  - uses: some/action@v1\n"
+        "    continue-on-error: true\n"
+    )
+    assert find_sites("mutation-testing.yml", sample) == [
+        ("mutation-testing.yml", None)
+    ]
+
+
+def test_unnamed_job_does_not_inherit_previous_job_name():
+    sample = (
+        "jobs:\n"
+        "  a:\n"
+        "    name: Semver Check\n"
+        "    runs-on: x\n"
+        "  b:\n"
+        "    continue-on-error: true\n"
+    )
+    assert find_sites("ci.yml", sample) == [("ci.yml", None)]
+
+
+def test_nested_name_does_not_override_step_name():
+    sample = (
+        "steps:\n"
+        "  - name: Real\n"
+        "    with:\n"
+        "      name: nested\n"
+        "    continue-on-error: true\n"
+    )
+    assert find_sites("s.yml", sample) == [("s.yml", "Real")]
 
 
 def test_scanner_ignores_explicit_false():
