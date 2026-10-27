@@ -110,6 +110,40 @@ def is_verifying(line, path):
     )
 
 
+def check_download_line(line):
+    """Return (problems, output path or None) for one curl/wget line.
+
+    Checks the URL and output rules: a visible https URL, no `/latest/`, no pipe,
+    and an `-o`/`-O` file to verify later.
+    """
+    problems = []
+    if "https://" not in line:
+        problems.append(f"no pinned https URL visible: {line}")
+    if "/latest/" in line:
+        problems.append(f"unpinned /latest/ URL: {line}")
+    if PIPE_RE.search(line):
+        problems.append(f"download piped instead of saved: {line}")
+    out = OUT_RE.search(line)
+    if not out:
+        problems.append(f"download has no -o/-O output file: {line}")
+        return problems, None
+    return problems, out.group(1).strip("\"'")
+
+
+def check_checksum(path, line, later_lines):
+    """Return problems for the lines after a download of `path`.
+
+    The first later line that names the path must be the verifying one; if none
+    verifies it, the download is unchecked.
+    """
+    for later in later_lines:
+        if is_verifying(later, path):
+            return []
+        if mentions(path, later):
+            return [f"{path} used before checksum: {later}"]
+    return [f"no sha256sum -c naming {path}: {line}"]
+
+
 def check_block(body):
     """Return (number of downloads, list of rule violations) for one block.
 
@@ -123,29 +157,10 @@ def check_block(body):
         if not FETCH_RE.search(line):
             continue
         downloads += 1
-        if "https://" not in line:
-            problems.append(f"no pinned https URL visible: {line}")
-        if "/latest/" in line:
-            problems.append(f"unpinned /latest/ URL: {line}")
-        if PIPE_RE.search(line):
-            problems.append(f"download piped instead of saved: {line}")
-        out = OUT_RE.search(line)
-        if not out:
-            problems.append(f"download has no -o/-O output file: {line}")
-            continue
-        path = out.group(1).strip("\"'")
-        verified = False
-        used_early = False
-        for later in lines[idx + 1 :]:
-            if is_verifying(later, path):
-                verified = True
-                break
-            if mentions(path, later):
-                problems.append(f"{path} used before checksum: {later}")
-                used_early = True
-                break
-        if not verified and not used_early:
-            problems.append(f"no sha256sum -c naming {path}: {line}")
+        found, path = check_download_line(line)
+        problems.extend(found)
+        if path is not None:
+            problems.extend(check_checksum(path, line, lines[idx + 1 :]))
     return downloads, problems
 
 
