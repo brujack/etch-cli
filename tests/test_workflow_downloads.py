@@ -4,7 +4,7 @@ A `curl`/`wget` of a release binary runs whatever the server returns. Core rule
 ci-002 requires an exact version and `sha256sum -c` against the downloaded file
 before anything uses it. Rules, per `run:` block containing a download:
 
-* the URL has no `/latest/` segment;
+* the command names a literal `https://` URL with no `/latest/` segment;
 * the download writes to a file (`-o`, `-O`, `-qO`), never into a pipe;
 * a later line runs `sha256sum -c` naming that same path, and no line between
   the download and that check mentions the path.
