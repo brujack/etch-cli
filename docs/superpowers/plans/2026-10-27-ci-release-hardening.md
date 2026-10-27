@@ -1,5 +1,7 @@
 # CI and Release Hardening Implementation Plan
 
+> **Status: DONE** — delivered in four PRs: #148 (Tasks 1-3), #149 (Tasks 4-5), #150 (Task 6) and this one (Task 7); spec landed first as #147.
+
 spec: docs/superpowers/specs/2026-10-27-ci-release-hardening-design.md
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use subagent-driven-development to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
