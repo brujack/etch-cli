@@ -103,6 +103,11 @@ jobs:
           OUTPUT: /tmp/release-notes.md
           GITHUB_REPO: ${{ github.repository }}
 
+      - name: Require non-empty release notes
+        id: notes_check
+        run: |
+          [[ -s /tmp/release-notes.md ]] || { printf 'error: %s\n' 'release notes are empty; nothing releasable since the previous tag' >&2; exit 1; }
+
       - name: Create and push tag
         run: |
           git config user.name "github-actions[bot]"

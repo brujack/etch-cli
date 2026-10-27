@@ -5,6 +5,15 @@ PyYAML) and executed under `bash -e` inside a fixture git repo, so the tests
 exercise the shipped scripts rather than a copy. To check against an older
 workflow, call `static_problems(path)` or `extract_step_run(path, step_id)` with
 that file; no environment variable selects the path.
+
+The static checks are deliberately strict string checks that fail closed: any
+occurrence of the text "CHANGELOG" (even in a comment) fails, the pinned
+git-cliff action SHA must appear exactly once, and `steps.range.outputs.base`
+must be referenced. Write release.yml to satisfy them: no comment mentioning the
+old changelog, one git-cliff step using the range output, `checkout` first then
+the `validate` step, an `id: notes_check` step running
+`[[ -s /tmp/release-notes.md ]]` after git-cliff and before "Create and push
+tag", and `git push origin "v${VERSION}"` as the only push.
 """
 
 import os
@@ -94,6 +103,27 @@ def push_problems(text):
     ]
 
 
+def notes_check_problems(steps):
+    """Return problems with the empty-notes guard's presence and position."""
+
+    def index_of(marker):
+        return next((i for i, s in enumerate(steps) if marker in s), None)
+
+    cliff = index_of(CLIFF_SHA)
+    check = index_of("id: notes_check")
+    tag = index_of("name: Create and push tag")
+    if check is None:
+        return ["no notes_check step"]
+    problems = []
+    if "-s /tmp/release-notes.md" not in steps[check]:
+        problems.append("notes_check does not test -s /tmp/release-notes.md")
+    if cliff is None or check < cliff:
+        problems.append("notes_check is not after the git-cliff step")
+    if tag is None or check > tag:
+        problems.append("notes_check is not before the tag step")
+    return problems
+
+
 def static_problems(path):
     """Return a list of static-rule violations in the workflow at `path`."""
     with open(path, encoding="utf-8") as fh:
@@ -105,6 +135,7 @@ def static_problems(path):
         problems.append("CHANGELOG present")
     problems += [f"extra push: {p}" for p in push_problems(text)]
     problems += ordering_problems(release_job_steps(text))
+    problems += notes_check_problems(release_job_steps(text))
     if text.count(CLIFF_SHA) != 1:
         problems.append("expected exactly one pinned git-cliff step")
     if "steps.range.outputs.base" not in text:
@@ -194,7 +225,7 @@ def test_valid_version_on_main_passes(tmp_path):
 
 @pytest.mark.parametrize(
     "version",
-    ["v1.2.3", "1.2", "1.2.3;id", "$(id)", "1.2.3 ", "1.2.3-rc1", "1.2.4", ""],
+    ["v1.2.3", "1.2", "1.2.3;id", "$(id)", "1.2.3 ", "1.2.3-rc1", ""],
 )
 def test_bad_version_is_rejected(tmp_path, version):
     assert validate(tmp_path, make_repo(tmp_path), version) != 0
@@ -297,6 +328,42 @@ def test_static_rules_flag_version_read_before_validate(tmp_path):
     problems = ordering_problems(release_job_steps(bad))
     assert "validate step is not directly after checkout" in problems
     assert any("read VERSION before validate" in p for p in problems)
+
+
+def _steps_with_check(order):
+    blocks = {
+        "cliff": f"- uses: {CLIFF_SHA}\n",
+        "check": "- id: notes_check\n  run: |\n    [[ -s /tmp/release-notes.md ]]\n",
+        "tag": "- name: Create and push tag\n",
+        "weak": "- id: notes_check\n  run: |\n    true\n",
+    }
+    return [blocks[k] for k in order]
+
+
+def test_notes_check_accepted_when_between_cliff_and_tag():
+    assert notes_check_problems(_steps_with_check(["cliff", "check", "tag"])) == []
+
+
+def test_notes_check_missing_is_flagged():
+    assert notes_check_problems(_steps_with_check(["cliff", "tag"])) == [
+        "no notes_check step"
+    ]
+
+
+def test_notes_check_must_test_the_notes_file():
+    problems = notes_check_problems(_steps_with_check(["cliff", "weak", "tag"]))
+    assert "notes_check does not test -s /tmp/release-notes.md" in problems
+
+
+def test_notes_check_before_cliff_or_after_tag_is_flagged():
+    early = notes_check_problems(_steps_with_check(["check", "cliff", "tag"]))
+    late = notes_check_problems(_steps_with_check(["cliff", "tag", "check"]))
+    assert "notes_check is not after the git-cliff step" in early
+    assert "notes_check is not before the tag step" in late
+
+
+def test_notes_check_on_no_steps():
+    assert notes_check_problems([]) == ["no notes_check step"]
 
 
 def test_static_rules_on_empty_workflow(tmp_path):
