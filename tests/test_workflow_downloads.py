@@ -374,3 +374,7 @@ def test_relative_output_path_is_matched_with_or_without_dot_slash():
 def test_or_exit_is_not_a_pipe():
     body = [D + " || exit 1", 'echo "$S  /tmp/x" | sha256sum -c -']
     assert check_block(body) == (1, [])
+
+
+def test_comment_mentioning_curl_is_not_a_download():
+    assert check_block(["# curl is used below to fetch the binary"]) == (0, [])
