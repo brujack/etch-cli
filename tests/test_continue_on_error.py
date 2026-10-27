@@ -254,3 +254,19 @@ def test_duplicate_site_with_allowed_key_is_rejected():
     key = ("workflows/mutation-testing.yml", "Run mutants")
     extra, _ = allow_list_problems(find_sites(key[0], sample))
     assert extra == {key: 1}
+
+
+def test_empty_inputs_yield_no_sites():
+    assert find_sites("workflows/x.yml", "") == []
+    assert find_unrecognised("") == []
+
+
+def test_no_sites_reports_every_allowed_entry_missing():
+    extra, missing = allow_list_problems([])
+    assert not extra
+    assert set(missing) == set(ALLOWED)
+
+
+def test_empty_workflow_dir_yields_no_sites(tmp_path):
+    (tmp_path / "workflows").mkdir()
+    assert scan_workflows(str(tmp_path / "workflows")) == []

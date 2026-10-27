@@ -378,3 +378,13 @@ def test_or_exit_is_not_a_pipe():
 
 def test_comment_mentioning_curl_is_not_a_download():
     assert check_block(["# curl is used below to fetch the binary"]) == (0, [])
+
+
+def test_empty_inputs_yield_no_downloads():
+    assert check_block([]) == (0, [])
+    assert run_blocks("") == []
+
+
+def test_empty_workflow_dir_yields_no_downloads(tmp_path):
+    (tmp_path / "workflows").mkdir()
+    assert scan_workflows(str(tmp_path / "workflows")) == (0, [])
