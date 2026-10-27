@@ -16,6 +16,7 @@ older workflows to confirm the test fails against a pre-change tree.
 import glob
 import os
 import re
+import sys
 
 WORKFLOW_DIR = os.environ.get("DL_WORKFLOW_DIR", ".github/workflows")
 
@@ -25,7 +26,12 @@ OUT_RE = re.compile(r"(?:^|\s)-[A-Za-z]*[oO]\s+(\"[^\"]+\"|'[^']+'|\S+)")
 
 
 def run_blocks(text):
-    """Return the body of each `run:` block as a list of lines.
+    """Return the body of each `run:` block as a list of lines."""
+    return [body for _, body in run_block_spans(text)]
+
+
+def run_block_spans(text):
+    """Return (set of 0-based line numbers covered, body lines) per `run:` block.
 
     A block is the lines after a `run: |` key that are blank or indented deeper
     than the key; it ends at the first non-blank line at the key's indent or
@@ -45,9 +51,10 @@ def run_blocks(text):
         )
         rest = match.group(3)
         if rest and rest[0] not in "|>":
-            blocks.append([rest])
+            blocks.append(({i - 1}, [rest]))
             continue
         body = []
+        start = i - 1
         while i < len(lines):
             line = lines[i]
             indent = len(line) - len(line.lstrip())
@@ -55,7 +62,7 @@ def run_blocks(text):
                 break
             body.append(line)
             i += 1
-        blocks.append(body)
+        blocks.append((set(range(start, i)), body))
     return blocks
 
 
@@ -106,17 +113,52 @@ def check_block(body):
     return downloads, problems
 
 
+def unclassified_fetches(text):
+    """Return curl/wget lines that sit outside every parsed `run:` block.
+
+    Fail closed: a download hidden in a shape the block parser does not
+    understand (a `with: script:` value, a comment, an odd key) must be looked at
+    by a person, not skipped.
+    """
+    covered = set()
+    for lines, _ in run_block_spans(text):
+        covered |= lines
+    return [
+        line.strip()
+        for n, line in enumerate(text.splitlines())
+        if n not in covered and FETCH_RE.search(line)
+    ]
+
+
+def workflow_files():
+    """Return every workflow and composite-action file, .yml and .yaml."""
+    patterns = ["*.yml", "*.yaml"]
+    found = []
+    for pattern in patterns:
+        found += glob.glob(os.path.join(WORKFLOW_DIR, pattern))
+    if WORKFLOW_DIR == ".github/workflows":
+        for action in ("action.yml", "action.yaml"):
+            found += glob.glob(
+                os.path.join(".github", "actions", "**", action), recursive=True
+            )
+    return sorted(found)
+
+
 def scan_workflows():
-    """Return (download count, problems) across the workflow directory."""
+    """Return (download count, problems) across the workflow files."""
     total = 0
     problems = []
-    for path in sorted(glob.glob(os.path.join(WORKFLOW_DIR, "*.yml"))):
-        name = os.path.basename(path)
+    for path in workflow_files():
+        name = os.path.relpath(path, os.path.dirname(WORKFLOW_DIR) or ".")
         with open(path, encoding="utf-8") as fh:
-            for body in run_blocks(fh.read()):
-                count, found = check_block(body)
-                total += count
-                problems.extend(f"{name}: {p}" for p in found)
+            text = fh.read()
+        for body in run_blocks(text):
+            count, found = check_block(body)
+            total += count
+            problems.extend(f"{name}: {p}" for p in found)
+        problems.extend(
+            f"{name}: unclassified fetch: {x}" for x in unclassified_fetches(text)
+        )
     return total, problems
 
 
@@ -205,3 +247,25 @@ def test_block_ends_at_next_step_so_checksum_cannot_leak():
 def test_one_line_run_is_a_block():
     text = "- run: curl -fsSL -o /tmp/x https://example.com/v1/x\n- name: next\n"
     assert run_blocks(text) == [["curl -fsSL -o /tmp/x https://example.com/v1/x"]]
+
+
+def test_fetch_outside_a_run_block_fails_closed():
+    text = (
+        "steps:\n  - uses: x/y@v1\n    with:\n      script: curl https://e.com/x | sh\n"
+    )
+    assert unclassified_fetches(text)
+
+
+def test_fetch_inside_a_run_block_is_classified():
+    text = "steps:\n  - run: |\n      curl -fsSL -o /tmp/x https://e.com/x\n"
+    assert unclassified_fetches(text) == []
+
+
+def test_yaml_extension_is_scanned(tmp_path, monkeypatch):
+    bad = (
+        "jobs:\n  j:\n    steps:\n      - run: curl -fsSL https://e.com/latest/x | sh\n"
+    )
+    (tmp_path / "evil.yaml").write_text(bad, encoding="utf-8")
+    monkeypatch.setattr(sys.modules[__name__], "WORKFLOW_DIR", str(tmp_path))
+    total, problems = scan_workflows()
+    assert total == 1 and problems
