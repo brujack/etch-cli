@@ -22,12 +22,14 @@ import re
 WORKFLOW_DIR = ".github/workflows"
 ACTION_TAG = "v2.87.28"
 
+ACTION = "taiki-e/install-action"
 USES_RE = re.compile(
-    r"^(?P<indent>\s*(?:-\s+)?)uses:\s*taiki-e/install-action(?P<rest>.*)$"
+    r"^(?P<indent>\s*(?:-\s+)?)uses:\s*(?P<q>[\"']?)(?P<action>[^\s\"']*)(?P=q)(?P<tail>.*)$",
+    re.IGNORECASE,
 )
 REF_RE = re.compile(r"^@(?P<sha>[0-9a-f]{40})\s+#\s*(?P<tag>\S+)\s*$")
 TOOL_RE = re.compile(r"^[a-z0-9-]+@\d+\.\d+\.\d+$")
-CARGO_RE = re.compile(r"\bcargo\s+(?:install|binstall)\b")
+CARGO_RE = re.compile(r"\bcargo\b.*\b(?:install|binstall)\b")
 
 
 def workflow_files(workflow_dir=WORKFLOW_DIR):
@@ -105,14 +107,34 @@ def check_with(pairs):
     return problems, tools
 
 
-def check_ref(rest):
-    """Return problems for the text after `taiki-e/install-action`."""
-    match = REF_RE.match(rest)
+def check_ref(action, tail):
+    """Return problems for the action reference and the comment after it."""
+    if not action.startswith(ACTION + "@"):
+        return [f"action name is not exactly {ACTION}: {action}"]
+    match = REF_RE.match(action[len(ACTION) :] + tail)
     if not match:
-        return [f"ref is not a 40-hex SHA with a tag comment: {rest.strip()}"]
+        return [f"ref is not a 40-hex SHA with a tag comment: {action}{tail}"]
     if match.group("tag") != ACTION_TAG:
         return [f"tag comment {match.group('tag')} is not {ACTION_TAG}"]
     return []
+
+
+def is_install_action(action):
+    """Return True if a `uses:` value names install-action, in any letter case."""
+    return action.lower().startswith(ACTION)
+
+
+def stray_install_action(text):
+    """Return code lines naming install-action that no step parser examined."""
+    stray = []
+    for line in text.splitlines():
+        code = code_part(line)
+        match = USES_RE.match(code)
+        if "install-action" in code.lower() and not (
+            match and is_install_action(match.group("action"))
+        ):
+            stray.append(line.strip())
+    return stray
 
 
 def install_steps(text):
@@ -121,18 +143,27 @@ def install_steps(text):
     steps = []
     for n, line in enumerate(lines):
         match = USES_RE.match(line)
-        if not match:
+        if not match or not is_install_action(match.group("action")):
             continue
         key_indent = len(match.group("indent"))
         body = step_lines(lines, n, key_indent)
         problems, tools = check_with(with_block(body, key_indent))
-        steps.append((n + 1, check_ref(match.group("rest")) + problems, tools))
+        steps.append(
+            (
+                n + 1,
+                check_ref(match.group("action"), match.group("tail")) + problems,
+                tools,
+            )
+        )
     return steps
 
 
 def scan_text(text, name):
     """Return (step count, problems, {tool: versions}) for one file."""
     problems = [f"{name}: {p}" for p in cargo_install_problems(text)]
+    problems += [
+        f"{name}: unparsed install-action: {x}" for x in stray_install_action(text)
+    ]
     versions = {}
     steps = install_steps(text)
     for line_no, found, tools in steps:
@@ -206,7 +237,6 @@ def test_compliant_sample_passes():
 
 def test_dash_uses_form_passes():
     text = GOOD.replace("      - name: Install tools\n        uses", "      - uses")
-    text = text.replace("        with:", "        with:")
     assert problems_of(text) == []
 
 
@@ -288,6 +318,46 @@ def test_yaml_extension_is_scanned(tmp_path):
     (tmp_path / "w.yaml").write_text("      run: cargo install x\n")
     _, problems = scan_workflows(str(tmp_path))
     assert problems
+
+
+def test_cargo_flag_before_install_is_flagged():
+    assert problems_of("      run: cargo -q install foo\n")
+
+
+def test_cargo_toolchain_selector_before_install_is_flagged():
+    assert problems_of("      run: cargo +stable install foo\n")
+
+
+def test_quoted_uses_is_still_checked():
+    text = GOOD.replace(
+        f"uses: taiki-e/install-action@{SHA}", "uses: 'taiki-e/install-action@v2'"
+    )
+    assert any("40-hex" in p for p in problems_of(text))
+    text = GOOD.replace(
+        f"uses: taiki-e/install-action@{SHA}", 'uses: "taiki-e/install-action@v2"'
+    )
+    assert any("40-hex" in p for p in problems_of(text))
+
+
+def test_quoted_pinned_uses_passes():
+    text = GOOD.replace(
+        f"uses: taiki-e/install-action@{SHA}", f'uses: "taiki-e/install-action@{SHA}"'
+    )
+    assert problems_of(text) == []
+
+
+def test_differently_cased_owner_is_flagged():
+    text = GOOD.replace("taiki-e/install-action", "Taiki-E/install-action")
+    assert any("not exactly" in p for p in problems_of(text))
+
+
+def test_unparsed_install_action_mention_is_flagged():
+    text = "      - uses : taiki-e/install-action@v2\n"
+    assert any("unparsed install-action" in p for p in problems_of(text))
+
+
+def test_install_action_in_a_comment_is_ignored():
+    assert problems_of("      # taiki-e/install-action is pinned below\n") == []
 
 
 def test_empty_text_has_nothing_to_report():
