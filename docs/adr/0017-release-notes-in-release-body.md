@@ -31,6 +31,6 @@ The cosign and SHA-256 parts of ADR-0009 are unchanged.
 
 ## Related
 
-- ADR-0009 (amended by this ADR for its changelog clause)
+- ADR-0009 (its changelog clause is superseded by this ADR; the cosign and SHA-256 parts stand)
 - `docs/superpowers/specs/2026-10-27-ci-release-hardening-design.md` (R5-R7)
 - math#159, the same defect found in the math repo
