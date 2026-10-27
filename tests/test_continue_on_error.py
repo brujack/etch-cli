@@ -6,17 +6,17 @@ in ALLOWED with the reason it is safe, so adding a new mask is a reviewed
 decision in this file rather than a one-line change in a workflow.
 
 Workflows are read as text (no PyYAML). A site is keyed by (path relative to .github/, nearest
-preceding `name:` value). Point COE_WORKFLOW_DIR at a directory of older
-workflows to confirm the test fails against a pre-change tree.
+preceding `name:` value). To check against an older tree, call
+scan_workflows with a directory holding those workflows; the directory must be
+named `workflows` for the keys to match.
 """
 
 import glob
 import os
 import re
-import sys
 from collections import Counter
 
-WORKFLOW_DIR = os.environ.get("COE_WORKFLOW_DIR", ".github/workflows")
+WORKFLOW_DIR = ".github/workflows"
 
 SITE_RE = re.compile(r"^\s*continue-on-error:\s*(?!false\s*$)\S")
 MENTION_RE = re.compile(r"continue-on-error")
@@ -81,12 +81,12 @@ def find_sites(filename, text):
     return sites
 
 
-def workflow_files():
+def workflow_files(workflow_dir=WORKFLOW_DIR):
     """Return every workflow and composite-action file, .yml and .yaml."""
     found = []
     for pattern in ("*.yml", "*.yaml"):
-        found += glob.glob(os.path.join(WORKFLOW_DIR, pattern))
-    if WORKFLOW_DIR == ".github/workflows":
+        found += glob.glob(os.path.join(workflow_dir, pattern))
+    if workflow_dir == ".github/workflows":
         for action in ("action.yml", "action.yaml"):
             found += glob.glob(
                 os.path.join(".github", "actions", "**", action), recursive=True
@@ -94,9 +94,9 @@ def workflow_files():
     return sorted(found)
 
 
-def relative_name(path):
-    """Return the file's path relative to the directory above WORKFLOW_DIR."""
-    return os.path.relpath(path, os.path.dirname(WORKFLOW_DIR) or ".")
+def relative_name(path, workflow_dir=WORKFLOW_DIR):
+    """Return the file's path relative to the directory above workflow_dir."""
+    return os.path.relpath(path, os.path.dirname(workflow_dir) or ".")
 
 
 def find_unrecognised(text):
@@ -115,21 +115,24 @@ def find_unrecognised(text):
     ]
 
 
-def scan_workflows():
+def scan_workflows(workflow_dir=WORKFLOW_DIR):
     """Return every site across the workflow files."""
     sites = []
-    for path in workflow_files():
+    for path in workflow_files(workflow_dir):
         with open(path, encoding="utf-8") as fh:
-            sites.extend(find_sites(relative_name(path), fh.read()))
+            sites.extend(find_sites(relative_name(path, workflow_dir), fh.read()))
     return sites
 
 
-def scan_unrecognised():
+def scan_unrecognised(workflow_dir=WORKFLOW_DIR):
     """Return (file, line) for every unclassifiable mention across the files."""
     found = []
-    for path in workflow_files():
+    for path in workflow_files(workflow_dir):
         with open(path, encoding="utf-8") as fh:
-            found.extend((relative_name(path), x) for x in find_unrecognised(fh.read()))
+            found.extend(
+                (relative_name(path, workflow_dir), x)
+                for x in find_unrecognised(fh.read())
+            )
     return found
 
 
@@ -200,32 +203,31 @@ def test_scanner_ignores_explicit_false():
     assert find_sites("s.yml", sample) == []
 
 
-def _write(tmp_path, monkeypatch, relname, text):
+def _write(tmp_path, relname, text):
+    """Write text under tmp_path and return the workflows dir to scan."""
     wf = tmp_path / "workflows"
     target = tmp_path / relname
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(text, encoding="utf-8")
-    monkeypatch.setattr(sys.modules[__name__], "WORKFLOW_DIR", str(wf))
+    return str(wf)
 
 
-def test_yaml_extension_is_scanned(tmp_path, monkeypatch):
-    _write(
+def test_yaml_extension_is_scanned(tmp_path):
+    wf = _write(
         tmp_path,
-        monkeypatch,
         "workflows/evil.yaml",
         "- name: Sneaky\n  continue-on-error: true\n",
     )
-    assert scan_workflows() == [("workflows/evil.yaml", "Sneaky")]
+    assert scan_workflows(wf) == [("workflows/evil.yaml", "Sneaky")]
 
 
-def test_sites_are_keyed_by_path_not_basename(tmp_path, monkeypatch):
-    _write(
+def test_sites_are_keyed_by_path_not_basename(tmp_path):
+    wf = _write(
         tmp_path,
-        monkeypatch,
         "workflows/ci.yml",
         "- name: Run mutants\n  continue-on-error: true\n",
     )
-    assert scan_workflows() == [("workflows/ci.yml", "Run mutants")]
+    assert scan_workflows(wf) == [("workflows/ci.yml", "Run mutants")]
 
 
 def test_flow_mapping_spelling_fails_closed():

