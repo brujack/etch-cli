@@ -87,6 +87,16 @@ made the design correct arrived only after both sessions had spent a round on th
 human might use any of them; the defect was that CI inherited the venv's shape. A job simply
 had to stop installing what it does not run.
 
+## Amendment — 2026-10-28: `.claude/scripts/` is gone
+
+The Context's "`.claude/scripts/triage_log.py` run[s] in CI and in `make test`" and the expiry
+condition's "`scripts/` or `.claude/scripts/`" are out of date. ai-config#337 (ai-config
+ADR-0090) made the shared `~/.claude/scripts/triage_log.py` write to the calling repo's main
+checkout, so the vendored copy and its suite were deleted. `scripts/` is now the only Python
+source: ruff and pytest-cov are scoped to it, and the expiry condition reads `scripts/` alone.
+The 87% floor is kept from the earlier measurement; `scripts/` alone measured 94% locally on
+Python 3.14, and raising the floor waits for the CI figure on 3.13 (Backlog).
+
 ## Related
 
 - [ADR-0004](0004-ci-coverage-floor.md) — Rust coverage floor exception; same shape, different language
