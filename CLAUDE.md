@@ -174,7 +174,7 @@ Single workflow `.github/workflows/ci.yml`, triggers on `pull_request` to `main`
 
 | Job            | What it does                                                                                                                                                                                           |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `test`         | `ruff check scripts/ tests/` + `make test` (fmt check + clippy + cargo test) + `pytest` with Python coverage ≥87% + tarpaulin ≥81% (excluding jsonschemagen)                                           |
+| `test`         | `ruff check scripts/ tests/` + `make test` (fmt check + clippy + cargo test) + `pytest` with Python coverage ≥90% + tarpaulin ≥81% (excluding jsonschemagen)                                           |
 | `cargo-audit`  | **`cargo deny check advisories`** — reads `deny.toml`'s ignore list. **Blocking** (in `auto-merge` `needs:`). Despite the job name it does _not_ run `cargo audit`, which ignores `deny.toml` entirely |
 | `secret-scan`  | gitleaks v8.30.1, pinned and checksum-verified. **Blocking** (in `auto-merge` `needs:`) |
 | `snyk-scan`    | Snyk CLI v1.1308.0, pinned and checksum-verified; `.snyk` excludes two false-positive files. **Blocking** (in `auto-merge` `needs:`) |
@@ -202,9 +202,10 @@ disagree, trust the `needs:` list.
   current package count.
 - The hashed file cannot be mixed with extras: `pip install -r <hashed> extra-pkg` fails
   `--require-hashes`. A second dependency needs its own `pip install` line.
-- The 87% Python floor was set from a macOS run, which is valid only while `scripts/`
-  contains no platform-conditional branch. If a `sys.platform` guard or similar enters it,
-  re-derive the floor from CI output.
+- The 90% Python floor is the global target, under CI's measured 95.28% on 3.13 (run
+  40726750135). Read any change to it from CI output, never a local run: `scripts/test_metrics.py`
+  has a version-conditional zstd import, so 3.13 and 3.14 cover different lines.
+  `tests/test_coverage_floor.py` fails if the floor drops below 90 or drifts from the DoD line.
 - `scripts/pre-push` does not trigger on `scripts/*.py`, `ruff.toml` or `Makefile`. A push
   touching only those skips the local hook, and CI is the only gate.
 
@@ -254,7 +255,7 @@ gh pr create --repo brujack/etch-cli
 The universal DoD in `behavior.md` applies. etch-cli adds:
 
 - [ ] Rust coverage ≥81% on Linux CI — verify from CI output, not local macOS measurement (exception to global ≥90% — structurally uncoverable code)
-- [ ] Python coverage ≥87% (`--cov-fail-under=87`) — measured floor, not the 90% target
+- [ ] Python coverage ≥90% (`--cov-fail-under=90`)
 - [ ] Plan index updated (`docs/cursor/README.md`) if this PR implements a tracked spec
 - [ ] Action catalog updated in `README.md` if a new action was added
 - [ ] `examples/<action>/` updated when a new action or field variant is added — at minimum one `.yaml` per option combination, with inline comments on every field
