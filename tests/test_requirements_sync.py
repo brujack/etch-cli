@@ -247,6 +247,15 @@ class TestThresholdsAgreeWithCI(unittest.TestCase):
             f"ci.yml gates Python coverage at {gate[0]}% but CLAUDE.md claims {flat}.",
         )
 
+    def test_python_coverage_floor_is_at_least_90(self):
+        # A floor is only raised. 90 is the global target, set 2026-10-28
+        # from CI's 95.28% on Python 3.13 (run 40726750135).
+        gate = re.findall(r"--cov-fail-under=(\d+)", self.ci)
+        self.assertEqual(
+            len(gate), 1, f"expected one Python coverage gate, found {gate}"
+        )
+        self.assertGreaterEqual(int(gate[0]), 90)
+
     def test_rust_coverage_floor_matches_every_documented_figure(self):
         gate = re.findall(r"tarpaulin[^\n]*--fail-under (\d+)", self.ci)
         self.assertEqual(len(gate), 1, f"expected one tarpaulin gate, found {gate}")
