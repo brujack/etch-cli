@@ -11,7 +11,7 @@ import zipfile
 from unittest.mock import patch
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-from scripts.test_metrics import compute_slow, fetch_historical, parse_junit
+from scripts.test_metrics import compute_slow, fetch_historical, main, parse_junit
 
 # compression.zstd (and writable zipfile.ZIP_ZSTANDARD support) is 3.14+
 # only; CI runs 3.13. Guard the zstd-specific test rather than failing there.
@@ -444,6 +444,122 @@ class TestFetchHistorical(unittest.TestCase):
         ):
             with self.assertRaises(AttributeError):
                 fetch_historical("etch-cli")
+
+
+class TestMain(unittest.TestCase):
+    """main() writes test-metrics.json into the cwd, so every test runs in a tmpdir."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.dir = tmp.name
+        cwd = contextlib.chdir(self.dir)
+        cwd.__enter__()
+        self.addCleanup(cwd.__exit__, None, None, None)
+        self.out = os.path.join(self.dir, "test-metrics.json")
+
+    def _junit(self, content):
+        path = os.path.join(self.dir, "junit.xml")
+        with open(path, "w") as f:
+            f.write(content)
+        return path
+
+    def _run(self, argv, historical=()):
+        stdout, stderr = io.StringIO(), io.StringIO()
+        with (
+            patch.object(sys, "argv", ["test_metrics.py", *argv]),
+            patch(
+                "scripts.test_metrics.fetch_historical", return_value=list(historical)
+            ) as fetch,
+            contextlib.redirect_stdout(stdout),
+            contextlib.redirect_stderr(stderr),
+        ):
+            try:
+                main()
+            except SystemExit as e:
+                return fetch, stdout.getvalue(), stderr.getvalue(), e.code
+        return fetch, stdout.getvalue(), stderr.getvalue(), None
+
+    def _result(self):
+        with open(self.out) as f:
+            return json.load(f)
+
+    def test_missing_junit_exits_1_names_it_and_writes_nothing(self):
+        fetch, _, stderr, code = self._run(
+            ["--repo", "etch-cli", "--run-id", "7", "--junit", "absent.xml"]
+        )
+        self.assertEqual(code, 1)
+        self.assertIn("ERROR: absent.xml not found", stderr)
+        self.assertFalse(os.path.exists(self.out))
+        fetch.assert_not_called()
+
+    def test_writes_identity_stats_and_summary(self):
+        junit = self._junit(JUNIT_PASS)
+        _, stdout, _, code = self._run(
+            ["--repo", "etch-cli", "--run-id", "42", "--junit", junit]
+        )
+        self.assertIsNone(code)
+        result = self._result()
+        self.assertEqual(result["repo"], "etch-cli")
+        self.assertEqual(result["run_id"], "42")
+        self.assertEqual(result["runner"], "nextest")
+        self.assertEqual(result["stats"]["total"], 2)
+        self.assertEqual(result["flaky_tests"], [])
+        self.assertEqual(result["slow_tests"], [])
+        self.assertEqual(
+            result["all_timings"],
+            {"mod::tests.it_passes": 500.0, "mod::tests.it_is_slow": 1000.0},
+        )
+        self.assertEqual(stdout.strip(), "test-metrics.json: 2 tests, 0 flaky, 0 slow")
+
+    def test_empty_junit_writes_zero_totals(self):
+        junit = self._junit('<?xml version="1.0"?><testsuites/>')
+        _, stdout, _, _ = self._run(["--repo", "r", "--run-id", "1", "--junit", junit])
+        self.assertEqual(self._result()["stats"]["total"], 0)
+        self.assertEqual(stdout.strip(), "test-metrics.json: 0 tests, 0 flaky, 0 slow")
+
+    def test_passes_repo_and_artifact_name_to_history_fetch(self):
+        junit = self._junit(JUNIT_PASS)
+        fetch, _, _, _ = self._run(
+            [
+                *("--repo", "math", "--run-id", "1", "--junit", junit),
+                *("--artifact-name", "metrics-x"),
+            ]
+        )
+        fetch.assert_called_once_with("math", "metrics-x")
+
+    def test_history_marks_a_slow_test(self):
+        junit = self._junit(JUNIT_PASS)
+        history = [
+            {"all_timings": {"mod::tests.it_is_slow": ms}}
+            for ms in (10.0, 11.0, 9.0, 10.0)
+        ]
+        _, stdout, _, _ = self._run(
+            ["--repo", "etch-cli", "--run-id", "1", "--junit", junit], history
+        )
+        slow = self._result()["slow_tests"]
+        self.assertEqual([s["name"] for s in slow], ["mod::tests.it_is_slow"])
+        self.assertEqual(stdout.strip(), "test-metrics.json: 2 tests, 0 flaky, 1 slow")
+
+    def test_flaky_test_and_runner_override_reach_the_result(self):
+        junit = self._junit(JUNIT_FLAKY)
+        _, stdout, _, _ = self._run(
+            ["--repo", "r", "--run-id", "1", "--junit", junit, "--runner", "pytest"]
+        )
+        result = self._result()
+        self.assertEqual(result["runner"], "pytest")
+        self.assertEqual(
+            [t["name"] for t in result["flaky_tests"]], ["mod::tests.it_flakes"]
+        )
+        self.assertEqual(stdout.strip(), "test-metrics.json: 1 tests, 1 flaky, 0 slow")
+
+    def test_second_run_replaces_the_first_file(self):
+        self._run(["--repo", "a", "--run-id", "1", "--junit", self._junit(JUNIT_PASS)])
+        self._run(["--repo", "b", "--run-id", "2", "--junit", self._junit(JUNIT_FAIL)])
+        result = self._result()
+        self.assertEqual((result["repo"], result["run_id"]), ("b", "2"))
+        self.assertEqual(result["stats"]["total"], 1)
+        self.assertEqual(result["stats"]["failed"], 1)
 
 
 if __name__ == "__main__":

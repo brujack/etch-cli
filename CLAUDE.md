@@ -77,7 +77,7 @@ Read the matching file before the work it covers (paths relative to `~/git-repos
 
 - Before writing a manifest, or editing the `brew.bundle`, `package.install`, `package.repository` or `mas.install` actions, the config loader, or `lib/src/state/`: `etch-cli-manifest-authoring.md` (Homebrew/MAS workflow, machine-profile variables, `etch.yaml` keys, state manifest).
 - Before adding, renaming or documenting an action: `etch-cli-action-catalog.md`.
-- Before changing the Python coverage floor, the ruff scope, the `requirements-ci-test.txt` install, the `auto-merge` `needs:` list, `scripts/pre-push`, or `.claude/scripts/triage_log.py`: `etch-cli-ci-python-tooling.md`.
+- Before changing the Python coverage floor, the ruff scope, the `requirements-ci-test.txt` install, the `auto-merge` `needs:` list, or `scripts/pre-push`: `etch-cli-ci-python-tooling.md`.
 - Before triaging a `cargo audit` or `cargo deny` advisory: `etch-cli-cargo-deny-vs-audit.md`.
 
 ## Quick Reference
@@ -162,8 +162,6 @@ cargo test -p etch-cli                                              # integratio
 cargo tarpaulin --exclude-files 'jsonschemagen/*' --fail-under 81  # coverage (matches CI)
 ```
 
-**Invoke the vendored `.claude/scripts/triage_log.py`, never `~/.claude/scripts/triage_log.py`.** The home-path copy writes this repo's triage log into ai-config. Paired suite: `tests/test_triage_log.py`. `cost_log.py`, `cost_summary.py` and `dod_log.py` are correct to invoke from `~/.claude/scripts/`.
-
 **Benchmarks must name their Criterion target** — `cargo bench -p etch-lib --bench etch_lib`. A bare
 `cargo bench` also runs the lib's default libtest harness, which rejects `--output-format bencher` and aborts
 before any benchmark runs. See #124.
@@ -176,7 +174,7 @@ Single workflow `.github/workflows/ci.yml`, triggers on `pull_request` to `main`
 
 | Job            | What it does                                                                                                                                                                                           |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `test`         | `ruff check scripts/ tests/ .claude/scripts/` + `make test` (fmt check + clippy + cargo test) + `pytest` with Python coverage ≥87% + tarpaulin ≥81% (excluding jsonschemagen)                          |
+| `test`         | `ruff check scripts/ tests/` + `make test` (fmt check + clippy + cargo test) + `pytest` with Python coverage ≥87% + tarpaulin ≥81% (excluding jsonschemagen)                                           |
 | `cargo-audit`  | **`cargo deny check advisories`** — reads `deny.toml`'s ignore list. **Blocking** (in `auto-merge` `needs:`). Despite the job name it does _not_ run `cargo audit`, which ignores `deny.toml` entirely |
 | `secret-scan`  | gitleaks v8.30.1, pinned and checksum-verified. **Blocking** (in `auto-merge` `needs:`) |
 | `snyk-scan`    | Snyk CLI v1.1308.0, pinned and checksum-verified; `.snyk` excludes two false-positive files. **Blocking** (in `auto-merge` `needs:`) |
@@ -196,17 +194,17 @@ disagree, trust the `needs:` list.
 - ruff, pytest and pytest-cov install from `requirements-ci-test.txt` **before** `Run tests`,
   because `make lint` invokes ruff. An install ordered after it fails every PR and blocks
   auto-merge.
-- `ruff check` and `ruff format --check` both run, scoped to `scripts/ tests/ .claude/scripts/`
-  and never the repo root. Rule set: `ruff.toml`.
+- `ruff check` and `ruff format --check` both run, scoped to `scripts/ tests/` and
+  never the repo root. Rule set: `ruff.toml`.
 - Keep `requirements-ci-test.txt` byte-identical to dotfiles master and never add a local
   header. `diff requirements-ci-test.txt ~/git-repos/personal/dotfiles/requirements-ci-test.txt`
   is the staleness check; `grep -cE '^[A-Za-z0-9._-]+==' requirements-ci-test.txt` gives the
   current package count.
 - The hashed file cannot be mixed with extras: `pip install -r <hashed> extra-pkg` fails
   `--require-hashes`. A second dependency needs its own `pip install` line.
-- The 87% Python floor was set from a macOS run, which is valid only while `scripts/` and
-  `.claude/scripts/` contain no platform-conditional branch. If a `sys.platform` guard or
-  similar enters either directory, re-derive the floor from CI output.
+- The 87% Python floor was set from a macOS run, which is valid only while `scripts/`
+  contains no platform-conditional branch. If a `sys.platform` guard or similar enters it,
+  re-derive the floor from CI output.
 - `scripts/pre-push` does not trigger on `scripts/*.py`, `ruff.toml` or `Makefile`. A push
   touching only those skips the local hook, and CI is the only gate.
 

@@ -20,8 +20,8 @@ lint:
 	cargo fmt --all -- --check
 	cargo clippy --all-targets -- -D warnings
 	cargo machete
-	ruff check scripts/ tests/ .claude/scripts/
-	ruff format --check scripts/ tests/ .claude/scripts/
+	ruff check scripts/ tests/
+	ruff format --check scripts/ tests/
 	@if [ -z "$(SHELL_FILES)" ]; then \
 	  printf 'lint: derived shell file list is EMPTY — refusing to report a pass having linted nothing.\n' >&2; \
 	  exit 1; \
