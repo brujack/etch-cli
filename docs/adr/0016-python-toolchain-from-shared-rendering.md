@@ -97,6 +97,13 @@ source: ruff and pytest-cov are scoped to it, and the expiry condition reads `sc
 The 87% floor is kept from the earlier measurement; `scripts/` alone measured 94% locally on
 Python 3.14, and raising the floor waits for the CI figure on 3.13 (Backlog).
 
+## Amendment — 2026-10-28: the floor is 90%
+
+The Decision's "measured 87%" and the 2026-10-28 amendment's "raising the floor waits for the CI
+figure on 3.13" are superseded. CI measured 95.28% on `scripts/` under Python 3.13 (run
+40726750135), so the floor is now 90%, the global target. `tests/test_requirements_sync.py`
+fails if it drops below 90.
+
 ## Related
 
 - [ADR-0004](0004-ci-coverage-floor.md) — Rust coverage floor exception; same shape, different language

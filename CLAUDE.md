@@ -205,7 +205,7 @@ disagree, trust the `needs:` list.
 - The 90% Python floor is the global target, under CI's measured 95.28% on 3.13 (run
   40726750135). Read any change to it from CI output, never a local run: `scripts/test_metrics.py`
   has a version-conditional zstd import, so 3.13 and 3.14 cover different lines.
-  `tests/test_coverage_floor.py` fails if the floor drops below 90 or drifts from the DoD line.
+  `tests/test_requirements_sync.py` fails if the floor drops below 90 or drifts from this file.
 - `scripts/pre-push` does not trigger on `scripts/*.py`, `ruff.toml` or `Makefile`. A push
   touching only those skips the local hook, and CI is the only gate.
 

@@ -64,8 +64,8 @@ jobs:
         run: make lint && cargo nextest run --profile ci
       - name: Run Python tests
         # 90% is the global target, below this job's measured 95.28% on 3.13
-        # (run 40726750135). tests/test_coverage_floor.py keeps it at or above
-        # 90 and in step with the CLAUDE.md DoD line.
+        # (run 40726750135). tests/test_requirements_sync.py keeps it at or
+        # above 90 and in step with CLAUDE.md.
         run: pytest tests/ -v --cov=scripts --cov-report=term --cov-fail-under=90
       - name: Generate test metrics
         if: always()
