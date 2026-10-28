@@ -426,7 +426,7 @@ fields; deriving `Debug` on either would print the secret.
 Prerequisites:
 
 - `pip install -r requirements-ci-test.txt` — Python lint and test toolchain, supplying both
-  `ruff` (`make lint` runs `ruff check scripts/ tests/ .claude/scripts/`) and `pytest`
+  `ruff` (`make lint` runs `ruff check scripts/ tests/`) and `pytest`
   (`make test` runs `pytest tests/ -v`). Without these on PATH, `make lint`, `make test`,
   and the pre-push hook all fail. The file is a hash-verified rendering of the shared
   dev-venv package set, kept byte-identical to its source in dotfiles

@@ -63,11 +63,10 @@ jobs:
       - name: Run tests
         run: make lint && cargo nextest run --profile ci
       - name: Run Python tests
-        # Coverage floor is the MEASURED figure (87%), not the 90% target — a
-        # floor set to an aspiration fails its own first PR. Gap is
-        # scripts/test_metrics.py at 79% (22 uncovered statements); raising it
-        # is a separate change with its own tests.
-        run: pytest tests/ -v --cov=scripts --cov=.claude/scripts --cov-report=term --cov-fail-under=87
+        # Coverage floor is a MEASURED figure (87%), not the 90% target — a
+        # floor set to an aspiration fails its own first PR. scripts/ is the
+        # only Python source left; it measured 94% once main() got tests.
+        run: pytest tests/ -v --cov=scripts --cov-report=term --cov-fail-under=87
       - name: Generate test metrics
         if: always()
         env:
