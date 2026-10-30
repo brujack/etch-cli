@@ -180,7 +180,9 @@ Single workflow `.github/workflows/ci.yml`, triggers on `pull_request` to `main`
 
 | Job            | What it does                                                                                                                                                                                           |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `test`         | `ruff check scripts/ tests/` + `make test` (fmt check + clippy + cargo test) + `pytest` with Python coverage ≥90% + tarpaulin ≥81% (excluding jsonschemagen)                                           |
+| `test`         | `ruff check scripts/ tests/` + `make lint` + `cargo nextest run` + `pytest` with Python coverage ≥90% |
+| `coverage`     | tarpaulin ≥81% (excluding jsonschemagen) and the coverage badge. Its own job so it runs beside `test`. **Blocking** (in `auto-merge` `needs:`) |
+| `coverage-network` | tarpaulin with `--include-ignored` (network tests). Informational: job-level `continue-on-error: true`, not in `needs:` |
 | `cargo-audit`  | **`cargo deny check advisories`** — reads `deny.toml`'s ignore list. **Blocking** (in `auto-merge` `needs:`). Despite the job name it does _not_ run `cargo audit`, which ignores `deny.toml` entirely |
 | `secret-scan`  | gitleaks v8.30.1, pinned and checksum-verified. **Blocking** (in `auto-merge` `needs:`)                                                                                                                |
 | `snyk-scan`    | Snyk CLI v1.1308.0, pinned and checksum-verified; `.snyk` excludes two false-positive files. **Blocking** (in `auto-merge` `needs:`)                                                                   |
@@ -190,8 +192,8 @@ Single workflow `.github/workflows/ci.yml`, triggers on `pull_request` to `main`
 | `auto-merge`   | Squash-merges the PR when all required jobs pass                                                                                                                                                       |
 
 **Which jobs block.** Every job in `auto-merge`'s
-`needs: [test, cargo-audit, secret-scan, snyk-scan, docs-lint, docs-build]` blocks the merge.
-`semver-check` is the only non-blocking job: it needs both `continue-on-error: true` **and**
+`needs: [test, coverage, cargo-audit, secret-scan, snyk-scan, docs-lint, docs-build]` blocks the merge.
+`semver-check` and `coverage-network` are the non-blocking jobs: each needs both `continue-on-error: true` **and**
 absence from `needs:`, and either alone is insufficient. A new `continue-on-error` anywhere in `.github/` also needs an entry in `ALLOWED` in `tests/test_continue_on_error.py`, which fails on any unlisted site. If this table and the `needs:` list
 disagree, trust the `needs:` list.
 

@@ -25,7 +25,7 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
     steps:
       - uses: actions/checkout@v6
       - name: Install Rust stable
@@ -84,6 +84,20 @@ jobs:
           name: test-metrics
           path: test-metrics.json
           retention-days: 90
+
+  # The tarpaulin runs are their own jobs so they run beside `test` on separate
+  # runners instead of after it: each is a full instrumented build and test run
+  # (about 5 minutes apiece on PR #156), and in one job the three ran serially.
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - name: Install cargo-tarpaulin
         uses: taiki-e/install-action@1168f6810a3cb30a3514bf5756a3b7f0422c6df8  # v2.87.28
         with:
@@ -120,9 +134,25 @@ jobs:
             git push origin coverage-data && break
             sleep $((RANDOM % 5 + 1))
           done
-      - name: Coverage with network tests (informational)
+
+  coverage-network:
+    name: Coverage with network tests (informational)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Install cargo-tarpaulin
+        uses: taiki-e/install-action@1168f6810a3cb30a3514bf5756a3b7f0422c6df8  # v2.87.28
+        with:
+          tool: cargo-tarpaulin@0.37.5
+          fallback: none
+      - name: Coverage with network tests
         run: cargo tarpaulin --exclude-files 'jsonschemagen/*' -- --include-ignored
-        continue-on-error: true
 
   cargo-audit:
     name: Cargo Audit
@@ -236,7 +266,7 @@ jobs:
   auto-merge:
     name: Auto Merge
     runs-on: ubuntu-latest
-    needs: [test, cargo-audit, secret-scan, snyk-scan, docs-lint, docs-build]
+    needs: [test, coverage, cargo-audit, secret-scan, snyk-scan, docs-lint, docs-build]
     if: github.event_name == 'pull_request'
     permissions:
       contents: write
