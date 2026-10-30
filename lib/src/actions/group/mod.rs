@@ -9,7 +9,9 @@ use tracing::debug;
 
 #[derive(JsonSchema, Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Group {
+    /// Defaults to the host's provider.
     #[serde(default)]
+    #[schemars(transform = crate::utilities::without_default)]
     provider: GroupProviders,
 
     #[serde(default)]
@@ -21,7 +23,9 @@ pub struct Group {
 
 #[derive(JsonSchema, Clone, Debug, Default, Serialize, Deserialize)]
 pub struct GroupVariant {
+    /// Defaults to the host's provider.
     #[serde(default)]
+    #[schemars(transform = crate::utilities::without_default)]
     provider: GroupProviders,
 
     #[serde(default)]

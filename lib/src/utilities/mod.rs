@@ -24,6 +24,14 @@ pub fn get_privilege_provider(contexts: &Contexts) -> Option<String> {
     None
 }
 
+/// Drops a field's `default` from the JSON Schema. schemars evaluates a serde
+/// default while it builds the schema, so a default computed from the host
+/// (its cwd or OS) would otherwise be published as a fixed value that differs
+/// by the machine generating the schema.
+pub(crate) fn without_default(schema: &mut Schema) {
+    schema.remove("default");
+}
+
 #[derive(Eq, PartialEq, Debug, Clone, Default, Serialize, Deserialize, PartialOrd, Ord)]
 pub struct CustomPathBuf(pub Utf8PathBuf);
 
@@ -51,6 +59,17 @@ mod tests {
     use crate::config::Config;
     use crate::contexts::Contexts;
     use std::collections::BTreeMap;
+
+    #[test]
+    fn without_default_removes_only_the_default() {
+        let mut schema = schemars::json_schema!({"type": "string", "default": "/home/x"});
+        without_default(&mut schema);
+        assert_eq!(schema, schemars::json_schema!({"type": "string"}));
+
+        // Idempotent, and a schema without a default is left unchanged.
+        without_default(&mut schema);
+        assert_eq!(schema, schemars::json_schema!({"type": "string"}));
+    }
 
     #[test]
     fn get_binary_path_for_existing_command() {

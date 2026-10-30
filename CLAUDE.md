@@ -89,6 +89,7 @@ make build         # cargo build --release → target/release/etch (macOS aarch6
 make build-linux   # cargo zigbuild → target/x86_64-unknown-linux-gnu/release/etch
 make install       # build, then copy target/release/etch to ${XDG_BIN_HOME:-$HOME/.local/bin}/etch
 make docs-debt     # count undocumented public items (missing_docs is at allow, not warn)
+make schema        # regenerate jsonschemagen/schema.json (attached to each release as etch-schema.json)
 make install-hooks # install pre-commit and pre-push hooks (run once per checkout)
 ```
 
@@ -155,6 +156,11 @@ To update insta snapshots: `INSTA_UPDATE=new cargo test --test snapshots`, then 
 
 **Adding a new subcommand changes `etch --help` output** — this breaks the `help` snapshot test. Always run `INSTA_UPDATE=new cargo test --test snapshots && cargo insta accept` after registering any new subcommand in `Commands`.
 
+**Changing any action or manifest field changes `jsonschemagen/schema.json`**, and
+`jsonschemagen/tests/schema_current.rs` fails until you run `make schema` and commit the result. A serde
+default computed from the host (cwd, OS) must carry `#[schemars(transform = crate::utilities::without_default)]`,
+or the schema differs by the machine generating it.
+
 ```bash
 cargo test                                                          # all tests
 cargo test -p etch-lib                                              # lib only
@@ -176,8 +182,8 @@ Single workflow `.github/workflows/ci.yml`, triggers on `pull_request` to `main`
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `test`         | `ruff check scripts/ tests/` + `make test` (fmt check + clippy + cargo test) + `pytest` with Python coverage ≥90% + tarpaulin ≥81% (excluding jsonschemagen)                                           |
 | `cargo-audit`  | **`cargo deny check advisories`** — reads `deny.toml`'s ignore list. **Blocking** (in `auto-merge` `needs:`). Despite the job name it does _not_ run `cargo audit`, which ignores `deny.toml` entirely |
-| `secret-scan`  | gitleaks v8.30.1, pinned and checksum-verified. **Blocking** (in `auto-merge` `needs:`) |
-| `snyk-scan`    | Snyk CLI v1.1308.0, pinned and checksum-verified; `.snyk` excludes two false-positive files. **Blocking** (in `auto-merge` `needs:`) |
+| `secret-scan`  | gitleaks v8.30.1, pinned and checksum-verified. **Blocking** (in `auto-merge` `needs:`)                                                                                                                |
+| `snyk-scan`    | Snyk CLI v1.1308.0, pinned and checksum-verified; `.snyk` excludes two false-positive files. **Blocking** (in `auto-merge` `needs:`)                                                                   |
 | `docs-lint`    | Lints mdbook docs                                                                                                                                                                                      |
 | `docs-build`   | Builds mdbook docs                                                                                                                                                                                     |
 | `semver-check` | `cargo semver-checks` vs `origin/main` baseline (advisory, `continue-on-error: true`, not in auto-merge needs)                                                                                         |

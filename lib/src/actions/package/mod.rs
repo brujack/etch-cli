@@ -24,7 +24,9 @@ pub struct Package {
     #[serde(default)]
     list: Vec<String>,
 
+    /// Defaults to `apt` on Ubuntu and `brew` on macOS; other hosts must set it.
     #[serde(default)]
+    #[schemars(transform = crate::utilities::without_default)]
     provider: PackageProviders,
 
     #[serde(default)]
@@ -55,7 +57,9 @@ pub struct PackageVariant {
     #[serde(default)]
     list: Vec<String>,
 
+    /// Defaults to `apt` on Ubuntu and `brew` on macOS; other hosts must set it.
     #[serde(default)]
+    #[schemars(transform = crate::utilities::without_default)]
     provider: PackageProviders,
 
     #[serde(default)]

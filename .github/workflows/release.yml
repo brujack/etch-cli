@@ -123,6 +123,11 @@ jobs:
           (cd target/release && sha256sum etch) > target/release/etch.sha256
           cat target/release/etch.sha256
 
+      # make test above fails while the committed schema is stale, so this is
+      # the schema for exactly this release's actions.
+      - name: Stage manifest schema
+        run: cp jsonschemagen/schema.json target/release/etch-schema.json
+
       - name: Create GitHub release
         uses: softprops/action-gh-release@v3
         with:
@@ -132,6 +137,7 @@ jobs:
           files: |
             target/release/etch
             target/release/etch.sha256
+            target/release/etch-schema.json
 
   sign:
     needs: [release]

@@ -16,7 +16,9 @@ pub struct UserAddGroup {
     #[serde(default)]
     pub group: Vec<String>,
 
+    /// Defaults to the host's provider.
     #[serde(default)]
+    #[schemars(transform = crate::utilities::without_default)]
     pub provider: UserProviders,
 }
 

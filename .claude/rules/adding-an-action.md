@@ -28,6 +28,8 @@ Every new action requires changes in exactly these places:
    `names.contains` assertion in the display test
 5. **Add `examples/<name>/<name>-install.yaml`** with one entry per option combination
 6. **Update the action table in `README.md`** and `etch-cli-action-catalog.md` in ai-config
+7. **Run `make schema`** and commit `jsonschemagen/schema.json` — `schema_current.rs` fails
+   until the committed schema names the new action
 
 Missing any step produces a compile error (missing match arm) or a test failure (incorrect
 variant count).
