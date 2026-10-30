@@ -11,8 +11,11 @@ pub(crate) use plugin_update::ClaudePluginUpdate;
 pub(crate) use upgrade::ClaudeUpgrade;
 
 /// Parse installed plugin tokens from `claude plugins list` stdout.
-/// Returns full `name@marketplace` tokens from lines starting with `❯ `.
+/// Returns full `name@marketplace` tokens from lines starting with `❯ `, each
+/// once in first-seen order: the list prints one entry per scope and per
+/// project, so one plugin can appear hundreds of times.
 pub(crate) fn parse_plugin_list(output: &str) -> Vec<String> {
+    let mut seen = std::collections::HashSet::new();
     output
         .lines()
         .filter_map(|line| {
@@ -22,6 +25,7 @@ pub(crate) fn parse_plugin_list(output: &str) -> Vec<String> {
                 .map(|rest| rest.trim().to_string())
                 .filter(|s| !s.is_empty())
         })
+        .filter(|token| seen.insert(token.clone()))
         .collect()
 }
 
@@ -41,6 +45,29 @@ pub(crate) fn parse_marketplace_list(output: &str) -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use proptest::prelude::*;
+
+    proptest! {
+        #[test]
+        fn parse_yields_each_listed_token_once_in_first_seen_order(
+            picks in proptest::collection::vec(0usize..4, 0..40),
+        ) {
+            let names = ["a@m", "b@m", "c@n", "d@n"];
+            let output: String = picks
+                .iter()
+                .map(|&i| format!("  ❯ {}\n    Scope: project\n\n", names[i]))
+                .collect();
+
+            let mut expected: Vec<&str> = Vec::new();
+            for &i in &picks {
+                if !expected.contains(&names[i]) {
+                    expected.push(names[i]);
+                }
+            }
+
+            prop_assert_eq!(parse_plugin_list(&output), expected);
+        }
+    }
 
     #[test]
     fn parse_returns_full_tokens_from_list_output() {
@@ -53,6 +80,15 @@ mod tests {
                 "context7@upstash-context7"
             ]
         );
+    }
+
+    #[test]
+    fn parse_lists_a_plugin_installed_in_several_scopes_once() {
+        // `claude plugins list` prints one entry per scope and project, so the
+        // same token repeats; each must come back once, in first-seen order.
+        let output = "❯ caveman@caveman\n    Scope: project\n❯ foo@bar\n❯ caveman@caveman\n    Scope: user\n❯ foo@bar\n❯ caveman@caveman\n";
+        let tokens = parse_plugin_list(output);
+        assert_eq!(tokens, vec!["caveman@caveman", "foo@bar"]);
     }
 
     #[test]

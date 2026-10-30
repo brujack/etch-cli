@@ -107,6 +107,35 @@ mod tests {
 
     #[test]
     #[serial]
+    fn plan_updates_a_plugin_listed_in_several_scopes_once() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let tmp = tempfile::tempdir().unwrap();
+        let fake = tmp.path().join("claude");
+        std::fs::write(
+            &fake,
+            "#!/bin/sh\nfor scope in project user project; do\n  printf '  ❯ caveman@caveman\\n    Scope: %s\\n\\n  ❯ context7@upstash\\n    Scope: %s\\n\\n' \"$scope\" \"$scope\"\ndone\nexit 0\n",
+        )
+        .unwrap();
+        std::fs::set_permissions(&fake, std::fs::Permissions::from_mode(0o755)).unwrap();
+
+        let old = std::env::var("PATH").unwrap_or_default();
+        std::env::set_var("PATH", format!("{}:{old}", tmp.path().display()));
+
+        let steps = ClaudeUpgrade::default()
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+
+        std::env::set_var("PATH", old);
+
+        let atoms: Vec<String> = steps.iter().map(|s| s.atom.to_string()).collect();
+        assert_eq!(2, atoms.len(), "got: {atoms:?}");
+        assert!(atoms[0].contains("caveman@caveman"), "got: {atoms:?}");
+        assert!(atoms[1].contains("context7@upstash"), "got: {atoms:?}");
+    }
+
+    #[test]
+    #[serial]
     fn plan_returns_empty_when_none_installed() {
         use std::os::unix::fs::PermissionsExt;
 
