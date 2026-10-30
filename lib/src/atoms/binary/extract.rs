@@ -1,7 +1,8 @@
+use crate::atoms::atomic_write::write_atomically;
 use crate::atoms::{Atom, Outcome};
 use flate2::read::GzDecoder;
 use std::fs::File;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use tar::Archive;
 use xz2::read::XzDecoder;
 use zip::ZipArchive;
@@ -44,33 +45,6 @@ impl std::fmt::Display for BinaryExtract {
     }
 }
 
-/// Runs `write` against a temp path beside `dest`, then renames it onto
-/// `dest`. A failed write removes the temp file, so `dest` never holds a
-/// partial binary that `plan()` would take for a finished install.
-fn write_atomically(
-    dest: &Path,
-    write: impl FnOnce(&Path) -> anyhow::Result<()>,
-) -> anyhow::Result<()> {
-    if let Some(parent) = dest.parent() {
-        std::fs::create_dir_all(parent)?;
-    }
-    let name = dest
-        .file_name()
-        .ok_or_else(|| anyhow::anyhow!("binary: no file name in {}", dest.display()))?;
-    let tmp = dest.with_file_name(format!(
-        ".{}.etch-partial-{}",
-        name.to_string_lossy(),
-        std::process::id()
-    ));
-    let result = write(&tmp).and_then(|()| Ok(std::fs::rename(&tmp, dest)?));
-    if result.is_err() {
-        // Best effort: the write error is the one worth reporting, and a
-        // temp file that was never created makes this fail harmlessly.
-        let _ = std::fs::remove_file(&tmp);
-    }
-    result
-}
-
 impl Atom for BinaryExtract {
     fn plan(&self) -> anyhow::Result<Outcome> {
         Ok(Outcome {
@@ -80,6 +54,19 @@ impl Atom for BinaryExtract {
     }
 
     fn execute(&mut self) -> anyhow::Result<()> {
+        let result = self.extract();
+        if result.is_err() {
+            // The download step skips when `src` exists, so a corrupt or
+            // mismatched archive left in place fails here on every later run
+            // without ever fetching again. The extract error is the one to report.
+            let _ = std::fs::remove_file(&self.src);
+        }
+        result
+    }
+}
+
+impl BinaryExtract {
+    fn extract(&self) -> anyhow::Result<()> {
         match self.format {
             ArchiveFormat::Raw => {
                 if let Some(parent) = self.dest.parent() {
@@ -364,8 +351,8 @@ mod tests {
             .collect()
     }
 
-    /// Asserts a failed extract left nothing behind in `dir` except `src`,
-    /// so `plan()` schedules the step again on the next run.
+    /// Asserts a failed extract left nothing behind in `dir`, `src` included,
+    /// so the next run downloads again and `plan()` schedules this step.
     fn assert_failed_extract_left_no_trace(atom: &BinaryExtract, dir: &std::path::Path) {
         assert!(
             !atom.dest.exists(),
@@ -373,10 +360,14 @@ mod tests {
             atom.dest.display()
         );
         assert!(atom.plan().unwrap().should_run);
+        assert!(
+            !atom.src.exists(),
+            "archive left at {} makes Download skip every later run",
+            atom.src.display()
+        );
         let leftovers: Vec<_> = std::fs::read_dir(dir)
             .unwrap()
             .map(|e| e.unwrap().path())
-            .filter(|p| p != &atom.src)
             .collect();
         assert!(leftovers.is_empty(), "leftover files: {leftovers:?}");
     }
@@ -475,7 +466,7 @@ mod tests {
             .map(|e| e.unwrap().file_name())
             .collect();
         names.sort();
-        assert_eq!(names, ["consul", "test.zip"], "temp file left behind");
+        assert_eq!(names, ["consul"], "temp file or archive left behind");
     }
 
     #[test]

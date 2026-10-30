@@ -24,6 +24,10 @@ impl Atom for BinaryVerify {
     fn execute(&mut self) -> anyhow::Result<()> {
         let actual = sha256::try_digest(&self.path)?;
         if actual != self.expected {
+            // The download step skips when this file exists, so leaving a
+            // mismatched file would fail verify on every later run without
+            // ever fetching again. The mismatch is the error worth reporting.
+            let _ = std::fs::remove_file(&self.path);
             return Err(anyhow::anyhow!(
                 "binary.url: sha256 mismatch: expected {} got {}",
                 self.expected,
@@ -82,6 +86,24 @@ mod tests {
         assert!(
             msg.contains("2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"),
             "msg was: {msg}"
+        );
+    }
+
+    #[test]
+    fn verify_mismatch_removes_the_downloaded_file() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("tool.etch-tmp");
+        std::fs::write(&path, b"hello").unwrap();
+        let mut atom = BinaryVerify {
+            path: path.clone(),
+            expected: String::from(
+                "0000000000000000000000000000000000000000000000000000000000000000",
+            ),
+        };
+        assert!(atom.execute().is_err());
+        assert!(
+            !path.exists(),
+            "a mismatched download left in place makes Download skip every later run"
         );
     }
 

@@ -1,3 +1,4 @@
+pub(crate) mod atomic_write;
 pub mod binary;
 pub mod command;
 pub mod directory;

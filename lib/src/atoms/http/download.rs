@@ -1,3 +1,4 @@
+use crate::atoms::atomic_write::write_atomically;
 use crate::atoms::Outcome;
 
 use super::super::Atom;
@@ -29,14 +30,11 @@ impl Atom for Download {
     }
 
     fn execute(&mut self) -> anyhow::Result<()> {
-        let response = reqwest::blocking::get(&self.url)?;
+        let content = reqwest::blocking::get(&self.url)?
+            .error_for_status()?
+            .bytes()?;
 
-        let mut file = File::create(&self.to)?;
-
-        let content = response.bytes()?;
-        file.write_all(&content)?;
-
-        Ok(())
+        write_atomically(&self.to, |tmp| Ok(File::create(tmp)?.write_all(&content)?))
     }
 }
 
@@ -45,6 +43,60 @@ mod tests {
     use super::*;
     use pretty_assertions::assert_eq;
     use tempfile::tempdir;
+
+    /// Serves one canned HTTP response on a loopback port, then closes the
+    /// connection, so a test controls the status line and can cut the body
+    /// short of its Content-Length.
+    fn serve_once(response: &'static [u8]) -> String {
+        use std::io::Read;
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let addr = listener.local_addr().unwrap();
+        std::thread::spawn(move || {
+            let (mut stream, _) = listener.accept().unwrap();
+            let mut request = [0u8; 1024];
+            let _ = stream.read(&mut request);
+            stream.write_all(response).unwrap();
+        });
+        format!("http://{addr}/tool")
+    }
+
+    /// Asserts a failed download left nothing in `dir`, so `plan()` runs the
+    /// step again next time.
+    fn assert_failed_download_left_no_trace(atom: &Download, dir: &std::path::Path) {
+        assert!(!atom.to.exists(), "file left at {}", atom.to.display());
+        assert!(atom.plan().unwrap().should_run);
+        let leftovers: Vec<_> = std::fs::read_dir(dir).unwrap().collect();
+        assert!(leftovers.is_empty(), "leftover files: {leftovers:?}");
+    }
+
+    #[test]
+    fn download_of_http_error_status_leaves_no_file() {
+        let tmp = tempdir().unwrap();
+        let url = serve_once(
+            b"HTTP/1.1 404 Not Found\r\nContent-Length: 9\r\nConnection: close\r\n\r\nnot found",
+        );
+        let mut atom = Download {
+            url,
+            to: tmp.path().join("tool"),
+        };
+        let msg = atom.execute().err().unwrap().to_string();
+        assert!(msg.contains("404"), "msg was: {msg}");
+        assert_failed_download_left_no_trace(&atom, tmp.path());
+    }
+
+    #[test]
+    fn download_cut_short_of_content_length_leaves_no_file() {
+        let tmp = tempdir().unwrap();
+        let url = serve_once(
+            b"HTTP/1.1 200 OK\r\nContent-Length: 1000\r\nConnection: close\r\n\r\nonly part",
+        );
+        let mut atom = Download {
+            url,
+            to: tmp.path().join("tool"),
+        };
+        assert!(atom.execute().is_err());
+        assert_failed_download_left_no_trace(&atom, tmp.path());
+    }
 
     #[test]
     fn display_format() {
