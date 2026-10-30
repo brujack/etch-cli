@@ -16,7 +16,7 @@ pub struct PackageRepository {
 
     pub key: Option<RepositoryKey>,
 
-    /// Defaults to the host's provider.
+    /// Defaults to `apt` on Ubuntu and `brew` on macOS; other hosts must set it.
     #[serde(default)]
     #[schemars(transform = crate::utilities::without_default)]
     pub provider: PackageProviders,
