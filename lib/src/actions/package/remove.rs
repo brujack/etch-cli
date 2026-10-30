@@ -15,7 +15,9 @@ pub struct PackageRemove {
     #[serde(default)]
     pub list: Vec<String>,
 
+    /// Defaults to the host's provider.
     #[serde(default)]
+    #[schemars(transform = crate::utilities::without_default)]
     pub provider: PackageProviders,
 
     #[serde(default)]

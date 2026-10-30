@@ -11,7 +11,9 @@ use tracing::debug;
 
 #[derive(JsonSchema, Clone, Debug, Default, Serialize, Deserialize)]
 pub struct User {
+    /// Defaults to the host's provider.
     #[serde(default)]
+    #[schemars(transform = crate::utilities::without_default)]
     provider: UserProviders,
 
     #[serde(default)]
@@ -35,7 +37,9 @@ pub struct User {
 
 #[derive(JsonSchema, Clone, Debug, Default, Serialize, Deserialize)]
 pub struct UserVariant {
+    /// Defaults to the host's provider.
     #[serde(default)]
+    #[schemars(transform = crate::utilities::without_default)]
     provider: UserProviders,
 
     #[serde(default)]

@@ -16,7 +16,9 @@ pub struct PackageRepository {
 
     pub key: Option<RepositoryKey>,
 
+    /// Defaults to the host's provider.
     #[serde(default)]
+    #[schemars(transform = crate::utilities::without_default)]
     pub provider: PackageProviders,
 }
 

@@ -18,7 +18,9 @@ pub struct RunCommand {
     #[serde(default = "get_false", alias = "sudo")]
     pub privileged: bool,
 
+    /// Working directory. Defaults to the directory etch runs in.
     #[serde(default = "get_cwd")]
+    #[schemars(transform = utilities::without_default)]
     pub dir: String,
 
     #[serde(default)]

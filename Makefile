@@ -1,4 +1,4 @@
-.PHONY: all test lint build build-linux install install-hooks mutants bench fuzz fuzz-manifest fuzz-path semver validate-plan docs-debt
+.PHONY: all test lint build build-linux install install-hooks mutants bench fuzz fuzz-manifest fuzz-path semver validate-plan docs-debt schema
 
 # Derived from the tracked set (git ls-files), not a hand-maintained list --
 # an omitted file would leave a hand-list's coverage unchanged rather than
@@ -38,6 +38,13 @@ lint:
 docs-debt:
 	@cargo clippy --workspace --all-targets --quiet -- -W missing_docs 2>&1 \
 	  | grep -c 'missing documentation' || true
+
+# Regenerate the committed manifest schema. The temp file keeps a failed run
+# from truncating schema.json; jsonschemagen's own test fails while it is stale.
+schema:
+	cargo run --quiet -p jsonschemagen > jsonschemagen/schema.json.tmp \
+	  || { rm -f jsonschemagen/schema.json.tmp; exit 1; }
+	mv jsonschemagen/schema.json.tmp jsonschemagen/schema.json
 
 build:
 	cargo build --release

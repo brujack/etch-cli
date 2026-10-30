@@ -1,516 +1,3726 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Manifest",
   "type": "object",
   "properties": {
     "actions": {
-      "default": [],
       "type": "array",
+      "default": [],
       "items": {
-        "$ref": "#/definitions/Actions"
+        "$ref": "#/$defs/Actions"
       }
     },
     "depends": {
-      "default": [],
       "type": "array",
+      "default": [],
+      "items": {
+        "type": "string"
+      }
+    },
+    "handlers": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ManifestHandler"
+      }
+    },
+    "labels": {
+      "type": "array",
+      "default": [],
       "items": {
         "type": "string"
       }
     },
     "name": {
-      "default": null,
       "type": [
         "string",
         "null"
-      ]
+      ],
+      "default": null
+    },
+    "where": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "default": null
     }
   },
-  "definitions": {
+  "$defs": {
     "Actions": {
       "oneOf": [
         {
           "type": "object",
-          "required": [
-            "action",
-            "command"
-          ],
           "properties": {
             "action": {
               "type": "string",
-              "enum": [
-                "CommandRun"
-              ]
-            },
-            "args": {
-              "default": [],
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            },
-            "command": {
-              "type": "string"
-            },
-            "dir": {
-              "default": "/Users/rawkode/Code/src/github.com/brujack/etch-cli/jsonschemagen",
-              "type": "string"
-            },
-            "sudo": {
-              "default": false,
-              "type": "boolean"
-            },
-            "variants": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/Variant_for_RunCommand"
-              }
-            },
-            "where": {
-              "type": [
-                "string",
-                "null"
-              ]
+              "const": "command.run"
             }
-          }
-        },
-        {
-          "type": "object",
-          "required": [
-            "action",
-            "from",
-            "to"
-          ],
-          "properties": {
-            "action": {
-              "type": "string",
-              "enum": [
-                "DirectoryCopy"
-              ]
-            },
-            "from": {
-              "type": "string"
-            },
-            "to": {
-              "type": "string"
-            },
-            "variants": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/Variant_for_DirectoryCopy"
-              }
-            },
-            "where": {
-              "type": [
-                "string",
-                "null"
-              ]
-            }
-          }
-        },
-        {
-          "type": "object",
-          "required": [
-            "action",
-            "path"
-          ],
-          "properties": {
-            "action": {
-              "type": "string",
-              "enum": [
-                "DirectoryCreate"
-              ]
-            },
-            "path": {
-              "type": "string"
-            },
-            "variants": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/Variant_for_DirectoryCreate"
-              }
-            },
-            "where": {
-              "type": [
-                "string",
-                "null"
-              ]
-            }
-          }
-        },
-        {
-          "type": "object",
-          "required": [
-            "action",
-            "from",
-            "to"
-          ],
-          "properties": {
-            "action": {
-              "type": "string",
-              "enum": [
-                "FileCopy"
-              ]
-            },
-            "chmod": {
-              "default": 420,
-              "type": "integer",
-              "format": "uint32",
-              "minimum": 0.0
-            },
-            "from": {
-              "type": "string"
-            },
-            "passphrase": {
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "template": {
-              "default": false,
-              "type": "boolean"
-            },
-            "to": {
-              "type": "string"
-            },
-            "variants": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/Variant_for_FileCopy"
-              }
-            },
-            "where": {
-              "type": [
-                "string",
-                "null"
-              ]
-            }
-          }
-        },
-        {
-          "type": "object",
-          "required": [
-            "action",
-            "from",
-            "to"
-          ],
-          "properties": {
-            "action": {
-              "type": "string",
-              "enum": [
-                "FileDownload"
-              ]
-            },
-            "chmod": {
-              "default": 420,
-              "type": "integer",
-              "format": "uint32",
-              "minimum": 0.0
-            },
-            "from": {
-              "type": "string"
-            },
-            "template": {
-              "default": false,
-              "type": "boolean"
-            },
-            "to": {
-              "type": "string"
-            },
-            "variants": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/Variant_for_FileDownload"
-              }
-            },
-            "where": {
-              "type": [
-                "string",
-                "null"
-              ]
-            }
-          }
-        },
-        {
-          "type": "object",
+          },
+          "$ref": "#/$defs/ConditionalVariantAction",
           "required": [
             "action"
-          ],
-          "properties": {
-            "action": {
-              "type": "string",
-              "enum": [
-                "FileLink"
-              ]
-            },
-            "from": {
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "source": {
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "target": {
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "to": {
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "variants": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/Variant_for_FileLink"
-              }
-            },
-            "walk_dir": {
-              "default": false,
-              "type": "boolean"
-            },
-            "where": {
-              "type": [
-                "string",
-                "null"
-              ]
-            }
-          }
+          ]
         },
         {
           "type": "object",
-          "required": [
-            "action",
-            "directory",
-            "repository"
-          ],
           "properties": {
             "action": {
               "type": "string",
-              "enum": [
-                "GitClone"
-              ]
-            },
-            "directory": {
-              "type": "string"
-            },
-            "reference": {
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "repository": {
-              "type": "string"
-            },
-            "variants": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/Variant_for_GitClone"
-              }
-            },
-            "where": {
-              "type": [
-                "string",
-                "null"
-              ]
+              "const": "directory.copy"
             }
-          }
-        },
-        {
-          "type": "object",
-          "required": [
-            "action",
-            "domain",
-            "key",
-            "kind",
-            "value"
-          ],
-          "properties": {
-            "action": {
-              "type": "string",
-              "enum": [
-                "MacOSDefault"
-              ]
-            },
-            "domain": {
-              "type": "string"
-            },
-            "key": {
-              "type": "string"
-            },
-            "kind": {
-              "type": "string"
-            },
-            "value": {
-              "type": "string"
-            },
-            "variants": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/Variant_for_MacOSDefault"
-              }
-            },
-            "where": {
-              "type": [
-                "string",
-                "null"
-              ]
-            }
-          }
-        },
-        {
-          "type": "object",
+          },
+          "$ref": "#/$defs/ConditionalVariantAction2",
           "required": [
             "action"
-          ],
-          "properties": {
-            "action": {
-              "type": "string",
-              "enum": [
-                "PackageInstall"
-              ]
-            },
-            "extra_args": {
-              "default": [],
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            },
-            "key": {
-              "default": null,
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "list": {
-              "default": [],
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            },
-            "name": {
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "provider": {
-              "default": "Homebrew",
-              "allOf": [
-                {
-                  "$ref": "#/definitions/PackageProviders"
-                }
-              ]
-            },
-            "repository": {
-              "default": null,
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "variants": {
-              "default": {},
-              "type": "object",
-              "additionalProperties": {
-                "$ref": "#/definitions/PackageVariant"
-              }
-            },
-            "where": {
-              "type": [
-                "string",
-                "null"
-              ]
-            }
-          }
+          ]
         },
         {
           "type": "object",
-          "required": [
-            "action",
-            "name"
-          ],
           "properties": {
             "action": {
               "type": "string",
-              "enum": [
-                "PackageRepository"
-              ]
-            },
-            "key": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/RepositoryKey"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "name": {
-              "type": "string"
-            },
-            "provider": {
-              "default": "Homebrew",
-              "allOf": [
-                {
-                  "$ref": "#/definitions/PackageProviders"
-                }
-              ]
-            },
-            "variants": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/Variant_for_PackageRepository"
-              }
-            },
-            "where": {
-              "type": [
-                "string",
-                "null"
-              ]
+              "const": "directory.create"
             }
-          }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction3",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "file.chmod"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction4",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "file.flags"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction5",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "file.copy"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction6",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "file.chown"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction7",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "file.download"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction8",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "file.link"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction9",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "file.remove"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction10",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "file.unarchive"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction11",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "directory.remove"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction12",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "binary.github"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction13",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "binary.url"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction14",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "brew.bundle"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction15",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "brew.cleanup"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction16",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "brew.upgrade"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction17",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "claude.install"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction18",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "claude.marketplace"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction19",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "claude.marketplace.remove"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction20",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "claude.upgrade"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction21",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "claude.plugin.update"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction22",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "mas.upgrade"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction23",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "git.clone"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction24",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "git.config"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction25",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "git.pull"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction26",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "group.add"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction27",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "macos.default"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction28",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "macos.rosetta"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction29",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "macos.service"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction30",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "macos.softwareupdate"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction31",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "systemd.service"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction32",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "mas.install"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction33",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "package.install"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction34",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "package.repository"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction35",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "package.autoremove"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction36",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "package.upgrade"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction37",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "package.remove"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction38",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "user.add"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction39",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "user.group"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction40",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "user.default_shell"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction41",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "plugin"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction42",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "ruby.install"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction43",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "ruby.chruby"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction44",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "gem.install"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction45",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "pip.install"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction46",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "powershell.module"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction47",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "npm.install"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction48",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "pyenv.install"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction49",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "pyenv.virtualenv"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction50",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "terraform.tfenv"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction51",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "zsh.oh-my-zsh"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction52",
+          "required": [
+            "action"
+          ]
         }
+      ]
+    },
+    "ConditionalVariantAction": {
+      "type": "object",
+      "properties": {
+        "args": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "command": {
+          "type": "string"
+        },
+        "dir": {
+          "description": "Working directory. Defaults to the directory etch runs in.",
+          "type": "string"
+        },
+        "env": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {}
+        },
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "privileged": {
+          "type": "boolean",
+          "default": false
+        },
+        "skip_if_exists": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant"
+          }
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "command"
+      ]
+    },
+    "ConditionalVariantAction10": {
+      "type": "object",
+      "properties": {
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "privileged": {
+          "type": "boolean",
+          "default": false
+        },
+        "target": {
+          "type": "string"
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant10"
+          }
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "target"
+      ]
+    },
+    "ConditionalVariantAction11": {
+      "type": "object",
+      "properties": {
+        "force": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "from": {
+          "type": "string"
+        },
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "privileged": {
+          "type": "boolean",
+          "default": false
+        },
+        "to": {
+          "type": "string"
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant11"
+          }
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "from",
+        "to"
+      ]
+    },
+    "ConditionalVariantAction12": {
+      "type": "object",
+      "properties": {
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "target": {
+          "type": "string"
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant12"
+          }
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "target"
+      ]
+    },
+    "ConditionalVariantAction13": {
+      "type": "object",
+      "properties": {
+        "directory": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "repository": {
+          "type": "string"
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant13"
+          }
+        },
+        "version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "directory",
+        "repository"
+      ]
+    },
+    "ConditionalVariantAction14": {
+      "type": "object",
+      "properties": {
+        "directory": {
+          "type": "string"
+        },
+        "file": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "privileged": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "sha256": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "url": {
+          "type": "string"
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant14"
+          }
+        },
+        "version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "url",
+        "directory"
+      ]
+    },
+    "ConditionalVariantAction15": {
+      "type": "object",
+      "properties": {
+        "cleanup": {
+          "type": "boolean",
+          "default": false
+        },
+        "file": {
+          "type": "string"
+        },
+        "no_upgrade": {
+          "type": "boolean",
+          "default": false
+        },
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant15"
+          }
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "file"
+      ]
+    },
+    "ConditionalVariantAction16": {
+      "type": "object",
+      "properties": {
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "prune": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant16"
+          }
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "ConditionalVariantAction17": {
+      "type": "object",
+      "properties": {
+        "greedy": {
+          "type": "boolean",
+          "default": false
+        },
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant17"
+          }
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "ConditionalVariantAction18": {
+      "type": "object",
+      "properties": {
+        "list": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant18"
+          }
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "ConditionalVariantAction19": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "scope": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source": {
+          "type": "string"
+        },
+        "sparse": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant19"
+          }
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "source"
+      ]
+    },
+    "ConditionalVariantAction2": {
+      "type": "object",
+      "properties": {
+        "from": {
+          "type": "string"
+        },
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "to": {
+          "type": "string"
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant2"
+          }
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "from",
+        "to"
+      ]
+    },
+    "ConditionalVariantAction20": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "scope": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant20"
+          }
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "ConditionalVariantAction21": {
+      "type": "object",
+      "properties": {
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant21"
+          }
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "ConditionalVariantAction22": {
+      "type": "object",
+      "properties": {
+        "list": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant22"
+          }
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "ConditionalVariantAction23": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant23"
+          }
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "ConditionalVariantAction24": {
+      "type": "object",
+      "properties": {
+        "directory": {
+          "type": "string"
+        },
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "repo_url": {
+          "type": "string"
+        },
+        "update_existing": {
+          "type": "boolean",
+          "default": false
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant24"
+          }
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "repo_url",
+        "directory"
+      ]
+    },
+    "ConditionalVariantAction25": {
+      "type": "object",
+      "properties": {
+        "directory": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "key": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "scope": {
+          "$ref": "#/$defs/GitConfigScope"
+        },
+        "settings": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "unset": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "value": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant25"
+          }
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "scope"
+      ]
+    },
+    "ConditionalVariantAction26": {
+      "type": "object",
+      "properties": {
+        "directory": {
+          "type": "string"
+        },
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "repo_url": {
+          "type": "string"
+        },
+        "skip_if_not_exists": {
+          "description": "Skip this action entirely if the given path does not exist.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant26"
+          }
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "repo_url",
+        "directory"
+      ]
+    },
+    "ConditionalVariantAction27": {
+      "type": "object",
+      "properties": {
+        "group_name": {
+          "type": "string",
+          "default": ""
+        },
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "provider": {
+          "description": "Defaults to the host's provider.",
+          "$ref": "#/$defs/GroupProviders"
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant27"
+          }
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "ConditionalVariantAction28": {
+      "type": "object",
+      "properties": {
+        "domain": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        },
+        "kind": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "operation": {
+          "$ref": "#/$defs/MacOSDefaultOperation",
+          "default": "write"
+        },
+        "value": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant28"
+          }
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "domain",
+        "key"
+      ]
+    },
+    "ConditionalVariantAction29": {
+      "type": "object",
+      "properties": {
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant29"
+          }
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "ConditionalVariantAction3": {
+      "type": "object",
+      "properties": {
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "path": {
+          "type": "string"
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant3"
+          }
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "path"
+      ]
+    },
+    "ConditionalVariantAction30": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "plist": {
+          "type": "string"
+        },
+        "privileged": {
+          "type": "boolean",
+          "default": false
+        },
+        "state": {
+          "$ref": "#/$defs/MacOSServiceState"
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant30"
+          }
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "plist",
+        "state"
+      ]
+    },
+    "ConditionalVariantAction31": {
+      "type": "object",
+      "properties": {
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant31"
+          }
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "ConditionalVariantAction32": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "privileged": {
+          "type": "boolean",
+          "default": false
+        },
+        "started": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "unit": {
+          "type": "string"
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant32"
+          }
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "unit"
+      ]
+    },
+    "ConditionalVariantAction33": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "description": "Single app ID. Mutually exclusive with `list`.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "list": {
+          "description": "List of apps to install. Mutually exclusive with `name` + `id`.",
+          "type": "array",
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/MasApp"
+          }
+        },
+        "name": {
+          "description": "Single app name. Mutually exclusive with `list`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant33"
+          }
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "ConditionalVariantAction34": {
+      "type": "object",
+      "properties": {
+        "cask": {
+          "type": "boolean",
+          "default": false
+        },
+        "extra_args": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "file": {
+          "type": "boolean",
+          "default": false
+        },
+        "key": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "list": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "provider": {
+          "description": "Defaults to the host's provider.",
+          "$ref": "#/$defs/PackageProviders"
+        },
+        "repository": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant34"
+          }
+        },
+        "version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "ConditionalVariantAction35": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RepositoryKey"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "provider": {
+          "description": "Defaults to the host's provider.",
+          "$ref": "#/$defs/PackageProviders"
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant35"
+          }
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "ConditionalVariantAction36": {
+      "type": "object",
+      "properties": {
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant36"
+          }
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "ConditionalVariantAction37": {
+      "type": "object",
+      "properties": {
+        "list": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "provider": {
+          "type": "string"
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant37"
+          }
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "provider"
+      ]
+    },
+    "ConditionalVariantAction38": {
+      "type": "object",
+      "properties": {
+        "list": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "provider": {
+          "description": "Defaults to the host's provider.",
+          "$ref": "#/$defs/PackageProviders"
+        },
+        "purge": {
+          "type": "boolean",
+          "default": false
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant38"
+          }
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "ConditionalVariantAction39": {
+      "type": "object",
+      "properties": {
+        "fullname": {
+          "type": "string",
+          "default": ""
+        },
+        "group": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "home_dir": {
+          "type": "string",
+          "default": ""
+        },
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "provider": {
+          "description": "Defaults to the host's provider.",
+          "$ref": "#/$defs/UserProviders"
+        },
+        "shell": {
+          "type": "string",
+          "default": ""
+        },
+        "username": {
+          "type": "string",
+          "default": ""
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant39"
+          }
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "ConditionalVariantAction4": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": "string"
+        },
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "path": {
+          "type": "string"
+        },
+        "privileged": {
+          "type": "boolean",
+          "default": false
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant4"
+          }
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "path",
+        "mode"
+      ]
+    },
+    "ConditionalVariantAction40": {
+      "type": "object",
+      "properties": {
+        "group": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "provider": {
+          "description": "Defaults to the host's provider.",
+          "$ref": "#/$defs/UserProviders"
+        },
+        "username": {
+          "type": "string",
+          "default": ""
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant40"
+          }
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "ConditionalVariantAction41": {
+      "type": "object",
+      "properties": {
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "shell": {
+          "type": "string"
+        },
+        "username": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant41"
+          }
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "shell"
+      ]
+    },
+    "ConditionalVariantAction42": {
+      "type": "object",
+      "properties": {
+        "actions": {
+          "$ref": "#/$defs/KeyValueMap(TaggedTable)"
+        },
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant42"
+          }
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Repo"
+        },
+        {
+          "$ref": "#/$defs/Dir"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "required": [
+        "actions"
+      ]
+    },
+    "ConditionalVariantAction43": {
+      "type": "object",
+      "properties": {
+        "compile_flags": {
+          "description": "Flags passed to ruby-install after `--`, forwarded verbatim to ./configure.\nExample: [\"--with-openssl-dir=/opt/homebrew/opt/openssl@3\"]",
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "implementation": {
+          "description": "Ruby implementation to install. Defaults to \"ruby\". Other options: \"jruby\", \"truffleruby\".",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "rubies_dir": {
+          "description": "Directory where rubies are installed. Defaults to ~/.rubies. Passed as --rubies-dir to ruby-install when set.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant43"
+          }
+        },
+        "version": {
+          "type": "string"
+        },
+        "version_manager": {
+          "description": "Version manager to notify after installation. When `rbenv`, appends\n`rbenv global <version>` and `rbenv rehash` steps after ruby-install.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/VersionManager"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "version"
+      ]
+    },
+    "ConditionalVariantAction44": {
+      "type": "object",
+      "properties": {
+        "default_version": {
+          "description": "Ruby version to set as default in ~/.ruby-version.\nVerbatim string written to the file (e.g. \"ruby-3.3.0\").\nIf omitted, ~/.ruby-version is not written.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant44"
+          }
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "ConditionalVariantAction45": {
+      "type": "object",
+      "properties": {
+        "list": {
+          "description": "List of gem names to install. Mutually exclusive with `name`.",
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "name": {
+          "description": "Single gem name to install. Mutually exclusive with `list`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant45"
+          }
+        },
+        "version": {
+          "description": "Version constraint (e.g. \"2.4.0\"). Only meaningful when installing a single gem.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "ConditionalVariantAction46": {
+      "type": "object",
+      "properties": {
+        "list": {
+          "description": "List of package names to install. Mutually exclusive with `name`.",
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "name": {
+          "description": "Single package name to install. Mutually exclusive with `list`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant46"
+          }
+        },
+        "version": {
+          "description": "Exact version (e.g. \"2.28.0\"). Only meaningful when installing a single package.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "virtualenv": {
+          "description": "Path to a virtualenv. If set, uses `<virtualenv>/bin/pip` instead of `pip`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "ConditionalVariantAction47": {
+      "type": "object",
+      "properties": {
+        "list": {
+          "description": "List of module names to install. Mutually exclusive with `name`.",
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "name": {
+          "description": "Single module name to install. Mutually exclusive with `list`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "scope": {
+          "description": "Install scope: CurrentUser (default) or AllUsers.",
+          "$ref": "#/$defs/PowerShellScope",
+          "default": "CurrentUser"
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant47"
+          }
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "ConditionalVariantAction48": {
+      "type": "object",
+      "properties": {
+        "list": {
+          "description": "List of package names to install globally. Mutually exclusive with `name`.",
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "name": {
+          "description": "Single package name to install globally. Mutually exclusive with `list`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant48"
+          }
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "ConditionalVariantAction49": {
+      "type": "object",
+      "properties": {
+        "configure_opts": {
+          "description": "Value for PYTHON_CONFIGURE_OPTS before invoking pyenv install.\nOn macOS with Homebrew, use \"--with-system-libmpdec=no\" to avoid\nconflicts between Homebrew-installed libmpdec and CPython's bundled copy.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant49"
+          }
+        },
+        "version": {
+          "description": "Python version to install via pyenv (e.g. \"3.12.0\").",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "ConditionalVariantAction5": {
+      "type": "object",
+      "properties": {
+        "flags": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "path": {
+          "type": "string"
+        },
+        "privileged": {
+          "type": "boolean",
+          "default": false
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant5"
+          }
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "path"
+      ]
+    },
+    "ConditionalVariantAction50": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "Name of the virtualenv to create (e.g. \"myproject\").",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "python_version": {
+          "description": "Python version to base the virtualenv on (e.g. \"3.12.0\").",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "recreate": {
+          "description": "When true, delete and recreate the virtualenv if its Python version\ndiffers from `python_version`. Default false preserves existing behavior.",
+          "type": "boolean",
+          "default": false
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant50"
+          }
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "ConditionalVariantAction51": {
+      "type": "object",
+      "properties": {
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant51"
+          }
+        },
+        "version": {
+          "description": "Terraform version to install and set as default (e.g. \"1.9.0\").\nIf omitted, only tfenv itself is installed.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "ConditionalVariantAction52": {
+      "type": "object",
+      "properties": {
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "plugins": {
+          "description": "Git URLs of oh-my-zsh community plugins to install.\nEach URL is cloned into ~/.oh-my-zsh/custom/plugins/<repo-name>.\nThe repo name is the last path segment of the URL, with any trailing .git stripped.",
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant52"
+          }
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "ConditionalVariantAction6": {
+      "type": "object",
+      "properties": {
+        "chmod": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 420,
+          "minimum": 0
+        },
+        "from": {
+          "type": "string"
+        },
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "owned_by_group": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "owned_by_user": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "passphrase": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "privileged": {
+          "type": "boolean",
+          "default": false
+        },
+        "template": {
+          "type": "boolean",
+          "default": false
+        },
+        "to": {
+          "type": "string"
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant6"
+          }
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "from",
+        "to"
+      ]
+    },
+    "ConditionalVariantAction7": {
+      "type": "object",
+      "properties": {
+        "group": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "path": {
+          "type": "string"
+        },
+        "privileged": {
+          "type": "boolean",
+          "default": false
+        },
+        "user": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant7"
+          }
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "path"
+      ]
+    },
+    "ConditionalVariantAction8": {
+      "type": "object",
+      "properties": {
+        "chmod": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 420,
+          "minimum": 0
+        },
+        "from": {
+          "type": "string"
+        },
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "owned_by_group": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "owned_by_user": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "privileged": {
+          "type": "boolean",
+          "default": false
+        },
+        "template": {
+          "type": "boolean",
+          "default": false
+        },
+        "to": {
+          "type": "string"
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant8"
+          }
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "from",
+        "to"
+      ]
+    },
+    "ConditionalVariantAction9": {
+      "type": "object",
+      "properties": {
+        "from": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "glob": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "notify": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "privileged": {
+          "type": "boolean",
+          "default": false
+        },
+        "source": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "target": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "to": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant9"
+          }
+        },
+        "walk_dir": {
+          "type": "boolean",
+          "default": false
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "CustomPathBuf": {
+      "type": "string"
+    },
+    "Dir": {
+      "type": "object",
+      "properties": {
+        "dir": {
+          "$ref": "#/$defs/CustomPathBuf"
+        }
+      },
+      "required": [
+        "dir"
+      ]
+    },
+    "GitConfigScope": {
+      "type": "string",
+      "enum": [
+        "global",
+        "local",
+        "system"
+      ]
+    },
+    "GroupProviders": {
+      "type": "string",
+      "enum": [
+        "None",
+        "Linux",
+        "MacOs"
+      ]
+    },
+    "GroupVariant": {
+      "type": "object",
+      "properties": {
+        "group_name": {
+          "type": "string",
+          "default": ""
+        },
+        "provider": {
+          "description": "Defaults to the host's provider.",
+          "$ref": "#/$defs/GroupProviders"
+        }
+      }
+    },
+    "KeyValueMap(TaggedTable)": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": true,
+        "required": []
+      }
+    },
+    "MacOSDefaultOperation": {
+      "type": "string",
+      "enum": [
+        "write",
+        "array-add",
+        "delete"
+      ]
+    },
+    "MacOSServiceState": {
+      "type": "string",
+      "enum": [
+        "loaded",
+        "unloaded"
+      ]
+    },
+    "ManifestHandler": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        }
+      },
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "command.run"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "directory.copy"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction2",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "directory.create"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction3",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "file.chmod"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction4",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "file.flags"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction5",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "file.copy"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction6",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "file.chown"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction7",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "file.download"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction8",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "file.link"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction9",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "file.remove"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction10",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "file.unarchive"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction11",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "directory.remove"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction12",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "binary.github"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction13",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "binary.url"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction14",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "brew.bundle"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction15",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "brew.cleanup"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction16",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "brew.upgrade"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction17",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "claude.install"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction18",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "claude.marketplace"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction19",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "claude.marketplace.remove"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction20",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "claude.upgrade"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction21",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "claude.plugin.update"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction22",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "mas.upgrade"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction23",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "git.clone"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction24",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "git.config"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction25",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "git.pull"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction26",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "group.add"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction27",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "macos.default"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction28",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "macos.rosetta"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction29",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "macos.service"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction30",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "macos.softwareupdate"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction31",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "systemd.service"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction32",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "mas.install"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction33",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "package.install"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction34",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "package.repository"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction35",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "package.autoremove"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction36",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "package.upgrade"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction37",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "package.remove"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction38",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "user.add"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction39",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "user.group"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction40",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "user.default_shell"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction41",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "plugin"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction42",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "ruby.install"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction43",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "ruby.chruby"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction44",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "gem.install"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction45",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "pip.install"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction46",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "powershell.module"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction47",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "npm.install"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction48",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "pyenv.install"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction49",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "pyenv.virtualenv"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction50",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "terraform.tfenv"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction51",
+          "required": [
+            "action"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "zsh.oh-my-zsh"
+            }
+          },
+          "$ref": "#/$defs/ConditionalVariantAction52",
+          "required": [
+            "action"
+          ]
+        }
+      ],
+      "required": [
+        "name"
+      ]
+    },
+    "MasApp": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "id"
       ]
     },
     "PackageProviders": {
       "type": "string",
       "enum": [
-        "Aptitude",
-        "BsdPkg",
-        "Dnf",
-        "Homebrew",
-        "Pkgin",
-        "Yay",
-        "Winget"
+        "aptitude",
+        "homebrew",
+        "snapcraft"
       ]
     },
     "PackageVariant": {
       "type": "object",
       "properties": {
+        "cask": {
+          "type": "boolean",
+          "default": false
+        },
         "extra_args": {
-          "default": [],
           "type": "array",
+          "default": [],
           "items": {
             "type": "string"
           }
         },
+        "file": {
+          "type": "boolean",
+          "default": false
+        },
         "list": {
-          "default": [],
           "type": "array",
+          "default": [],
           "items": {
             "type": "string"
           }
@@ -522,20 +3732,41 @@
           ]
         },
         "provider": {
-          "default": "Homebrew",
-          "allOf": [
-            {
-              "$ref": "#/definitions/PackageProviders"
-            }
+          "description": "Defaults to the host's provider.",
+          "$ref": "#/$defs/PackageProviders"
+        },
+        "version": {
+          "type": [
+            "string",
+            "null"
           ]
         }
       }
     },
+    "PowerShellScope": {
+      "type": "string",
+      "enum": [
+        "CurrentUser",
+        "AllUsers"
+      ]
+    },
+    "Repo": {
+      "type": "object",
+      "properties": {
+        "repo": {
+          "type": "string"
+        },
+        "version": {
+          "$ref": "#/$defs/Version"
+        }
+      },
+      "required": [
+        "repo",
+        "version"
+      ]
+    },
     "RepositoryKey": {
       "type": "object",
-      "required": [
-        "url"
-      ],
       "properties": {
         "fingerprint": {
           "type": [
@@ -558,14 +3789,365 @@
         "url": {
           "type": "string"
         }
+      },
+      "required": [
+        "url"
+      ]
+    },
+    "UserProviders": {
+      "type": "string",
+      "enum": [
+        "None",
+        "Linux",
+        "MacOs"
+      ]
+    },
+    "UserVariant": {
+      "type": "object",
+      "properties": {
+        "fullname": {
+          "type": "string",
+          "default": ""
+        },
+        "group": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "home_dir": {
+          "type": "string",
+          "default": ""
+        },
+        "provider": {
+          "description": "Defaults to the host's provider.",
+          "$ref": "#/$defs/UserProviders"
+        },
+        "shell": {
+          "type": "string",
+          "default": ""
+        },
+        "username": {
+          "type": "string",
+          "default": ""
+        }
       }
     },
-    "Variant_for_DirectoryCopy": {
+    "Variant": {
       "type": "object",
+      "properties": {
+        "args": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "command": {
+          "type": "string"
+        },
+        "dir": {
+          "description": "Working directory. Defaults to the directory etch runs in.",
+          "type": "string"
+        },
+        "env": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {}
+        },
+        "privileged": {
+          "type": "boolean",
+          "default": false
+        },
+        "skip_if_exists": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "command"
+      ]
+    },
+    "Variant10": {
+      "type": "object",
+      "properties": {
+        "privileged": {
+          "type": "boolean",
+          "default": false
+        },
+        "target": {
+          "type": "string"
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "target"
+      ]
+    },
+    "Variant11": {
+      "type": "object",
+      "properties": {
+        "force": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "from": {
+          "type": "string"
+        },
+        "privileged": {
+          "type": "boolean",
+          "default": false
+        },
+        "to": {
+          "type": "string"
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
       "required": [
         "from",
         "to"
-      ],
+      ]
+    },
+    "Variant12": {
+      "type": "object",
+      "properties": {
+        "target": {
+          "type": "string"
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "target"
+      ]
+    },
+    "Variant13": {
+      "type": "object",
+      "properties": {
+        "directory": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "repository": {
+          "type": "string"
+        },
+        "version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "directory",
+        "repository"
+      ]
+    },
+    "Variant14": {
+      "type": "object",
+      "properties": {
+        "directory": {
+          "type": "string"
+        },
+        "file": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "privileged": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "sha256": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "url": {
+          "type": "string"
+        },
+        "version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "url",
+        "directory"
+      ]
+    },
+    "Variant15": {
+      "type": "object",
+      "properties": {
+        "cleanup": {
+          "type": "boolean",
+          "default": false
+        },
+        "file": {
+          "type": "string"
+        },
+        "no_upgrade": {
+          "type": "boolean",
+          "default": false
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "file"
+      ]
+    },
+    "Variant16": {
+      "type": "object",
+      "properties": {
+        "prune": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "Variant17": {
+      "type": "object",
+      "properties": {
+        "greedy": {
+          "type": "boolean",
+          "default": false
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "Variant18": {
+      "type": "object",
+      "properties": {
+        "list": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "Variant19": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "scope": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source": {
+          "type": "string"
+        },
+        "sparse": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "source"
+      ]
+    },
+    "Variant2": {
+      "type": "object",
       "properties": {
         "from": {
           "type": "string"
@@ -579,13 +4161,268 @@
             "null"
           ]
         }
+      },
+      "required": [
+        "from",
+        "to"
+      ]
+    },
+    "Variant20": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "scope": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "Variant21": {
+      "type": "object",
+      "properties": {
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
       }
     },
-    "Variant_for_DirectoryCreate": {
+    "Variant22": {
       "type": "object",
+      "properties": {
+        "list": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "Variant23": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "Variant24": {
+      "type": "object",
+      "properties": {
+        "directory": {
+          "type": "string"
+        },
+        "repo_url": {
+          "type": "string"
+        },
+        "update_existing": {
+          "type": "boolean",
+          "default": false
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
       "required": [
-        "path"
-      ],
+        "repo_url",
+        "directory"
+      ]
+    },
+    "Variant25": {
+      "type": "object",
+      "properties": {
+        "directory": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "key": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "scope": {
+          "$ref": "#/$defs/GitConfigScope"
+        },
+        "settings": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "unset": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "value": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "scope"
+      ]
+    },
+    "Variant26": {
+      "type": "object",
+      "properties": {
+        "directory": {
+          "type": "string"
+        },
+        "repo_url": {
+          "type": "string"
+        },
+        "skip_if_not_exists": {
+          "description": "Skip this action entirely if the given path does not exist.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "repo_url",
+        "directory"
+      ]
+    },
+    "Variant27": {
+      "type": "object",
+      "properties": {
+        "group_name": {
+          "type": "string",
+          "default": ""
+        },
+        "provider": {
+          "description": "Defaults to the host's provider.",
+          "$ref": "#/$defs/GroupProviders"
+        },
+        "variants": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/GroupVariant"
+          },
+          "default": {}
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "Variant28": {
+      "type": "object",
+      "properties": {
+        "domain": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        },
+        "kind": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "operation": {
+          "$ref": "#/$defs/MacOSDefaultOperation",
+          "default": "write"
+        },
+        "value": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "domain",
+        "key"
+      ]
+    },
+    "Variant29": {
+      "type": "object",
+      "properties": {
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "Variant3": {
+      "type": "object",
       "properties": {
         "path": {
           "type": "string"
@@ -596,23 +4433,785 @@
             "null"
           ]
         }
+      },
+      "required": [
+        "path"
+      ]
+    },
+    "Variant30": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "plist": {
+          "type": "string"
+        },
+        "privileged": {
+          "type": "boolean",
+          "default": false
+        },
+        "state": {
+          "$ref": "#/$defs/MacOSServiceState"
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "plist",
+        "state"
+      ]
+    },
+    "Variant31": {
+      "type": "object",
+      "properties": {
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
       }
     },
-    "Variant_for_FileCopy": {
+    "Variant32": {
       "type": "object",
+      "properties": {
+        "enabled": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "privileged": {
+          "type": "boolean",
+          "default": false
+        },
+        "started": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "unit": {
+          "type": "string"
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
       "required": [
-        "from",
-        "to"
+        "unit"
+      ]
+    },
+    "Variant33": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "description": "Single app ID. Mutually exclusive with `list`.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "list": {
+          "description": "List of apps to install. Mutually exclusive with `name` + `id`.",
+          "type": "array",
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/MasApp"
+          }
+        },
+        "name": {
+          "description": "Single app name. Mutually exclusive with `list`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "Variant34": {
+      "type": "object",
+      "properties": {
+        "cask": {
+          "type": "boolean",
+          "default": false
+        },
+        "extra_args": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "file": {
+          "type": "boolean",
+          "default": false
+        },
+        "key": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "list": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "provider": {
+          "description": "Defaults to the host's provider.",
+          "$ref": "#/$defs/PackageProviders"
+        },
+        "repository": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "variants": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/PackageVariant"
+          },
+          "default": {}
+        },
+        "version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "Variant35": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RepositoryKey"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "provider": {
+          "description": "Defaults to the host's provider.",
+          "$ref": "#/$defs/PackageProviders"
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "Variant36": {
+      "type": "object",
+      "properties": {
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "Variant37": {
+      "type": "object",
+      "properties": {
+        "list": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "provider": {
+          "type": "string"
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "provider"
+      ]
+    },
+    "Variant38": {
+      "type": "object",
+      "properties": {
+        "list": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "provider": {
+          "description": "Defaults to the host's provider.",
+          "$ref": "#/$defs/PackageProviders"
+        },
+        "purge": {
+          "type": "boolean",
+          "default": false
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "Variant39": {
+      "type": "object",
+      "properties": {
+        "fullname": {
+          "type": "string",
+          "default": ""
+        },
+        "group": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "home_dir": {
+          "type": "string",
+          "default": ""
+        },
+        "provider": {
+          "description": "Defaults to the host's provider.",
+          "$ref": "#/$defs/UserProviders"
+        },
+        "shell": {
+          "type": "string",
+          "default": ""
+        },
+        "username": {
+          "type": "string",
+          "default": ""
+        },
+        "variants": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/UserVariant"
+          },
+          "default": {}
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "Variant4": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "privileged": {
+          "type": "boolean",
+          "default": false
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "path",
+        "mode"
+      ]
+    },
+    "Variant40": {
+      "type": "object",
+      "properties": {
+        "group": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "provider": {
+          "description": "Defaults to the host's provider.",
+          "$ref": "#/$defs/UserProviders"
+        },
+        "username": {
+          "type": "string",
+          "default": ""
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "Variant41": {
+      "type": "object",
+      "properties": {
+        "shell": {
+          "type": "string"
+        },
+        "username": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "shell"
+      ]
+    },
+    "Variant42": {
+      "type": "object",
+      "properties": {
+        "actions": {
+          "$ref": "#/$defs/KeyValueMap(TaggedTable)"
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Repo"
+        },
+        {
+          "$ref": "#/$defs/Dir"
+        },
+        {
+          "type": "null"
+        }
       ],
+      "required": [
+        "actions"
+      ]
+    },
+    "Variant43": {
+      "type": "object",
+      "properties": {
+        "compile_flags": {
+          "description": "Flags passed to ruby-install after `--`, forwarded verbatim to ./configure.\nExample: [\"--with-openssl-dir=/opt/homebrew/opt/openssl@3\"]",
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "implementation": {
+          "description": "Ruby implementation to install. Defaults to \"ruby\". Other options: \"jruby\", \"truffleruby\".",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "rubies_dir": {
+          "description": "Directory where rubies are installed. Defaults to ~/.rubies. Passed as --rubies-dir to ruby-install when set.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "version": {
+          "type": "string"
+        },
+        "version_manager": {
+          "description": "Version manager to notify after installation. When `rbenv`, appends\n`rbenv global <version>` and `rbenv rehash` steps after ruby-install.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/VersionManager"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "version"
+      ]
+    },
+    "Variant44": {
+      "type": "object",
+      "properties": {
+        "default_version": {
+          "description": "Ruby version to set as default in ~/.ruby-version.\nVerbatim string written to the file (e.g. \"ruby-3.3.0\").\nIf omitted, ~/.ruby-version is not written.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "Variant45": {
+      "type": "object",
+      "properties": {
+        "list": {
+          "description": "List of gem names to install. Mutually exclusive with `name`.",
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "name": {
+          "description": "Single gem name to install. Mutually exclusive with `list`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "version": {
+          "description": "Version constraint (e.g. \"2.4.0\"). Only meaningful when installing a single gem.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "Variant46": {
+      "type": "object",
+      "properties": {
+        "list": {
+          "description": "List of package names to install. Mutually exclusive with `name`.",
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "name": {
+          "description": "Single package name to install. Mutually exclusive with `list`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "version": {
+          "description": "Exact version (e.g. \"2.28.0\"). Only meaningful when installing a single package.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "virtualenv": {
+          "description": "Path to a virtualenv. If set, uses `<virtualenv>/bin/pip` instead of `pip`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "Variant47": {
+      "type": "object",
+      "properties": {
+        "list": {
+          "description": "List of module names to install. Mutually exclusive with `name`.",
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "name": {
+          "description": "Single module name to install. Mutually exclusive with `list`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "scope": {
+          "description": "Install scope: CurrentUser (default) or AllUsers.",
+          "$ref": "#/$defs/PowerShellScope",
+          "default": "CurrentUser"
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "Variant48": {
+      "type": "object",
+      "properties": {
+        "list": {
+          "description": "List of package names to install globally. Mutually exclusive with `name`.",
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "name": {
+          "description": "Single package name to install globally. Mutually exclusive with `list`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "Variant49": {
+      "type": "object",
+      "properties": {
+        "configure_opts": {
+          "description": "Value for PYTHON_CONFIGURE_OPTS before invoking pyenv install.\nOn macOS with Homebrew, use \"--with-system-libmpdec=no\" to avoid\nconflicts between Homebrew-installed libmpdec and CPython's bundled copy.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "version": {
+          "description": "Python version to install via pyenv (e.g. \"3.12.0\").",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "Variant5": {
+      "type": "object",
+      "properties": {
+        "flags": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "path": {
+          "type": "string"
+        },
+        "privileged": {
+          "type": "boolean",
+          "default": false
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "path"
+      ]
+    },
+    "Variant50": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "Name of the virtualenv to create (e.g. \"myproject\").",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "python_version": {
+          "description": "Python version to base the virtualenv on (e.g. \"3.12.0\").",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "recreate": {
+          "description": "When true, delete and recreate the virtualenv if its Python version\ndiffers from `python_version`. Default false preserves existing behavior.",
+          "type": "boolean",
+          "default": false
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "Variant51": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "description": "Terraform version to install and set as default (e.g. \"1.9.0\").\nIf omitted, only tfenv itself is installed.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "Variant52": {
+      "type": "object",
+      "properties": {
+        "plugins": {
+          "description": "Git URLs of oh-my-zsh community plugins to install.\nEach URL is cloned into ~/.oh-my-zsh/custom/plugins/<repo-name>.\nThe repo name is the last path segment of the URL, with any trailing .git stripped.",
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "Variant6": {
+      "type": "object",
       "properties": {
         "chmod": {
-          "default": 420,
           "type": "integer",
           "format": "uint32",
-          "minimum": 0.0
+          "default": 420,
+          "minimum": 0
         },
         "from": {
           "type": "string"
+        },
+        "owned_by_group": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "owned_by_user": {
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "passphrase": {
           "type": [
@@ -620,9 +5219,13 @@
             "null"
           ]
         },
+        "privileged": {
+          "type": "boolean",
+          "default": false
+        },
         "template": {
-          "default": false,
-          "type": "boolean"
+          "type": "boolean",
+          "default": false
         },
         "to": {
           "type": "string"
@@ -633,27 +5236,76 @@
             "null"
           ]
         }
-      }
-    },
-    "Variant_for_FileDownload": {
-      "type": "object",
+      },
       "required": [
         "from",
         "to"
-      ],
+      ]
+    },
+    "Variant7": {
+      "type": "object",
+      "properties": {
+        "group": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "path": {
+          "type": "string"
+        },
+        "privileged": {
+          "type": "boolean",
+          "default": false
+        },
+        "user": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "path"
+      ]
+    },
+    "Variant8": {
+      "type": "object",
       "properties": {
         "chmod": {
-          "default": 420,
           "type": "integer",
           "format": "uint32",
-          "minimum": 0.0
+          "default": 420,
+          "minimum": 0
         },
         "from": {
           "type": "string"
         },
+        "owned_by_group": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "owned_by_user": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "privileged": {
+          "type": "boolean",
+          "default": false
+        },
         "template": {
-          "default": false,
-          "type": "boolean"
+          "type": "boolean",
+          "default": false
         },
         "to": {
           "type": "string"
@@ -664,9 +5316,13 @@
             "null"
           ]
         }
-      }
+      },
+      "required": [
+        "from",
+        "to"
+      ]
     },
-    "Variant_for_FileLink": {
+    "Variant9": {
       "type": "object",
       "properties": {
         "from": {
@@ -674,6 +5330,16 @@
             "string",
             "null"
           ]
+        },
+        "glob": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "privileged": {
+          "type": "boolean",
+          "default": false
         },
         "source": {
           "type": [
@@ -694,8 +5360,8 @@
           ]
         },
         "walk_dir": {
-          "default": false,
-          "type": "boolean"
+          "type": "boolean",
+          "default": false
         },
         "where": {
           "type": [
@@ -705,188 +5371,25 @@
         }
       }
     },
-    "Variant_for_GitClone": {
-      "type": "object",
-      "required": [
-        "directory",
-        "repository"
-      ],
-      "properties": {
-        "directory": {
+    "Version": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "null"
+        },
+        {
           "type": "string"
-        },
-        "reference": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "repository": {
-          "type": "string"
-        },
-        "where": {
-          "type": [
-            "string",
-            "null"
-          ]
         }
-      }
+      ]
     },
-    "Variant_for_MacOSDefault": {
-      "type": "object",
-      "required": [
-        "domain",
-        "key",
-        "kind",
-        "value"
-      ],
-      "properties": {
-        "domain": {
-          "type": "string"
-        },
-        "key": {
-          "type": "string"
-        },
-        "kind": {
-          "type": "string"
-        },
-        "value": {
-          "type": "string"
-        },
-        "where": {
-          "type": [
-            "string",
-            "null"
-          ]
-        }
-      }
-    },
-    "Variant_for_Package": {
-      "type": "object",
-      "properties": {
-        "extra_args": {
-          "default": [],
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "key": {
-          "default": null,
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "list": {
-          "default": [],
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "name": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "provider": {
-          "default": "Homebrew",
-          "allOf": [
-            {
-              "$ref": "#/definitions/PackageProviders"
-            }
-          ]
-        },
-        "repository": {
-          "default": null,
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "variants": {
-          "default": {},
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/definitions/PackageVariant"
-          }
-        },
-        "where": {
-          "type": [
-            "string",
-            "null"
-          ]
-        }
-      }
-    },
-    "Variant_for_PackageRepository": {
-      "type": "object",
-      "required": [
-        "name"
-      ],
-      "properties": {
-        "key": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/RepositoryKey"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "name": {
-          "type": "string"
-        },
-        "provider": {
-          "default": "Homebrew",
-          "allOf": [
-            {
-              "$ref": "#/definitions/PackageProviders"
-            }
-          ]
-        },
-        "where": {
-          "type": [
-            "string",
-            "null"
-          ]
-        }
-      }
-    },
-    "Variant_for_RunCommand": {
-      "type": "object",
-      "required": [
-        "command"
-      ],
-      "properties": {
-        "args": {
-          "default": [],
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "command": {
-          "type": "string"
-        },
-        "dir": {
-          "default": "/Users/rawkode/Code/src/github.com/brujack/etch-cli/jsonschemagen",
-          "type": "string"
-        },
-        "sudo": {
-          "default": false,
-          "type": "boolean"
-        },
-        "where": {
-          "type": [
-            "string",
-            "null"
-          ]
-        }
-      }
+    "VersionManager": {
+      "type": "string",
+      "enum": [
+        "rbenv",
+        "chruby"
+      ]
     }
   }
 }
