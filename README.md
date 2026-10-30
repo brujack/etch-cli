@@ -439,6 +439,7 @@ Release binaries are signed with [cosign](https://docs.sigstore.dev/cosign/overv
 - `etch.sha256` — SHA256 checksum
 - `etch.bundle` — cosign bundle (signature + certificate)
 - `etch.sbom.spdx.json` — SPDX bill of materials
+- `etch-schema.json` — JSON Schema for manifests, for editor autocomplete and validation (not signed)
 
 Verify the checksum:
 
