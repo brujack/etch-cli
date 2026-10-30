@@ -1,7 +1,7 @@
 use crate::atoms::{Atom, Outcome};
 use flate2::read::GzDecoder;
 use std::fs::File;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tar::Archive;
 use xz2::read::XzDecoder;
 use zip::ZipArchive;
@@ -44,6 +44,33 @@ impl std::fmt::Display for BinaryExtract {
     }
 }
 
+/// Runs `write` against a temp path beside `dest`, then renames it onto
+/// `dest`. A failed write removes the temp file, so `dest` never holds a
+/// partial binary that `plan()` would take for a finished install.
+fn write_atomically(
+    dest: &Path,
+    write: impl FnOnce(&Path) -> anyhow::Result<()>,
+) -> anyhow::Result<()> {
+    if let Some(parent) = dest.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let name = dest
+        .file_name()
+        .ok_or_else(|| anyhow::anyhow!("binary: no file name in {}", dest.display()))?;
+    let tmp = dest.with_file_name(format!(
+        ".{}.etch-partial-{}",
+        name.to_string_lossy(),
+        std::process::id()
+    ));
+    let result = write(&tmp).and_then(|()| Ok(std::fs::rename(&tmp, dest)?));
+    if result.is_err() {
+        // Best effort: the write error is the one worth reporting, and a
+        // temp file that was never created makes this fail harmlessly.
+        let _ = std::fs::remove_file(&tmp);
+    }
+    result
+}
+
 impl Atom for BinaryExtract {
     fn plan(&self) -> anyhow::Result<Outcome> {
         Ok(Outcome {
@@ -72,10 +99,10 @@ impl Atom for BinaryExtract {
                     let mut entry = entry?;
                     let path = entry.path()?.to_string_lossy().into_owned();
                     if path == target {
-                        if let Some(parent) = self.dest.parent() {
-                            std::fs::create_dir_all(parent)?;
-                        }
-                        entry.unpack(&self.dest)?;
+                        write_atomically(&self.dest, |tmp| {
+                            entry.unpack(tmp)?;
+                            Ok(())
+                        })?;
                         std::fs::remove_file(&self.src)?;
                         return Ok(());
                     }
@@ -96,10 +123,10 @@ impl Atom for BinaryExtract {
                     let mut entry = entry?;
                     let path = entry.path()?.to_string_lossy().into_owned();
                     if path == target {
-                        if let Some(parent) = self.dest.parent() {
-                            std::fs::create_dir_all(parent)?;
-                        }
-                        entry.unpack(&self.dest)?;
+                        write_atomically(&self.dest, |tmp| {
+                            entry.unpack(tmp)?;
+                            Ok(())
+                        })?;
                         std::fs::remove_file(&self.src)?;
                         return Ok(());
                     }
@@ -118,11 +145,10 @@ impl Atom for BinaryExtract {
                 let mut entry = archive.by_name(target).map_err(|_| {
                     anyhow::anyhow!("binary.url: '{}' not found in archive", target)
                 })?;
-                if let Some(parent) = self.dest.parent() {
-                    std::fs::create_dir_all(parent)?;
-                }
-                let mut dest_file = File::create(&self.dest)?;
-                std::io::copy(&mut entry, &mut dest_file)?;
+                write_atomically(&self.dest, |tmp| {
+                    std::io::copy(&mut entry, &mut File::create(tmp)?)?;
+                    Ok(())
+                })?;
                 drop(entry);
                 drop(archive);
                 std::fs::remove_file(&self.src)?;
@@ -322,6 +348,175 @@ mod tests {
         atom.execute().unwrap();
         assert!(dest.exists());
         assert_eq!(std::fs::read(&dest).unwrap(), content);
+    }
+
+    /// Bytes that neither gzip nor xz can compress, so truncating the
+    /// compressed archive truncates the entry's data and not only padding.
+    fn incompressible(len: usize) -> Vec<u8> {
+        let mut state: u32 = 0x9E37_79B9;
+        (0..len)
+            .map(|_| {
+                state ^= state << 13;
+                state ^= state >> 17;
+                state ^= state << 5;
+                state.to_le_bytes()[0]
+            })
+            .collect()
+    }
+
+    /// Asserts a failed extract left nothing behind in `dir` except `src`,
+    /// so `plan()` schedules the step again on the next run.
+    fn assert_failed_extract_left_no_trace(atom: &BinaryExtract, dir: &std::path::Path) {
+        assert!(
+            !atom.dest.exists(),
+            "partial binary left at {}",
+            atom.dest.display()
+        );
+        assert!(atom.plan().unwrap().should_run);
+        let leftovers: Vec<_> = std::fs::read_dir(dir)
+            .unwrap()
+            .map(|e| e.unwrap().path())
+            .filter(|p| p != &atom.src)
+            .collect();
+        assert!(leftovers.is_empty(), "leftover files: {leftovers:?}");
+    }
+
+    #[test]
+    fn extract_zip_with_bad_checksum_leaves_no_partial_binary() {
+        let tmp = tempfile::tempdir().unwrap();
+        let content = incompressible(64 * 1024);
+        let src = tmp.path().join("test.zip");
+        {
+            use std::io::Write;
+            let mut zip = zip::ZipWriter::new(File::create(&src).unwrap());
+            let opts = zip::write::SimpleFileOptions::default()
+                .compression_method(zip::CompressionMethod::Stored);
+            zip.start_file("consul", opts).unwrap();
+            zip.write_all(&content).unwrap();
+            zip.finish().unwrap();
+        }
+        // Flip one byte of the stored entry data: the archive still opens,
+        // and the CRC mismatch surfaces only after most bytes are copied.
+        let mut bytes = std::fs::read(&src).unwrap();
+        let at = bytes
+            .windows(64)
+            .position(|w| w == &content[32 * 1024..32 * 1024 + 64])
+            .unwrap();
+        bytes[at] ^= 0xFF;
+        std::fs::write(&src, bytes).unwrap();
+        let mut atom = BinaryExtract {
+            src,
+            dest: tmp.path().join("consul"),
+            file: Some(String::from("consul")),
+            format: ArchiveFormat::Zip,
+        };
+        assert!(atom.execute().is_err());
+        assert_failed_extract_left_no_trace(&atom, tmp.path());
+    }
+
+    /// Cuts `src` to half its length, so the tar header still decodes and
+    /// the entry's data ends early.
+    fn truncate_to_half(src: &std::path::Path) {
+        let len = std::fs::metadata(src).unwrap().len();
+        File::options()
+            .write(true)
+            .open(src)
+            .unwrap()
+            .set_len(len / 2)
+            .unwrap();
+    }
+
+    #[test]
+    fn extract_truncated_tar_gz_leaves_no_partial_binary() {
+        let tmp = tempfile::tempdir().unwrap();
+        let src = make_tar_gz(tmp.path(), "go/bin/go", &incompressible(64 * 1024));
+        truncate_to_half(&src);
+        let mut atom = BinaryExtract {
+            src,
+            dest: tmp.path().join("go"),
+            file: Some(String::from("go/bin/go")),
+            format: ArchiveFormat::TarGz,
+        };
+        assert!(atom.execute().is_err());
+        assert_failed_extract_left_no_trace(&atom, tmp.path());
+    }
+
+    #[test]
+    fn extract_truncated_tar_xz_leaves_no_partial_binary() {
+        let tmp = tempfile::tempdir().unwrap();
+        let src = make_tar_xz(tmp.path(), "vault", &incompressible(64 * 1024));
+        truncate_to_half(&src);
+        let mut atom = BinaryExtract {
+            src,
+            dest: tmp.path().join("vault"),
+            file: Some(String::from("vault")),
+            format: ArchiveFormat::TarXz,
+        };
+        assert!(atom.execute().is_err());
+        assert_failed_extract_left_no_trace(&atom, tmp.path());
+    }
+
+    #[test]
+    fn extract_onto_existing_directory_removes_temp_file() {
+        let tmp = tempfile::tempdir().unwrap();
+        let src = make_zip(tmp.path(), "consul", b"consul binary content");
+        let dest = tmp.path().join("consul");
+        std::fs::create_dir(&dest).unwrap();
+        std::fs::write(dest.join("keep"), b"occupied").unwrap();
+        let mut atom = BinaryExtract {
+            src: src.clone(),
+            dest: dest.clone(),
+            file: Some(String::from("consul")),
+            format: ArchiveFormat::Zip,
+        };
+        assert!(atom.execute().is_err());
+        let mut names: Vec<_> = std::fs::read_dir(tmp.path())
+            .unwrap()
+            .map(|e| e.unwrap().file_name())
+            .collect();
+        names.sort();
+        assert_eq!(names, ["consul", "test.zip"], "temp file left behind");
+    }
+
+    #[test]
+    fn extract_to_dest_without_file_name_returns_err() {
+        let tmp = tempfile::tempdir().unwrap();
+        let src = make_zip(tmp.path(), "consul", b"consul binary content");
+        let mut atom = BinaryExtract {
+            src,
+            dest: tmp.path().join(".."),
+            file: Some(String::from("consul")),
+            format: ArchiveFormat::Zip,
+        };
+        let msg = atom.execute().err().unwrap().to_string();
+        assert!(msg.contains("no file name"), "msg was: {msg}");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn extract_tar_gz_keeps_executable_mode() {
+        use flate2::write::GzEncoder;
+        use std::os::unix::fs::PermissionsExt;
+        let tmp = tempfile::tempdir().unwrap();
+        let src = tmp.path().join("test.tar.gz");
+        let enc = GzEncoder::new(File::create(&src).unwrap(), flate2::Compression::default());
+        let mut tar = tar::Builder::new(enc);
+        let mut header = tar::Header::new_gnu();
+        header.set_size(2);
+        header.set_mode(0o755);
+        header.set_cksum();
+        tar.append_data(&mut header, "go", &b"go"[..]).unwrap();
+        tar.into_inner().unwrap().finish().unwrap();
+        let dest = tmp.path().join("bin").join("go");
+        let mut atom = BinaryExtract {
+            src,
+            dest: dest.clone(),
+            file: Some(String::from("go")),
+            format: ArchiveFormat::TarGz,
+        };
+        atom.execute().unwrap();
+        let mode = std::fs::metadata(&dest).unwrap().permissions().mode();
+        assert_eq!(mode & 0o777, 0o755);
     }
 
     #[test]
