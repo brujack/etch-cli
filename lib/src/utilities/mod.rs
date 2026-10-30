@@ -61,6 +61,17 @@ mod tests {
     use std::collections::BTreeMap;
 
     #[test]
+    fn without_default_removes_only_the_default() {
+        let mut schema = schemars::json_schema!({"type": "string", "default": "/home/x"});
+        without_default(&mut schema);
+        assert_eq!(schema, schemars::json_schema!({"type": "string"}));
+
+        // Idempotent, and a schema without a default is left unchanged.
+        without_default(&mut schema);
+        assert_eq!(schema, schemars::json_schema!({"type": "string"}));
+    }
+
+    #[test]
     fn get_binary_path_for_existing_command() {
         let result = get_binary_path("echo");
         assert!(result.is_ok());

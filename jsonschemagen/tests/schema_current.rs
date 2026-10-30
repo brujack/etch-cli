@@ -1,5 +1,20 @@
 use std::path::Path;
 
+/// `make schema` writes the binary's stdout to schema.json, so the binary must
+/// print exactly what `render()` returns and exit 0.
+#[test]
+fn binary_prints_the_rendered_schema() {
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_jsonschemagen"))
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "exit: {}", output.status);
+    assert_eq!(
+        String::from_utf8(output.stdout).unwrap(),
+        jsonschemagen::render().unwrap()
+    );
+}
+
 /// Editor autocomplete and etch-config's action-name list read the committed
 /// `schema.json`, so it must match what the current source generates.
 #[test]

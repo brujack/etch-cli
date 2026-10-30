@@ -95,6 +95,14 @@ mod tests {
     use crate::actions::Actions;
 
     #[test]
+    fn schema_does_not_publish_the_cwd_as_dir_default() {
+        let schema = schemars::schema_for!(super::RunCommand);
+        let dir = &schema.as_value()["properties"]["dir"];
+        assert!(dir.is_object(), "no dir property: {schema:?}");
+        assert!(dir.get("default").is_none(), "dir carries a default: {dir}");
+    }
+
+    #[test]
     fn it_can_be_deserialize() {
         let yaml = r#"
   - action: command.run
