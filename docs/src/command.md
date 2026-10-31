@@ -19,7 +19,7 @@ This is the most basic, but yet powerful action as it can be used to run anythin
 
 `env:` sets environment variables for a single `command.run` action. It is a hash map of keys and values; multiple variables are supported. Three facts apply:
 
-- The variables are passed to the command itself, including privileged commands: under `privileged: true` they reach the command through an `env K=V` prefix after `sudo`.
+- The variables are passed to the command itself, including privileged commands: under `privileged: true` they reach the command through an `env K=V` prefix after the privilege provider (`sudo`, `doas`, `run0`).
 - An unprivileged program is resolved on the step's own `PATH` from `env:`, so `env: {PATH: ...}` can locate a program that is not on etch's `PATH`.
 - `env:` does not modify etch's own process environment. Later actions never see these variables, even when the command fails.
 
@@ -40,7 +40,7 @@ This is the most basic, but yet powerful action as it can be used to run anythin
   env:
     GOBIN: /Users/test
 
-# we should see that GOBIN is no longer set, showing that the variable has been cleaned up
+# GOBIN from `env:` applied only to the previous command; this `go env` sees etch's own environment
 - action: command.run
   command: go
   args:

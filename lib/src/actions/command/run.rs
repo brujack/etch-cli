@@ -254,8 +254,10 @@ mod tests {
         assert_eq!(1, steps.len());
         assert!(steps[0].finalizers.is_empty());
         let debug = format!("{:?}", steps[0].atom);
-        let a = debug.find("\"A\"").expect("key A in Debug");
-        let b = debug.find("\"B\"").expect("key B in Debug");
+        let env_start = debug.find("environment").expect("environment in Debug");
+        let env_debug = &debug[env_start..];
+        let a = env_debug.find("\"A\"").expect("key A in Debug");
+        let b = env_debug.find("\"B\"").expect("key B in Debug");
         assert!(a < b, "keys not sorted: {debug}");
         assert!(!debug.contains("etch-secret-a"), "leaked: {debug}");
         assert!(!debug.contains("etch-secret-b"), "leaked: {debug}");

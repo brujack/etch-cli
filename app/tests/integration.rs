@@ -205,6 +205,24 @@ fn command_run_env_restores_inherited_value() {
 }
 
 #[test]
+fn command_run_env_value_reaches_child() {
+    let dir = tempdir().unwrap();
+    let state = tempdir().unwrap();
+    fs::write(
+        dir.path().join("test.yaml"),
+        format!(
+            "actions:\n  - action: command.run\n    command: sh\n    args:\n      - -c\n      - printf %s \"${{ETCH_SPEC_PROBE-unset}}\" > {}/probe\n    env:\n      ETCH_SPEC_PROBE: \"x\"\n",
+            dir.path().display()
+        ),
+    )
+    .unwrap();
+
+    apply_with_state_env(dir.path(), state.path(), &[("ETCH_SPEC_PROBE", "orig")]).success();
+
+    assert_eq!(fs::read_to_string(dir.path().join("probe")).unwrap(), "x");
+}
+
+#[test]
 fn command_run_env_does_not_leak_after_failure() {
     let dir = tempdir().unwrap();
     let state = tempdir().unwrap();
