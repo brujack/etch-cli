@@ -87,7 +87,8 @@ jobs:
 
   # The tarpaulin runs are their own jobs so they run beside `test` on separate
   # runners instead of after it: each is a full instrumented build and test run
-  # (about 5 minutes apiece on PR #156), and in one job the three ran serially.
+  # (325-327 s apiece in PR #156's run 41138976453), and in one job the three
+  # ran serially.
   coverage:
     name: Coverage
     runs-on: ubuntu-latest
@@ -104,7 +105,7 @@ jobs:
           tool: cargo-tarpaulin@0.37.5
           fallback: none
       - name: Check coverage
-        # Coverage gate: 80% on Linux CI (ubuntu-latest). Linux measured 80.17% in PR #83.
+        # Coverage gate: 81% on Linux CI (ubuntu-latest).
         # Local macOS measures ~82% because macOS provider tests (#[cfg(target_os = "macos")])
         # add coverage locally but don't run in CI.
         run: cargo tarpaulin --exclude-files 'jsonschemagen/*' --fail-under 81 --out Json
