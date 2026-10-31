@@ -67,6 +67,7 @@ impl DoctorCheck for ToolsCheck {
 mod tests {
     use super::*;
     use crate::config::DoctorConfig;
+    use crate::test_helpers::EnvGuard;
     use serial_test::serial;
 
     fn config_with_tools(tools: &[&str]) -> Config {
@@ -88,13 +89,10 @@ mod tests {
         use std::os::unix::fs::PermissionsExt;
         std::fs::set_permissions(&fake, std::fs::Permissions::from_mode(0o755)).unwrap();
 
-        let old = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var("PATH", format!("{}:{old}", tmp.path().display()));
+        let _path = EnvGuard::prepend_path(tmp.path());
 
         let config = config_with_tools(&["mytestbinary_xyz"]);
         let results = ToolsCheck.run(&config, &HashMap::new());
-
-        std::env::set_var("PATH", old);
 
         assert_eq!(1, results.len());
         assert!(results[0].passed, "expected pass for tool in PATH");

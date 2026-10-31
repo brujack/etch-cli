@@ -54,10 +54,10 @@ pub(crate) fn render_list(entries: &[(PathBuf, Vec<StashEntry>)]) -> String {
 
 pub(crate) fn expand_tilde(path: &Path) -> PathBuf {
     let s = path.to_string_lossy();
-    if let Some(rest) = s.strip_prefix("~/") {
-        if let Some(home) = dirs_next::home_dir() {
-            return home.join(rest);
-        }
+    if let Some(rest) = s.strip_prefix("~/")
+        && let Some(home) = dirs_next::home_dir()
+    {
+        return home.join(rest);
     }
     path.to_path_buf()
 }

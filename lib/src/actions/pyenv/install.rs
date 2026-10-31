@@ -76,6 +76,7 @@ mod tests {
     use crate::actions::Actions;
     use crate::contexts::Contexts;
     use crate::manifests::Manifest;
+    use crate::test_helpers::EnvGuard;
     use serial_test::serial;
 
     const FAKE_VERSION: &str = "0.0.1-etch-cli-test";
@@ -188,8 +189,7 @@ mod tests {
         .unwrap();
         std::fs::set_permissions(&fake_pyenv, std::fs::Permissions::from_mode(0o755)).unwrap();
 
-        let old_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var("PATH", format!("{}:{old_path}", tmp.path().display()));
+        let _path = EnvGuard::prepend_path(tmp.path());
 
         let action = PyenvInstall {
             version: Some(String::from("3.12.0")),
@@ -202,8 +202,6 @@ mod tests {
         assert_eq!(1, steps.len());
         steps[0].atom.execute().unwrap();
         let output = steps[0].atom.output_string();
-
-        std::env::set_var("PATH", old_path);
 
         assert!(
             output.contains("--with-system-libmpdec=no"),
@@ -226,8 +224,7 @@ mod tests {
         .unwrap();
         std::fs::set_permissions(&fake_pyenv, std::fs::Permissions::from_mode(0o755)).unwrap();
 
-        let old_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var("PATH", format!("{}:{old_path}", tmp.path().display()));
+        let _path = EnvGuard::prepend_path(tmp.path());
 
         let action = PyenvInstall {
             version: Some(String::from("3.12.0")),
@@ -240,8 +237,6 @@ mod tests {
         assert_eq!(1, steps.len());
         steps[0].atom.execute().unwrap();
         let output = steps[0].atom.output_string();
-
-        std::env::set_var("PATH", old_path);
 
         assert!(
             output.contains("OPTS=[]"),
@@ -264,8 +259,7 @@ mod tests {
         .unwrap();
         std::fs::set_permissions(&fake_pyenv, std::fs::Permissions::from_mode(0o755)).unwrap();
 
-        let old_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var("PATH", format!("{}:{old_path}", tmp.path().display()));
+        let _path = EnvGuard::prepend_path(tmp.path());
 
         let action = PyenvInstall {
             version: Some(String::from("3.12.0")),
@@ -274,8 +268,6 @@ mod tests {
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
             .unwrap();
-
-        std::env::set_var("PATH", old_path);
 
         assert!(
             steps.is_empty(),
@@ -298,8 +290,7 @@ mod tests {
         .unwrap();
         std::fs::set_permissions(&fake_pyenv, std::fs::Permissions::from_mode(0o755)).unwrap();
 
-        let old_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var("PATH", format!("{}:{old_path}", tmp.path().display()));
+        let _path = EnvGuard::prepend_path(tmp.path());
 
         let action = PyenvInstall {
             version: Some(String::from("3.12.0")),
@@ -308,8 +299,6 @@ mod tests {
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
             .unwrap();
-
-        std::env::set_var("PATH", old_path);
 
         assert_eq!(
             1,
@@ -323,8 +312,7 @@ mod tests {
     #[test]
     #[serial]
     fn plan_generates_step_when_pyenv_not_in_path() {
-        let old_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var("PATH", "/nonexistent");
+        let _path = EnvGuard::set("PATH", "/nonexistent");
 
         let action = PyenvInstall {
             version: Some(String::from("3.12.0")),
@@ -333,8 +321,6 @@ mod tests {
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
             .unwrap();
-
-        std::env::set_var("PATH", old_path);
 
         // version_installed returns false on error → fail-safe: generate step
         assert_eq!(1, steps.len());

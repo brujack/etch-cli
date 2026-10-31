@@ -107,6 +107,7 @@ impl DoctorCheck for VersionsCheck {
 mod tests {
     use super::*;
     use crate::config::{DoctorConfig, VersionPin};
+    use crate::test_helpers::EnvGuard;
     use serial_test::serial;
     use std::os::unix::fs::PermissionsExt;
 
@@ -138,13 +139,10 @@ mod tests {
         let name = "fake_version_tool_pass_xyz";
         make_fake_binary(tmp.path(), name, "mytool 1.2.3");
 
-        let old = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var("PATH", format!("{}:{old}", tmp.path().display()));
+        let _path = EnvGuard::prepend_path(tmp.path());
 
         let config = config_with_pin("mytool", name, "1.2.3");
         let results = VersionsCheck.run(&config, &HashMap::new());
-
-        std::env::set_var("PATH", old);
 
         assert_eq!(1, results.len());
         assert!(
@@ -161,13 +159,10 @@ mod tests {
         let name = "fake_version_tool_fail_xyz";
         make_fake_binary(tmp.path(), name, "mytool 9.9.9");
 
-        let old = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var("PATH", format!("{}:{old}", tmp.path().display()));
+        let _path = EnvGuard::prepend_path(tmp.path());
 
         let config = config_with_pin("mytool", name, "1.2.3");
         let results = VersionsCheck.run(&config, &HashMap::new());
-
-        std::env::set_var("PATH", old);
 
         assert_eq!(1, results.len());
         assert!(!results[0].passed);

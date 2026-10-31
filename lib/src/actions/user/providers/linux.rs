@@ -131,6 +131,7 @@ mod test {
     use crate::actions::user::providers::{LinuxUserProvider, UserProvider};
     use crate::actions::user::{add_group::UserAddGroup, UserVariant};
     use crate::contexts::Contexts;
+    use crate::test_helpers::EnvGuard;
     use serial_test::serial;
     use std::os::unix::fs::PermissionsExt;
 
@@ -140,61 +141,58 @@ mod test {
         std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
     }
 
-    fn with_mock_bins<F: FnOnce()>(bins: &[&str], f: F) {
+    fn mock_bin_dir(bins: &[&str]) -> tempfile::TempDir {
         let tmp = tempfile::tempdir().unwrap();
         for bin in bins {
             write_mock_bin(tmp.path(), bin);
         }
-        let old_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var("PATH", format!("{}:{}", tmp.path().display(), old_path));
-        f();
-        std::env::set_var("PATH", old_path);
+        tmp
     }
 
     #[test]
     #[serial]
     fn test_add_user() {
-        with_mock_bins(&["useradd", "usermod"], || {
-            let user_provider = LinuxUserProvider {};
-            let contexts = Contexts::default();
-            let steps = user_provider
-                .add_user(
-                    &UserVariant {
-                        username: String::from("test"),
-                        shell: String::from("sh"),
-                        home_dir: String::from("/home/test"),
-                        fullname: String::from("Test User"),
-                        group: vec![],
-                        ..Default::default()
-                    },
-                    &contexts,
-                )
-                .unwrap();
-            assert_eq!(1, steps.len());
-        });
+        let tmp = mock_bin_dir(&["useradd", "usermod"]);
+        let _path = EnvGuard::prepend_path(tmp.path());
+        let user_provider = LinuxUserProvider {};
+        let contexts = Contexts::default();
+        let steps = user_provider
+            .add_user(
+                &UserVariant {
+                    username: String::from("test"),
+                    shell: String::from("sh"),
+                    home_dir: String::from("/home/test"),
+                    fullname: String::from("Test User"),
+                    group: vec![],
+                    ..Default::default()
+                },
+                &contexts,
+            )
+            .unwrap();
+        assert_eq!(1, steps.len());
     }
 
     #[test]
     #[serial]
     fn test_add_user_no_username() {
-        with_mock_bins(&["useradd"], || {
-            let user_provider = LinuxUserProvider {};
-            let contexts = Contexts::default();
-            let steps = user_provider
-                .add_user(
-                    &UserVariant {
-                        username: String::from(""),
-                        shell: String::from("sh"),
-                        home_dir: String::from("/home/test"),
-                        fullname: String::from("Test User"),
-                        group: vec![],
-                        ..Default::default()
-                    },
-                    &contexts,
-                )
-                .unwrap();
-            assert_eq!(0, steps.len());
-        });
+        let tmp = mock_bin_dir(&["useradd"]);
+        let _path = EnvGuard::prepend_path(tmp.path());
+        let user_provider = LinuxUserProvider {};
+        let contexts = Contexts::default();
+        let steps = user_provider
+            .add_user(
+                &UserVariant {
+                    username: String::from(""),
+                    shell: String::from("sh"),
+                    home_dir: String::from("/home/test"),
+                    fullname: String::from("Test User"),
+                    group: vec![],
+                    ..Default::default()
+                },
+                &contexts,
+            )
+            .unwrap();
+        assert_eq!(0, steps.len());
     }
 
     fn write_id_mock(dir: &std::path::Path, output: &str) {
@@ -213,8 +211,7 @@ mod test {
         let tmp = tempfile::tempdir().unwrap();
         write_mock_bin(tmp.path(), "usermod");
         write_id_mock(tmp.path(), "staff wheel testgroup");
-        let old_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var("PATH", format!("{}:{}", tmp.path().display(), old_path));
+        let _path = EnvGuard::prepend_path(tmp.path());
 
         let user_provider = LinuxUserProvider {};
         let contexts = Contexts::default();
@@ -229,7 +226,6 @@ mod test {
             )
             .unwrap();
 
-        std::env::set_var("PATH", old_path);
         assert_eq!(0, steps.len(), "already a member — should skip");
     }
 
@@ -239,8 +235,7 @@ mod test {
         let tmp = tempfile::tempdir().unwrap();
         write_mock_bin(tmp.path(), "usermod");
         write_id_mock(tmp.path(), "staff wheel testgroup");
-        let old_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var("PATH", format!("{}:{}", tmp.path().display(), old_path));
+        let _path = EnvGuard::prepend_path(tmp.path());
 
         let user_provider = LinuxUserProvider {};
         let contexts = Contexts::default();
@@ -259,7 +254,6 @@ mod test {
             )
             .unwrap();
 
-        std::env::set_var("PATH", old_path);
         assert_eq!(1, steps.len(), "only docker is not in the member list");
     }
 
@@ -272,8 +266,7 @@ mod test {
         let id_path = tmp.path().join("id");
         std::fs::write(&id_path, "#!/bin/sh\nexit 1\n").unwrap();
         std::fs::set_permissions(&id_path, std::fs::Permissions::from_mode(0o755)).unwrap();
-        let old_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var("PATH", format!("{}:{}", tmp.path().display(), old_path));
+        let _path = EnvGuard::prepend_path(tmp.path());
 
         let user_provider = LinuxUserProvider {};
         let contexts = Contexts::default();
@@ -288,59 +281,57 @@ mod test {
             )
             .unwrap();
 
-        std::env::set_var("PATH", old_path);
         assert_eq!(1, steps.len(), "id failure should not skip the step");
     }
 
     #[test]
     #[serial]
     fn test_add_to_group() {
-        with_mock_bins(&["usermod", "id"], || {
-            let user_provider = LinuxUserProvider {};
-            let contexts = Contexts::default();
-            let steps = user_provider
-                .add_to_group(
-                    &UserAddGroup {
-                        username: String::from("test"),
-                        group: vec![String::from("testgroup"), String::from("wheel")],
-                        ..Default::default()
-                    },
-                    &contexts,
-                )
-                .unwrap();
-            assert_eq!(2, steps.len());
-        });
+        let tmp = mock_bin_dir(&["usermod", "id"]);
+        let _path = EnvGuard::prepend_path(tmp.path());
+        let user_provider = LinuxUserProvider {};
+        let contexts = Contexts::default();
+        let steps = user_provider
+            .add_to_group(
+                &UserAddGroup {
+                    username: String::from("test"),
+                    group: vec![String::from("testgroup"), String::from("wheel")],
+                    ..Default::default()
+                },
+                &contexts,
+            )
+            .unwrap();
+        assert_eq!(2, steps.len());
     }
 
     #[test]
     #[serial]
     fn test_create_user_add_to_group() {
-        with_mock_bins(&["useradd", "usermod", "id"], || {
-            let user_provider = LinuxUserProvider {};
-            let contexts = Contexts::default();
-            let steps = user_provider
-                .add_user(
-                    &UserVariant {
-                        username: String::from("test"),
-                        shell: String::from(""),
-                        home_dir: String::from(""),
-                        fullname: String::from(""),
-                        group: vec![String::from("testgroup")],
-                        ..Default::default()
-                    },
-                    &contexts,
-                )
-                .unwrap();
-            assert_eq!(2, steps.len());
-        });
+        let tmp = mock_bin_dir(&["useradd", "usermod", "id"]);
+        let _path = EnvGuard::prepend_path(tmp.path());
+        let user_provider = LinuxUserProvider {};
+        let contexts = Contexts::default();
+        let steps = user_provider
+            .add_user(
+                &UserVariant {
+                    username: String::from("test"),
+                    shell: String::from(""),
+                    home_dir: String::from(""),
+                    fullname: String::from(""),
+                    group: vec![String::from("testgroup")],
+                    ..Default::default()
+                },
+                &contexts,
+            )
+            .unwrap();
+        assert_eq!(2, steps.len());
     }
 
     #[test]
     #[serial]
     fn test_add_user_returns_empty_when_useradd_not_found() {
         let tmp = tempfile::tempdir().unwrap();
-        let old_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var("PATH", tmp.path().display().to_string());
+        let _path = EnvGuard::set("PATH", tmp.path());
 
         let user_provider = LinuxUserProvider {};
         let contexts = Contexts::default();
@@ -354,7 +345,6 @@ mod test {
             )
             .unwrap();
 
-        std::env::set_var("PATH", old_path);
         assert_eq!(0, steps.len());
     }
 }

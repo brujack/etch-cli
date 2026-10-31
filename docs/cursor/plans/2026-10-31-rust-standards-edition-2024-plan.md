@@ -80,7 +80,7 @@ description: deny.toml gains unmaintained/unsound = all; serial_test 4 and lockf
 role: executor
 model: sonnet
 tdd: required
-requirements: [R2, R4, R5, R6, R7]
+requirements: [R2, R5, R6, R7]
 acceptance:
   - cmd: 'python3 -m pytest tests/test_deny_policy.py -q'
     exit_code: 0
@@ -99,7 +99,7 @@ files_touched: [deny.toml, lib/Cargo.toml, Cargo.lock, tests/test_deny_policy.py
 depends_on: [1]
 ```
 
-**RED first:** write `tests/test_deny_policy.py` and the fixtures, run it, and see the one-list case fail (the scheduled workflow still carries `--ignore RUSTSEC`; it is removed in Task 4, so mark that case `xfail(strict=True)` with reason `"removed in Task 4"` here, and Task 4 removes the marker).
+**RED first:** write `tests/test_deny_policy.py` and the fixtures before the `deny.toml` and lockfile edits. RED evidence: the unit tests for `_cargo_deny()` fail until it exists; run the fixture cases against the base `deny.toml` (they pass there; the mutation controls below are what prove they can fail). The one-list case belongs to Task 4.
 
 **Test file contents (`tests/test_deny_policy.py`):**
 
@@ -108,7 +108,6 @@ depends_on: [1]
 - `_run(fixture, tmp_path)`: `shutil.copytree(FIXTURES / fixture, tmp_path / fixture)`; run `["cargo", "deny", "--config", str(REPO / "deny.toml"), "--manifest-path", str(tmp_path / fixture / "Cargo.toml"), "check", "licenses"]`, `capture_output=True, text=True`.
 - `test_gpl_fixture_is_rejected`: returncode != 0 and `"error[rejected]"` in stdout+stderr.
 - `test_mit_fixture_is_accepted`: returncode == 0. Docstring: this case proves `deny.toml` loaded, since cargo-deny's built-in fallback config has an empty allow list.
-- `test_no_workflow_carries_its_own_ignore_list`: `files = sorted((REPO / ".github/workflows").glob("*.y*ml"))`; `assert files`; no file text contains `--ignore RUSTSEC`.
 - Two unit tests for `_cargo_deny()` with `monkeypatch` (`shutil.which` returning `None`, `CI` set / unset) asserting fail / skip (`pytest.raises(pytest.fail.Exception)` / `pytest.skip.Exception`).
 
 **Fixtures:** `Cargo.toml` with `[package] name = "gpl-fixture"` (resp. `mit-fixture`), `version = "0.1.0"`, `edition = "2021"`, `publish = false`, `license = "GPL-3.0-only"` (resp. `"MIT"`), and an empty `[workspace]` table so cargo never treats it as a member of the repo workspace; `src/lib.rs` empty.
@@ -155,17 +154,17 @@ depends_on: [2]
 
 ```yaml-task
 id: 4
-description: Delete cargo-audit-scheduled.yml, add cargo-deny-scheduled.yml with the same cron, and remove the Task 2 xfail marker.
+description: Delete cargo-audit-scheduled.yml, add cargo-deny-scheduled.yml with the same cron, and add the one-ignore-list test.
 role: executor
 model: sonnet
 tdd: required
-requirements: [R10]
+requirements: [R4, R10]
 acceptance:
   - cmd: 'test ! -e .github/workflows/cargo-audit-scheduled.yml'
     exit_code: 0
   - cmd: 'grep -q "cron: \"0 6 \* \* 1\"" .github/workflows/cargo-deny-scheduled.yml && grep -q "run: cargo deny check advisories" .github/workflows/cargo-deny-scheduled.yml'
     exit_code: 0
-  - cmd: '! command grep -q xfail tests/test_deny_policy.py'
+  - cmd: 'python3 -m pytest tests/test_deny_policy.py -q -k one_ignore_list'
     exit_code: 0
   - cmd: make test
     exit_code: 0
@@ -178,7 +177,8 @@ depends_on: [3]
 
 - [ ] `git rm .github/workflows/cargo-audit-scheduled.yml`.
 - [ ] New `.github/workflows/cargo-deny-scheduled.yml`: `name: cargo-deny (scheduled)`, `on: schedule: - cron: "0 6 * * 1"` with comment `# Weekly: catches advisories published against an unchanged lockfile`, the same `env:` block, one job `deny` on `ubuntu-latest` with steps `actions/checkout@v6`, the pinned install-action (`tool: cargo-deny@0.20.2`, `fallback: none`), and `run: cargo deny check advisories`. No Rust toolchain or cache step is needed for advisories; if cargo-deny needs `cargo metadata`, add `dtolnay/rust-toolchain@stable` as the old file did.
-- [ ] Remove the `xfail` marker from `test_no_workflow_carries_its_own_ignore_list`; it now passes (RED was the strict xfail).
+- [ ] **RED first:** add `test_no_workflow_carries_its_own_ignore_list` (name contains `one_ignore_list`: call it `test_one_ignore_list_no_workflow_has_its_own`) to `tests/test_deny_policy.py`: `files = sorted((REPO / ".github/workflows").glob("*.y*ml"))`; `assert files`; no file text contains `--ignore RUSTSEC`. Run it: fails on `cargo-audit-scheduled.yml`. Then do the workflow swap; it passes.
+- [ ] Mutation control (V2): add `--ignore RUSTSEC-0000-0000` to a scratch copy of a workflow under a tmp `REPO` and see it fail; report.
 - [ ] Gates, commit.
 
 ### Task 5: `Exec` resolves on the step's own `env:` PATH

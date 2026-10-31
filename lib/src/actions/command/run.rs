@@ -1,6 +1,5 @@
 use crate::contexts::Contexts;
-use crate::steps::finalizers::RemoveEnvVars;
-use crate::steps::initializers::{FileExists, SetEnvVars};
+use crate::steps::initializers::FileExists;
 use crate::steps::Step;
 use crate::{actions::Action, manifests::Manifest, steps, utilities};
 use schemars::JsonSchema;
@@ -60,12 +59,19 @@ impl Action for RunCommand {
     fn plan(&self, _: &Manifest, contexts: &Contexts) -> anyhow::Result<Vec<Step>> {
         use crate::atoms::command::Exec;
 
+        // The privilege provider would carry env values on its command line
+        // (`sudo env K=V ...`), exposing them in ps and sudo logs. Refused for
+        // every user so a manifest behaves the same on every machine.
+        if self.privileged && !self.env.is_empty() {
+            anyhow::bail!(
+                "command.run: env: cannot be combined with privileged: true; the privilege provider would expose the values on its command line (ps, sudo logs)"
+            );
+        }
+
         let privilege_provider =
             utilities::get_privilege_provider(contexts).unwrap_or_else(|| "sudo".to_string());
 
-        let mut initializers = vec![steps::initializers::FlowControl::Ensure(Box::new(
-            SetEnvVars(self.env.clone()),
-        ))];
+        let mut initializers = Vec::new();
 
         if let Some(path) = &self.skip_if_exists {
             initializers.push(steps::initializers::FlowControl::SkipIf(Box::new(
@@ -73,19 +79,26 @@ impl Action for RunCommand {
             )));
         }
 
+        // Sorted so Exec's environment (and any prefix built from it) is deterministic.
+        let mut environment: Vec<(String, String)> = self
+            .env
+            .iter()
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect();
+        environment.sort();
+
         Ok(vec![Step {
             atom: Box::new(Exec {
                 command: self.command.clone(),
                 arguments: self.args.clone(),
                 privileged: self.privileged,
                 working_dir: Some(self.dir.clone()),
+                environment,
                 privilege_provider: privilege_provider.clone(),
                 ..Default::default()
             }),
             initializers,
-            finalizers: vec![steps::finalizers::FlowControl::Ensure(Box::new(
-                RemoveEnvVars(self.env.clone()),
-            ))],
+            finalizers: vec![],
         }])
     }
 }
@@ -153,7 +166,7 @@ mod tests {
     }
 
     #[test]
-    fn plan_returns_one_step_with_initializer_and_finalizer() {
+    fn plan_returns_one_step_without_initializer_or_finalizer() {
         use crate::actions::Action;
         use crate::contexts::Contexts;
         use crate::manifests::Manifest;
@@ -166,8 +179,8 @@ mod tests {
             .plan(&Manifest::default(), &Contexts::default())
             .unwrap();
         assert_eq!(1, steps.len());
-        assert_eq!(1, steps[0].initializers.len());
-        assert_eq!(1, steps[0].finalizers.len());
+        assert_eq!(0, steps[0].initializers.len());
+        assert_eq!(0, steps[0].finalizers.len());
     }
 
     #[test]
@@ -212,7 +225,7 @@ mod tests {
     }
 
     #[test]
-    fn plan_with_env_vars_includes_initializer() {
+    fn plan_with_env_vars_adds_no_initializer() {
         use crate::actions::Action;
         use crate::contexts::Contexts;
         use crate::manifests::Manifest;
@@ -227,7 +240,95 @@ mod tests {
             .plan(&Manifest::default(), &Contexts::default())
             .unwrap();
         assert_eq!(1, steps.len());
-        assert_eq!(1, steps[0].initializers.len());
+        assert_eq!(0, steps[0].initializers.len());
+    }
+
+    #[test]
+    fn plan_routes_sorted_env_to_exec_redacted() {
+        use crate::actions::Action;
+        use crate::contexts::Contexts;
+        use crate::manifests::Manifest;
+        // Eight keys inserted out of order: HashMap iteration order only
+        // coincides with sorted order by chance, so dropping `.sort()` fails.
+        let env: std::collections::HashMap<String, String> =
+            ["H", "C", "F", "A", "E", "B", "G", "D"]
+                .iter()
+                .map(|k| (k.to_string(), format!("etch-secret-{k}")))
+                .collect();
+        let action = super::RunCommand {
+            command: String::from("echo"),
+            env,
+            ..Default::default()
+        };
+        let steps = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap();
+        assert_eq!(1, steps.len());
+        assert!(steps[0].finalizers.is_empty());
+        let debug = format!("{:?}", steps[0].atom);
+        let env_start = debug.find("environment").expect("environment in Debug");
+        let env_debug = &debug[env_start..];
+        let order: Vec<&str> = ["A", "B", "C", "D", "E", "F", "G", "H"]
+            .iter()
+            .copied()
+            .filter(|k| env_debug.contains(&format!("\"{k}\"")))
+            .collect();
+        assert_eq!(8, order.len(), "missing keys: {debug}");
+        let mut positions: Vec<usize> = order
+            .iter()
+            .map(|k| env_debug.find(&format!("\"{k}\"")).unwrap())
+            .collect();
+        let expected = positions.clone();
+        positions.sort_unstable();
+        assert_eq!(expected, positions, "keys not sorted A..H: {debug}");
+        assert!(!debug.contains("etch-secret-"), "leaked: {debug}");
+    }
+
+    #[test]
+    fn plan_refuses_env_with_privileged() {
+        use crate::actions::Action;
+        use crate::contexts::Contexts;
+        use crate::manifests::Manifest;
+        let action = super::RunCommand {
+            command: String::from("echo"),
+            privileged: true,
+            env: std::collections::HashMap::from([(String::from("K"), String::from("v"))]),
+            ..Default::default()
+        };
+        let err = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap_err();
+        assert!(err.to_string().contains("privileged"), "message: {err}");
+    }
+
+    #[test]
+    fn plan_allows_privileged_without_env() {
+        use crate::actions::Action;
+        use crate::contexts::Contexts;
+        use crate::manifests::Manifest;
+        let action = super::RunCommand {
+            command: String::from("echo"),
+            privileged: true,
+            ..Default::default()
+        };
+        assert!(action
+            .plan(&Manifest::default(), &Contexts::default())
+            .is_ok());
+    }
+
+    #[test]
+    fn plan_allows_unprivileged_with_env() {
+        use crate::actions::Action;
+        use crate::contexts::Contexts;
+        use crate::manifests::Manifest;
+        let action = super::RunCommand {
+            command: String::from("echo"),
+            env: std::collections::HashMap::from([(String::from("K"), String::from("v"))]),
+            ..Default::default()
+        };
+        assert!(action
+            .plan(&Manifest::default(), &Contexts::default())
+            .is_ok());
     }
 
     #[test]
@@ -266,7 +367,7 @@ mod tests {
             .plan(&Manifest::default(), &Contexts::default())
             .unwrap();
         assert_eq!(1, steps.len());
-        // SetEnvVars (Ensure) + FileExists (SkipIf) = 2 initializers
-        assert_eq!(2, steps[0].initializers.len());
+        // FileExists (SkipIf) = 1 initializer
+        assert_eq!(1, steps[0].initializers.len());
     }
 }

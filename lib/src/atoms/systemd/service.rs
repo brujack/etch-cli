@@ -140,6 +140,7 @@ impl Atom for Service {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_helpers::EnvGuard;
     use serial_test::serial;
 
     fn write_mock_systemctl(
@@ -197,16 +198,10 @@ mod tests {
         let calls_file = tmp.path().join("calls.log");
         write_mock_systemctl(mock_dir.path(), &calls_file, "enabled", 1, 0);
 
-        let original_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var(
-            "PATH",
-            format!("{}:{}", mock_dir.path().display(), original_path),
-        );
+        let _path = EnvGuard::prepend_path(mock_dir.path());
 
         let mut atom = make_service("sshd.service", Some(true), None);
         let result = atom.execute();
-
-        std::env::set_var("PATH", &original_path);
 
         assert!(result.is_ok(), "execute failed: {:?}", result);
         let log = std::fs::read_to_string(&calls_file).unwrap_or_default();
@@ -224,16 +219,10 @@ mod tests {
         let calls_file = tmp.path().join("calls.log");
         write_mock_systemctl(mock_dir.path(), &calls_file, "disabled", 1, 0);
 
-        let original_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var(
-            "PATH",
-            format!("{}:{}", mock_dir.path().display(), original_path),
-        );
+        let _path = EnvGuard::prepend_path(mock_dir.path());
 
         let mut atom = make_service("bluetooth.service", Some(false), None);
         let result = atom.execute();
-
-        std::env::set_var("PATH", &original_path);
 
         assert!(result.is_ok(), "execute failed: {:?}", result);
         let log = std::fs::read_to_string(&calls_file).unwrap_or_default();
@@ -251,16 +240,10 @@ mod tests {
         let calls_file = tmp.path().join("calls.log");
         write_mock_systemctl(mock_dir.path(), &calls_file, "disabled", 1, 0);
 
-        let original_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var(
-            "PATH",
-            format!("{}:{}", mock_dir.path().display(), original_path),
-        );
+        let _path = EnvGuard::prepend_path(mock_dir.path());
 
         let mut atom = make_service("sshd.service", Some(true), None);
         let result = atom.execute();
-
-        std::env::set_var("PATH", &original_path);
 
         assert!(result.is_ok(), "execute failed: {:?}", result);
         let log = std::fs::read_to_string(&calls_file).unwrap_or_default();
@@ -278,16 +261,10 @@ mod tests {
         let calls_file = tmp.path().join("calls.log");
         write_mock_systemctl(mock_dir.path(), &calls_file, "enabled", 1, 0);
 
-        let original_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var(
-            "PATH",
-            format!("{}:{}", mock_dir.path().display(), original_path),
-        );
+        let _path = EnvGuard::prepend_path(mock_dir.path());
 
         let mut atom = make_service("bluetooth.service", Some(false), None);
         let result = atom.execute();
-
-        std::env::set_var("PATH", &original_path);
 
         assert!(result.is_ok(), "execute failed: {:?}", result);
         let log = std::fs::read_to_string(&calls_file).unwrap_or_default();
@@ -305,16 +282,10 @@ mod tests {
         let calls_file = tmp.path().join("calls.log");
         write_mock_systemctl(mock_dir.path(), &calls_file, "disabled", 0, 0);
 
-        let original_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var(
-            "PATH",
-            format!("{}:{}", mock_dir.path().display(), original_path),
-        );
+        let _path = EnvGuard::prepend_path(mock_dir.path());
 
         let mut atom = make_service("sshd.service", None, Some(true));
         let result = atom.execute();
-
-        std::env::set_var("PATH", &original_path);
 
         assert!(result.is_ok(), "execute failed: {:?}", result);
         let log = std::fs::read_to_string(&calls_file).unwrap_or_default();
@@ -332,16 +303,10 @@ mod tests {
         let calls_file = tmp.path().join("calls.log");
         write_mock_systemctl(mock_dir.path(), &calls_file, "disabled", 1, 0);
 
-        let original_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var(
-            "PATH",
-            format!("{}:{}", mock_dir.path().display(), original_path),
-        );
+        let _path = EnvGuard::prepend_path(mock_dir.path());
 
         let mut atom = make_service("cups.service", None, Some(false));
         let result = atom.execute();
-
-        std::env::set_var("PATH", &original_path);
 
         assert!(result.is_ok(), "execute failed: {:?}", result);
         let log = std::fs::read_to_string(&calls_file).unwrap_or_default();
@@ -359,16 +324,10 @@ mod tests {
         let calls_file = tmp.path().join("calls.log");
         write_mock_systemctl(mock_dir.path(), &calls_file, "disabled", 1, 0);
 
-        let original_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var(
-            "PATH",
-            format!("{}:{}", mock_dir.path().display(), original_path),
-        );
+        let _path = EnvGuard::prepend_path(mock_dir.path());
 
         let mut atom = make_service("sshd.service", None, Some(true));
         let result = atom.execute();
-
-        std::env::set_var("PATH", &original_path);
 
         assert!(result.is_ok(), "execute failed: {:?}", result);
         let log = std::fs::read_to_string(&calls_file).unwrap_or_default();
@@ -386,16 +345,10 @@ mod tests {
         let calls_file = tmp.path().join("calls.log");
         write_mock_systemctl(mock_dir.path(), &calls_file, "disabled", 0, 0);
 
-        let original_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var(
-            "PATH",
-            format!("{}:{}", mock_dir.path().display(), original_path),
-        );
+        let _path = EnvGuard::prepend_path(mock_dir.path());
 
         let mut atom = make_service("cups.service", None, Some(false));
         let result = atom.execute();
-
-        std::env::set_var("PATH", &original_path);
 
         assert!(result.is_ok(), "execute failed: {:?}", result);
         let log = std::fs::read_to_string(&calls_file).unwrap_or_default();
@@ -413,16 +366,10 @@ mod tests {
         let calls_file = tmp.path().join("calls.log");
         write_mock_systemctl(mock_dir.path(), &calls_file, "disabled", 1, 0);
 
-        let original_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var(
-            "PATH",
-            format!("{}:{}", mock_dir.path().display(), original_path),
-        );
+        let _path = EnvGuard::prepend_path(mock_dir.path());
 
         let mut atom = make_service("sshd.service", Some(true), Some(true));
         let result = atom.execute();
-
-        std::env::set_var("PATH", &original_path);
 
         assert!(result.is_ok(), "execute failed: {:?}", result);
         let log = std::fs::read_to_string(&calls_file).unwrap_or_default();
@@ -444,16 +391,10 @@ mod tests {
         let calls_file = tmp.path().join("calls.log");
         write_mock_systemctl(mock_dir.path(), &calls_file, "disabled", 1, 1);
 
-        let original_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var(
-            "PATH",
-            format!("{}:{}", mock_dir.path().display(), original_path),
-        );
+        let _path = EnvGuard::prepend_path(mock_dir.path());
 
         let mut atom = make_service("sshd.service", Some(true), None);
         let result = atom.execute();
-
-        std::env::set_var("PATH", &original_path);
 
         assert!(result.is_err(), "expected Err when enable fails, got Ok");
     }
@@ -466,16 +407,10 @@ mod tests {
         let calls_file = tmp.path().join("calls.log");
         write_mock_systemctl(mock_dir.path(), &calls_file, "disabled", 1, 1);
 
-        let original_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var(
-            "PATH",
-            format!("{}:{}", mock_dir.path().display(), original_path),
-        );
+        let _path = EnvGuard::prepend_path(mock_dir.path());
 
         let mut atom = make_service("sshd.service", None, Some(true));
         let result = atom.execute();
-
-        std::env::set_var("PATH", &original_path);
 
         assert!(result.is_err(), "expected Err when start fails, got Ok");
     }
@@ -565,16 +500,10 @@ mod tests {
         // provider reports unit is disabled → enable action should be triggered
         write_mock_provider(mock_dir.path(), &calls_file, "sudo", "disabled", 1, 0);
 
-        let original_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var(
-            "PATH",
-            format!("{}:{}", mock_dir.path().display(), original_path),
-        );
+        let _path = EnvGuard::prepend_path(mock_dir.path());
 
         let mut atom = make_privileged_service("sshd.service", Some(true), None, "sudo");
         let result = atom.execute();
-
-        std::env::set_var("PATH", &original_path);
 
         assert!(result.is_ok(), "execute failed: {:?}", result);
         let log = std::fs::read_to_string(&calls_file).unwrap_or_default();
@@ -597,16 +526,10 @@ mod tests {
         // provider reports unit is inactive (exit 1) → start action should be triggered
         write_mock_provider(mock_dir.path(), &calls_file, "sudo", "disabled", 1, 0);
 
-        let original_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var(
-            "PATH",
-            format!("{}:{}", mock_dir.path().display(), original_path),
-        );
+        let _path = EnvGuard::prepend_path(mock_dir.path());
 
         let mut atom = make_privileged_service("sshd.service", None, Some(true), "sudo");
         let result = atom.execute();
-
-        std::env::set_var("PATH", &original_path);
 
         assert!(result.is_ok(), "execute failed: {:?}", result);
         let log = std::fs::read_to_string(&calls_file).unwrap_or_default();

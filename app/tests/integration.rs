@@ -14,6 +14,20 @@ fn apply_with_state(
         .assert()
 }
 
+/// Like `apply_with_state`, but also sets `envs` on the spawned etch process.
+fn apply_with_state_env(
+    dir: &std::path::Path,
+    state_dir: &std::path::Path,
+    envs: &[(&str, &str)],
+) -> assert_cmd::assert::Assert {
+    Command::new(assert_cmd::cargo::cargo_bin!("etch"))
+        .current_dir(dir)
+        .env("ETCH_STATE_DIR", state_dir)
+        .envs(envs.iter().copied())
+        .args(["--no-color", "-d", ".", "apply"])
+        .assert()
+}
+
 /// Spawn `etch --no-color -d . apply` from `dir`.
 fn apply(dir: &std::path::Path) -> assert_cmd::assert::Assert {
     Command::new(assert_cmd::cargo::cargo_bin!("etch"))
@@ -156,6 +170,161 @@ fn command_run_creates_file() {
     apply(dir.path()).success();
 
     assert!(output.exists(), "touch should have created the file");
+}
+
+// ─── command.run env ──────────────────────────────────────────────────────────
+
+/// A `command.run` action that records `$ETCH_SPEC_PROBE` (or `unset`) in `<dir>/probe`.
+/// Written to a file because non-streaming Exec logs stdout only at debug level.
+fn env_probe_action(dir: &std::path::Path) -> String {
+    format!(
+        "  - action: command.run\n    command: sh\n    args:\n      - -c\n      - printf %s \"${{ETCH_SPEC_PROBE-unset}}\" > {}/probe\n",
+        dir.display()
+    )
+}
+
+#[test]
+fn command_run_env_restores_inherited_value() {
+    let dir = tempdir().unwrap();
+    let state = tempdir().unwrap();
+    fs::write(
+        dir.path().join("test.yaml"),
+        format!(
+            "actions:\n  - action: command.run\n    command: \"true\"\n    env:\n      ETCH_SPEC_PROBE: x\n{}",
+            env_probe_action(dir.path())
+        ),
+    )
+    .unwrap();
+
+    apply_with_state_env(dir.path(), state.path(), &[("ETCH_SPEC_PROBE", "orig")]).success();
+
+    assert_eq!(
+        fs::read_to_string(dir.path().join("probe")).unwrap(),
+        "orig"
+    );
+}
+
+#[test]
+fn command_run_env_value_reaches_child() {
+    let dir = tempdir().unwrap();
+    let state = tempdir().unwrap();
+    fs::write(
+        dir.path().join("test.yaml"),
+        format!(
+            "actions:\n  - action: command.run\n    command: sh\n    args:\n      - -c\n      - printf %s \"${{ETCH_SPEC_PROBE-unset}}\" > {}/probe\n    env:\n      ETCH_SPEC_PROBE: \"x\"\n",
+            dir.path().display()
+        ),
+    )
+    .unwrap();
+
+    apply_with_state_env(dir.path(), state.path(), &[("ETCH_SPEC_PROBE", "orig")]).success();
+
+    assert_eq!(fs::read_to_string(dir.path().join("probe")).unwrap(), "x");
+}
+
+#[test]
+fn command_run_env_with_privileged_is_refused() {
+    let dir = tempdir().unwrap();
+    let state = tempdir().unwrap();
+    let marker = dir.path().join("ran");
+    fs::write(
+        dir.path().join("test.yaml"),
+        format!(
+            "actions:\n  - action: command.run\n    command: touch\n    args:\n      - {}\n    privileged: true\n    env:\n      ETCH_SPEC_PROBE: x\n",
+            marker.display()
+        ),
+    )
+    .unwrap();
+
+    let assert = apply_with_state_env(dir.path(), state.path(), &[]).failure();
+
+    let output = assert.get_output();
+    let combined = format!(
+        "{}{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(
+        combined.contains("cannot be combined with privileged"),
+        "refusal text missing: {combined}"
+    );
+    assert!(!marker.exists(), "command ran despite refused env");
+}
+
+#[test]
+fn command_run_env_does_not_leak_after_failure() {
+    let dir = tempdir().unwrap();
+    let state = tempdir().unwrap();
+    fs::write(
+        dir.path().join("test.yaml"),
+        format!(
+            "actions:\n  - action: command.run\n    command: \"false\"\n    env:\n      ETCH_SPEC_PROBE: x\n{}",
+            env_probe_action(dir.path())
+        ),
+    )
+    .unwrap();
+
+    apply_with_state_env(dir.path(), state.path(), &[("ETCH_SPEC_PROBE", "orig")]).failure();
+
+    assert_eq!(
+        fs::read_to_string(dir.path().join("probe")).unwrap(),
+        "orig"
+    );
+}
+
+#[test]
+fn command_run_env_path_does_not_break_later_actions() {
+    use std::os::unix::fs::PermissionsExt;
+    let dir = tempdir().unwrap();
+    let state = tempdir().unwrap();
+    let ok = dir.path().join("ok");
+    fs::write(&ok, "#!/bin/sh\nexit 0\n").unwrap();
+    fs::set_permissions(&ok, fs::Permissions::from_mode(0o755)).unwrap();
+    fs::write(
+        dir.path().join("test.yaml"),
+        format!(
+            "actions:\n  - action: command.run\n    command: {}\n    env:\n      PATH: {}\n{}",
+            ok.display(),
+            dir.path().display(),
+            env_probe_action(dir.path())
+        ),
+    )
+    .unwrap();
+
+    apply_with_state_env(dir.path(), state.path(), &[("ETCH_SPEC_PROBE", "orig")]).success();
+
+    assert_eq!(
+        fs::read_to_string(dir.path().join("probe")).unwrap(),
+        "orig"
+    );
+}
+
+#[test]
+fn command_run_env_path_resolves_same_step_program() {
+    use std::os::unix::fs::PermissionsExt;
+    let dir = tempdir().unwrap();
+    let state = tempdir().unwrap();
+    let mock = dir.path().join("etch-spec-mock");
+    fs::write(
+        &mock,
+        format!("#!/bin/sh\n: > {}/ran\n", dir.path().display()),
+    )
+    .unwrap();
+    fs::set_permissions(&mock, fs::Permissions::from_mode(0o755)).unwrap();
+    let real_path = std::env::var("PATH").unwrap();
+    fs::write(
+        dir.path().join("test.yaml"),
+        format!(
+            "actions:\n  - action: command.run\n    command: etch-spec-mock\n    env:\n      PATH: \"{}:{}\"\n",
+            dir.path().display(),
+            real_path
+        ),
+    )
+    .unwrap();
+
+    apply_with_state_env(dir.path(), state.path(), &[]).success();
+
+    assert!(dir.path().join("ran").exists(), "mock did not run");
 }
 
 #[test]
@@ -629,4 +798,44 @@ fn etch_history_json_first_line_has_file_copy_action() {
     let first_line = stdout.lines().next().unwrap();
     let parsed: serde_json::Value = serde_json::from_str(first_line).unwrap();
     assert_eq!(parsed["action"], "file.copy");
+}
+
+// ─── --label ──────────────────────────────────────────────────────────────────
+
+#[test]
+fn apply_label_runs_only_manifests_carrying_the_label() {
+    let dir = tempdir().unwrap();
+    let state = tempdir().unwrap();
+
+    let kept = dir.path().join("kept_dir");
+    let skipped = dir.path().join("skipped_dir");
+    fs::write(
+        dir.path().join("a_labelled.yaml"),
+        format!(
+            "labels:\n  - keep\nactions:\n  - action: directory.create\n    path: {}\n",
+            kept.display()
+        ),
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join("b_unlabelled.yaml"),
+        format!(
+            "actions:\n  - action: directory.create\n    path: {}\n",
+            skipped.display()
+        ),
+    )
+    .unwrap();
+
+    Command::new(assert_cmd::cargo::cargo_bin!("etch"))
+        .current_dir(dir.path())
+        .env("ETCH_STATE_DIR", state.path())
+        .args(["--no-color", "-d", ".", "apply", "--label", "keep"])
+        .assert()
+        .success();
+
+    assert!(kept.is_dir(), "labelled manifest should have run");
+    assert!(
+        !skipped.exists(),
+        "manifest without the label should have been skipped"
+    );
 }

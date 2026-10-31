@@ -123,6 +123,8 @@ impl StateStore {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_helpers::EnvGuard;
+    use serial_test::serial;
     use tempfile::tempdir;
 
     fn make_entry(manifest: &str, action: &str, key: &str, changed: bool) -> StateEntry {
@@ -251,16 +253,11 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn new_with_etch_state_dir_env_var() {
         let dir = tempdir().unwrap();
-        let old = std::env::var("ETCH_STATE_DIR").ok();
-        std::env::set_var("ETCH_STATE_DIR", dir.path());
+        let _state = EnvGuard::set("ETCH_STATE_DIR", dir.path());
         let store = StateStore::new();
-        if let Some(v) = old {
-            std::env::set_var("ETCH_STATE_DIR", v);
-        } else {
-            std::env::remove_var("ETCH_STATE_DIR");
-        }
         // The store should write to dir/state.yaml
         store.record(vec![make_entry("m", "a", "k", true)]).unwrap();
         assert!(dir.path().join("state.yaml").exists());

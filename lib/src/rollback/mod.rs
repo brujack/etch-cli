@@ -297,14 +297,13 @@ impl StashStore {
         #[cfg(unix)]
         {
             let meta_path = hex_dir.join(format!("{}.meta.yaml", latest));
-            if let Ok(meta_content) = std::fs::read_to_string(&meta_path) {
-                if let Ok(meta) = serde_yaml_ng::from_str::<StashMeta>(&meta_content) {
-                    if let Some(mode) = meta.mode {
-                        use std::fs::Permissions;
-                        use std::os::unix::fs::PermissionsExt;
-                        let _ = std::fs::set_permissions(path, Permissions::from_mode(mode));
-                    }
-                }
+            if let Ok(meta_content) = std::fs::read_to_string(&meta_path)
+                && let Ok(meta) = serde_yaml_ng::from_str::<StashMeta>(&meta_content)
+                && let Some(mode) = meta.mode
+            {
+                use std::fs::Permissions;
+                use std::os::unix::fs::PermissionsExt;
+                let _ = std::fs::set_permissions(path, Permissions::from_mode(mode));
             }
         }
 
@@ -355,6 +354,7 @@ impl StashStore {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_helpers::EnvGuard;
     use serial_test::serial;
     use tempfile::tempdir;
 
@@ -500,14 +500,8 @@ mod tests {
     #[serial]
     fn new_respects_etch_stash_dir_env() {
         let dir = tempdir().unwrap();
-        let old = std::env::var("ETCH_STASH_DIR").ok();
-        std::env::set_var("ETCH_STASH_DIR", dir.path());
+        let _stash = EnvGuard::set("ETCH_STASH_DIR", dir.path());
         let store = StashStore::new();
-        if let Some(v) = old {
-            std::env::set_var("ETCH_STASH_DIR", v);
-        } else {
-            std::env::remove_var("ETCH_STASH_DIR");
-        }
         assert_eq!(store.base, dir.path());
     }
 

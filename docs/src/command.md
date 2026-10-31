@@ -17,7 +17,11 @@ This is the most basic, but yet powerful action as it can be used to run anythin
 
 ### Scoped environment variables
 
-Sometimes, environment variables are needed to run a command or set of commands. As of v0.9.1, etch will has the ability to inject environment variables for the scope of a single `command.run` action. An initializer will run prior to the action to inject the environment variables, then after the command run finished, a finalizer will remove those from the environment. In the manifest, the environment is implemented as a hash map of keys and values. Multiple environment variables are supported.
+`env:` sets environment variables for a single `command.run` action. It is a hash map of keys and values; multiple variables are supported. Three facts apply:
+
+- The variables are passed to the command itself. `privileged: true` combined with `env:` is refused at planning time, for every user: the privilege provider (`sudo`, `doas`, `run0`) would carry the values on its command line, exposing them in `ps`, `/proc/<pid>/cmdline` and sudo logs. Set the variable inside the command instead, or drop `privileged`.
+- An unprivileged program is resolved on the step's own `PATH` from `env:`, so `env: {PATH: ...}` can locate a program that is not on etch's `PATH`.
+- `env:` does not modify etch's own process environment. Later actions never see these variables, even when the command fails.
 
 ### Example
 
@@ -36,7 +40,7 @@ Sometimes, environment variables are needed to run a command or set of commands.
   env:
     GOBIN: /Users/test
 
-# we should see that GOBIN is no longer set, showing that the variable has been cleaned up
+# GOBIN from `env:` applied only to the previous command; this `go env` sees etch's own environment
 - action: command.run
   command: go
   args:

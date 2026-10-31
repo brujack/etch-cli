@@ -4,6 +4,11 @@ targets = []
 [advisories]
 db-path = "~/.cargo/advisory-db"
 db-urls = ["https://github.com/rustsec/advisory-db"]
+# "all" for both: unsound defaults to "workspace", which drops unsound advisories in
+# transitive crates; unmaintained is written out so a cargo-deny default change cannot
+# narrow it.
+unmaintained = "all"
+unsound = "all"
 # Advisories to ignore — triaged as not applicable to a personal CLI tool
 ignore = [
     # rsa 0.9.10: Marvin Attack timing side-channel. No fix in 0.9.x series (open since

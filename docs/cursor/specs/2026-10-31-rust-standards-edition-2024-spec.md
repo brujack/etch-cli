@@ -447,6 +447,13 @@ Order matters: Designs 5 and 6 land first, so the edition bump finds no env-muta
 - **N9.** No `.git-blame-ignore-revs` file.
 - **N10.** No fix to the dead `elevate()` provider check at `exec.rs:157` (backlog row).
 
+## Amendments
+
+- R19 -> `docs/src/command.md` states that `env:` reaches unprivileged commands, that an unprivileged program is resolved on the step's own `env:` `PATH`, that `env:` no longer modifies the etch process environment, and that `privileged: true` with a non-empty `env:` is refused. — branch-code-review (Phase 3) found privileged `env:` values placed on the `sudo env K=V` command line, visible in ps and sudo logs; operator chose fail closed, 2026-10-31.
+- adds R21 [PR1]: `RunCommand::plan` returns an error naming the command-line exposure when `privileged: true` and `env:` is non-empty, and a test covers both that refusal and an unprivileged step with `env:` planning successfully. — same finding; refusing is the only option that neither leaks nor silently drops `env:`.
+- finding R18 (2026-10-31, reviewer both): NOT-BUILT — I looked for rustfmt.toml changing style_edition to "2024" plus a formatting-only diff; this diff creates rustfmt.toml with style_edition = "2021" and a comment deferring the flip to a separate PR.
+- R18 reviewed: R18 is labelled [PR2]; this diff is PR1, which pins style_edition = "2021" per R17 and Delivery, and the flip ships as its own reformat-only PR after this merges. — deferred by design, not a deviation.
+
 ## Multi-Lens Review
 
 Reviewed at commit: `9fb5d1f` (Step 7 self-review commit, before Step 8 dispatch)
@@ -626,3 +633,33 @@ tightened to no new ignores. 2: V10 runs on the pre-triage lockfile and requires
 two-ID set. 3: R16 scanning skips strings, chars and comments, with an unbalanced-brace
 must-not-flag fixture. Assumption: treated as false; the SAFETY note names the residual
 threaded-run race as unchanged from today and out of scope.
+
+## Spec alignment (2026-10-31)
+
+- spec: docs/cursor/specs/2026-10-31-rust-standards-edition-2024-spec.md
+- anchor: ebd29c17123db255fad4517777e2d18eeb7e07b2
+- in scope: R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14, R15, R16, R17, R18, R19, R20, R21
+- out of scope: none
+
+### Findings
+
+| ID | Reviewer | Verdict | Reason | Amendment |
+| --- | --- | --- | --- | --- |
+| R18 | both | NOT-BUILT | I looked for rustfmt.toml changing style_edition to "2024" plus a formatting-only diff; this diff creates rustfmt.toml with style_edition = "2021" and a comment deferring the flip to a separate PR. | - R18 reviewed: R18 is labelled [PR2]; this diff is PR1, which pins style_edition = "2021" per R17 and Delivery, and the flip ships as its own reformat-only PR after this merges. — deferred by design, not a deviation. |
+
+### Reviewed
+
+- R18 reviewed: R18 is labelled [PR2]; this diff is PR1, which pins style_edition = "2021" per R17 and Delivery, and the flip ships as its own reformat-only PR after this merges. — deferred by design, not a deviation.
+
+### Verifications
+
+- V1: no evidence recorded
+- V2: Run in Phase 2: GPL fixture relabelled MIT fails test_gpl_fixture_is_rejected; empty --config fails the MIT case; scratch --ignore RUSTSEC-0000-0000 fails the one-list test; removed #[expect] in clone.rs fails make lint (usage of an unsafe block); which() in place of which_in fails execute_resolves_program_on_environment_path.
+- V3: All 12 drop-order sites classified in Task 11: temporaries are String, Result, Display adapters and mlua registry refs; no lock guard, RefCell borrow or side-effecting Drop; no behaviour change; no action. Reviewed inline by orchestrator for plugin/globals.rs and actions/mod.rs.
+- V4: Partial: macOS cross-clippy (cargo clippy --target aarch64-apple-darwin --workspace --all-targets, -D warnings, zigbuild wrappers) exits 0, with a positive control (removed #[expect] in chflags.rs fails). macOS nextest run not done: Mac Studio not reachable by ssh alias from claude; operator to run.
+- V5: make fuzz-manifest FUZZ_TIMEOUT=10 exit 0 under edition 2024: 205668 runs in 11 s, no crash.
+- V6: Base tree: (a) left "unset" right "orig"; (b) left "x" right "orig"; (c) Command `sh` not found in path, exit 1; (d) passed.
+- V7: no evidence recorded
+- V8: 2021-tree pre-check: 0 set_var/remove_var; 4 gen (gen_completions.rs 2, utilities/mod.rs 2); 1 if-let (providers/git.rs); 13 drop-order warnings at 12 sites, all in Problem 4's files.
+- V9: Not run: needs the Mac Studio (operator).
+- V10: main lockfile: cargo audit lists RUSTSEC-2026-0205 and -0306 as unsound; cargo deny with unsound=all errors on exactly those two. PR1 lockfile: neither appears in cargo audit or cargo deny output.

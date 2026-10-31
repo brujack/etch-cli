@@ -106,10 +106,10 @@ impl Action for FileCopy {
 
         let mut path = PathBuf::from(&self.to);
 
-        if path.is_dir() {
-            if let Some(file_name) = PathBuf::from(self.from.clone()).file_name() {
-                path = path.join(file_name);
-            }
+        if path.is_dir()
+            && let Some(file_name) = PathBuf::from(self.from.clone()).file_name()
+        {
+            path = path.join(file_name);
         }
 
         if self.config.privileged {
@@ -297,18 +297,18 @@ impl Action for FileCopy {
         }
 
         #[cfg(unix)]
-        if let Some(user) = self.owner_user.clone() {
-            if let Some(group) = self.owner_group.clone() {
-                steps.push(Step {
-                    atom: Box::new(Chown {
-                        path: path_for_chown,
-                        owner: user.clone(),
-                        group: group.clone(),
-                    }),
-                    initializers: vec![],
-                    finalizers: vec![],
-                })
-            }
+        if let Some(user) = self.owner_user.clone()
+            && let Some(group) = self.owner_group.clone()
+        {
+            steps.push(Step {
+                atom: Box::new(Chown {
+                    path: path_for_chown,
+                    owner: user.clone(),
+                    group: group.clone(),
+                }),
+                initializers: vec![],
+                finalizers: vec![],
+            })
         }
 
         Ok(steps)

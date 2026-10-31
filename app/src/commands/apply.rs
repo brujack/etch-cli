@@ -207,14 +207,14 @@ impl EtchCommand for Apply {
                 let mut successful = true;
                 let mut notified: IndexSet<String> = IndexSet::new();
 
-                if let Some(label) = self.label.as_ref() {
-                    if !m1.labels.contains(label) {
-                        info!(
-                            message = "Skipping manifest, label not found",
-                            label = label.as_str()
-                        );
-                        continue;
-                    }
+                if let Some(label) = self.label.as_ref()
+                    && !m1.labels.contains(label)
+                {
+                    info!(
+                        message = "Skipping manifest, label not found",
+                        label = label.as_str()
+                    );
+                    continue;
                 }
 
                 if let Some(where_condition) = &m1.r#where {
@@ -422,14 +422,21 @@ impl EtchCommand for Apply {
             return Err(anyhow::anyhow!("One or more manifests failed"));
         }
 
-        // Write state — best-effort; never blocks a successful apply
-        if !dry_run && !state_entries.is_empty() {
-            if let Err(e) = StateStore::new().record(state_entries) {
-                warn!("state: failed to record apply state: {e:#}");
-            }
-        }
-
+        record_state(dry_run, state_entries);
         Ok(())
+    }
+}
+
+/// Writes the apply's state entries, best-effort: a failure is logged and never
+/// fails a successful apply. Kept out of `Apply::execute` so that already-long
+/// function does not grow: the Phase 3 maintainability gate (a local check, not
+/// this repo's clippy config) ratchets `clippy::too_many_lines` per function.
+fn record_state(dry_run: bool, state_entries: Vec<StateEntry>) {
+    if !dry_run
+        && !state_entries.is_empty()
+        && let Err(e) = StateStore::new().record(state_entries)
+    {
+        warn!("state: failed to record apply state: {e:#}");
     }
 }
 

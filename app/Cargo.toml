@@ -2,7 +2,7 @@
 name = "etch-cli"
 version = "0.14.0"
 authors = ["David McKay <david@rawkode.dev>", "Bruce Jackson <bjackson@pobox.com>"]
-edition = "2021"
+edition = "2024"
 license = "MIT"
 description = "Declarative configuration management for personal workstations."
 repository = "https://github.com/brujack/etch-cli"
@@ -44,6 +44,7 @@ tracing-test = "0.2"
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(tarpaulin_include)'] }
 missing_debug_implementations = "warn"
+unsafe_code = "deny"
 # 402 undocumented public items as of 2026-08-02. Recheck: make docs-debt
 # Flip to "warn" once documented — see docs/superpowers/README.md backlog.
 missing_docs = "allow"

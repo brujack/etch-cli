@@ -55,6 +55,7 @@ mod tests {
     use crate::actions::Actions;
     use crate::contexts::Contexts;
     use crate::manifests::Manifest;
+    use crate::test_helpers::EnvGuard;
     use serial_test::serial;
 
     #[test]
@@ -88,14 +89,11 @@ mod tests {
         .unwrap();
         std::fs::set_permissions(&fake, std::fs::Permissions::from_mode(0o755)).unwrap();
 
-        let old = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var("PATH", format!("{}:{old}", tmp.path().display()));
+        let _path = EnvGuard::prepend_path(tmp.path());
 
         let steps = ClaudeUpgrade::default()
             .plan(&Manifest::default(), &Contexts::default())
             .unwrap();
-
-        std::env::set_var("PATH", old);
 
         assert_eq!(2, steps.len());
         let d0 = steps[0].atom.to_string();
@@ -119,14 +117,11 @@ mod tests {
         .unwrap();
         std::fs::set_permissions(&fake, std::fs::Permissions::from_mode(0o755)).unwrap();
 
-        let old = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var("PATH", format!("{}:{old}", tmp.path().display()));
+        let _path = EnvGuard::prepend_path(tmp.path());
 
         let steps = ClaudeUpgrade::default()
             .plan(&Manifest::default(), &Contexts::default())
             .unwrap();
-
-        std::env::set_var("PATH", old);
 
         let atoms: Vec<String> = steps.iter().map(|s| s.atom.to_string()).collect();
         assert_eq!(2, atoms.len(), "got: {atoms:?}");
@@ -144,14 +139,11 @@ mod tests {
         std::fs::write(&fake, "#!/bin/sh\nexit 0\n").unwrap();
         std::fs::set_permissions(&fake, std::fs::Permissions::from_mode(0o755)).unwrap();
 
-        let old = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var("PATH", format!("{}:{old}", tmp.path().display()));
+        let _path = EnvGuard::prepend_path(tmp.path());
 
         let steps = ClaudeUpgrade::default()
             .plan(&Manifest::default(), &Contexts::default())
             .unwrap();
-
-        std::env::set_var("PATH", old);
 
         assert!(
             steps.is_empty(),
@@ -162,14 +154,11 @@ mod tests {
     #[test]
     #[serial]
     fn plan_returns_empty_when_claude_not_in_path() {
-        let old = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var("PATH", "/nonexistent");
+        let _path = EnvGuard::set("PATH", "/nonexistent");
 
         let steps = ClaudeUpgrade::default()
             .plan(&Manifest::default(), &Contexts::default())
             .unwrap();
-
-        std::env::set_var("PATH", old);
 
         assert!(steps.is_empty(), "expected no steps when claude not found");
     }

@@ -1,0 +1,30 @@
+name: cargo-deny (scheduled)
+
+on:
+  schedule:
+    # Weekly: catches advisories published against an unchanged lockfile
+    - cron: "0 6 * * 1"
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  deny:
+    name: Cargo Deny
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install cargo-deny
+        uses: taiki-e/install-action@1168f6810a3cb30a3514bf5756a3b7f0422c6df8  # v2.87.28
+        with:
+          tool: cargo-deny@0.20.2
+          fallback: none
+
+      - name: Run cargo deny
+        run: cargo deny check advisories

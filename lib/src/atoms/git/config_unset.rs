@@ -80,6 +80,7 @@ impl Atom for GitConfigUnset {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_helpers::EnvGuard;
     use serial_test::serial;
     use std::process::Command;
 
@@ -213,15 +214,8 @@ mod tests {
         // Simulate a git hook environment by setting GIT_DIR to a non-existent path.
         // execute() must still target `path`, not whatever GIT_DIR points to.
         let result = {
-            // Safety: std::env is process-global; serial_test ensures no concurrent tests.
-            unsafe {
-                std::env::set_var("GIT_DIR", "/nonexistent/.git");
-            }
-            let r = atom.execute();
-            unsafe {
-                std::env::remove_var("GIT_DIR");
-            }
-            r
+            let _git_dir = EnvGuard::set("GIT_DIR", "/nonexistent/.git");
+            atom.execute()
         };
 
         assert!(result.is_ok(), "execute() failed: {:?}", result.err());

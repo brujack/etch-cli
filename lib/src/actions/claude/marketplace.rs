@@ -84,6 +84,7 @@ impl Action for ClaudeMarketplace {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_helpers::EnvGuard;
 
     fn marketplace(name: &str, source: &str) -> ClaudeMarketplace {
         ClaudeMarketplace {
@@ -114,8 +115,7 @@ mod tests {
         std::fs::write(&fake, "#!/bin/sh\nprintf '❯ caveman\\n'\nexit 0\n").unwrap();
         std::fs::set_permissions(&fake, std::fs::Permissions::from_mode(0o755)).unwrap();
 
-        let old = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var("PATH", format!("{}:{old}", tmp.path().display()));
+        let _path = EnvGuard::prepend_path(tmp.path());
 
         let action = ClaudeMarketplace {
             name: String::from("caveman"),
@@ -128,7 +128,6 @@ mod tests {
                 &crate::contexts::Contexts::default(),
             )
             .unwrap();
-        std::env::set_var("PATH", old);
 
         assert!(
             steps.is_empty(),

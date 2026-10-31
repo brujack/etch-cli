@@ -23,11 +23,7 @@ impl ManifestProvider for GitManifestProvider {
     fn looks_familiar(&self, url: &str) -> bool {
         use regex::Regex;
 
-        if let Ok(regex) = Regex::new(r"^(https|git|ssh)://") {
-            regex.is_match(url)
-        } else {
-            false
-        }
+        Regex::new(r"^(https|git|ssh)://").is_ok_and(|regex| regex.is_match(url))
     }
 
     fn resolve(
@@ -70,12 +66,14 @@ impl GitManifestProvider {
 
         let url = url.unwrap();
 
-        unsafe {
-            let handler = interrupt::init_handler(1, || {});
-            if handler.is_err() {
-                return Err(ManifestProviderError::NoResolution);
-            }
-        };
+        #[expect(
+            unsafe_code,
+            reason = "gix::interrupt::init_handler: the callback runs in signal context and must be async-signal-safe; || {} is trivially so; repeat calls are no-ops inside gix"
+        )]
+        let handler = unsafe { interrupt::init_handler(1, || {}) };
+        if handler.is_err() {
+            return Err(ManifestProviderError::NoResolution);
+        }
 
         let prepare_clone = gix::prepare_clone(url.clone(), cache_path);
         if prepare_clone.is_err() {

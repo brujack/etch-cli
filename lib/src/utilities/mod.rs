@@ -14,6 +14,16 @@ pub fn get_binary_path(binary: &str) -> Result<String, anyhow::Error> {
     Ok(binary)
 }
 
+/// Resolve `binary` against an explicit `path` (a PATH-style list) instead of
+/// the process environment, with relative entries taken from the current dir.
+pub fn get_binary_path_in(binary: &str, path: &std::ffi::OsStr) -> Result<String, anyhow::Error> {
+    let binary = which::which_in(binary, Some(path), std::env::current_dir()?)?
+        .to_string_lossy()
+        .to_string();
+
+    Ok(binary)
+}
+
 pub fn get_privilege_provider(contexts: &Contexts) -> Option<String> {
     let privilege_provider = contexts.get("privilege").and_then(|s| s.first_key_value());
 
@@ -40,8 +50,8 @@ impl JsonSchema for CustomPathBuf {
         Cow::Borrowed("CustomPathBuf")
     }
 
-    fn json_schema(gen: &mut SchemaGenerator) -> Schema {
-        gen.subschema_for::<PathBuf>()
+    fn json_schema(generator: &mut SchemaGenerator) -> Schema {
+        generator.subschema_for::<PathBuf>()
     }
 }
 
@@ -113,5 +123,17 @@ mod tests {
     fn custom_path_buf_json_schema() {
         let name = CustomPathBuf::schema_name();
         assert_eq!(name, "CustomPathBuf");
+    }
+
+    #[test]
+    fn custom_path_buf_json_schema_is_a_string() {
+        // An independent literal, not a re-derivation through subschema_for:
+        // a path serializes as a JSON string, so that is the schema it must publish.
+        let mut generator = SchemaGenerator::default();
+        let actual = CustomPathBuf::json_schema(&mut generator);
+        assert_eq!(
+            serde_json::to_value(&actual).unwrap(),
+            serde_json::json!({"type": "string"})
+        );
     }
 }
