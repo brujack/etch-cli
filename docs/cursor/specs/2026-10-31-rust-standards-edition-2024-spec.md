@@ -447,6 +447,11 @@ Order matters: Designs 5 and 6 land first, so the edition bump finds no env-muta
 - **N9.** No `.git-blame-ignore-revs` file.
 - **N10.** No fix to the dead `elevate()` provider check at `exec.rs:157` (backlog row).
 
+## Amendments
+
+- R19 -> `docs/src/command.md` states that `env:` reaches unprivileged commands, that an unprivileged program is resolved on the step's own `env:` `PATH`, that `env:` no longer modifies the etch process environment, and that `privileged: true` with a non-empty `env:` is refused. — branch-code-review (Phase 3) found privileged `env:` values placed on the `sudo env K=V` command line, visible in ps and sudo logs; operator chose fail closed, 2026-10-31.
+- adds R21 [PR1]: `RunCommand::plan` returns an error naming the command-line exposure when `privileged: true` and `env:` is non-empty, and a test covers both that refusal and an unprivileged step with `env:` planning successfully. — same finding; refusing is the only option that neither leaks nor silently drops `env:`.
+
 ## Multi-Lens Review
 
 Reviewed at commit: `9fb5d1f` (Step 7 self-review commit, before Step 8 dispatch)

@@ -223,6 +223,25 @@ fn command_run_env_value_reaches_child() {
 }
 
 #[test]
+fn command_run_env_with_privileged_is_refused() {
+    let dir = tempdir().unwrap();
+    let state = tempdir().unwrap();
+    let marker = dir.path().join("ran");
+    fs::write(
+        dir.path().join("test.yaml"),
+        format!(
+            "actions:\n  - action: command.run\n    command: touch\n    args:\n      - {}\n    privileged: true\n    env:\n      ETCH_SPEC_PROBE: x\n",
+            marker.display()
+        ),
+    )
+    .unwrap();
+
+    apply_with_state_env(dir.path(), state.path(), &[]).failure();
+
+    assert!(!marker.exists(), "command ran despite refused env");
+}
+
+#[test]
 fn command_run_env_does_not_leak_after_failure() {
     let dir = tempdir().unwrap();
     let state = tempdir().unwrap();

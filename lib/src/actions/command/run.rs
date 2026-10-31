@@ -59,6 +59,15 @@ impl Action for RunCommand {
     fn plan(&self, _: &Manifest, contexts: &Contexts) -> anyhow::Result<Vec<Step>> {
         use crate::atoms::command::Exec;
 
+        // The privilege provider would carry env values on its command line
+        // (`sudo env K=V ...`), exposing them in ps and sudo logs. Refused for
+        // every user so a manifest behaves the same on every machine.
+        if self.privileged && !self.env.is_empty() {
+            anyhow::bail!(
+                "command.run: env: cannot be combined with privileged: true; the privilege provider would expose the values on its command line (ps, sudo logs)"
+            );
+        }
+
         let privilege_provider =
             utilities::get_privilege_provider(contexts).unwrap_or_else(|| "sudo".to_string());
 
@@ -261,6 +270,53 @@ mod tests {
         assert!(a < b, "keys not sorted: {debug}");
         assert!(!debug.contains("etch-secret-a"), "leaked: {debug}");
         assert!(!debug.contains("etch-secret-b"), "leaked: {debug}");
+    }
+
+    #[test]
+    fn plan_refuses_env_with_privileged() {
+        use crate::actions::Action;
+        use crate::contexts::Contexts;
+        use crate::manifests::Manifest;
+        let action = super::RunCommand {
+            command: String::from("echo"),
+            privileged: true,
+            env: std::collections::HashMap::from([(String::from("K"), String::from("v"))]),
+            ..Default::default()
+        };
+        let err = action
+            .plan(&Manifest::default(), &Contexts::default())
+            .unwrap_err();
+        assert!(err.to_string().contains("privileged"), "message: {err}");
+    }
+
+    #[test]
+    fn plan_allows_privileged_without_env() {
+        use crate::actions::Action;
+        use crate::contexts::Contexts;
+        use crate::manifests::Manifest;
+        let action = super::RunCommand {
+            command: String::from("echo"),
+            privileged: true,
+            ..Default::default()
+        };
+        assert!(action
+            .plan(&Manifest::default(), &Contexts::default())
+            .is_ok());
+    }
+
+    #[test]
+    fn plan_allows_unprivileged_with_env() {
+        use crate::actions::Action;
+        use crate::contexts::Contexts;
+        use crate::manifests::Manifest;
+        let action = super::RunCommand {
+            command: String::from("echo"),
+            env: std::collections::HashMap::from([(String::from("K"), String::from("v"))]),
+            ..Default::default()
+        };
+        assert!(action
+            .plan(&Manifest::default(), &Contexts::default())
+            .is_ok());
     }
 
     #[test]

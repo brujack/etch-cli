@@ -41,7 +41,7 @@ impl EnvGuard {
         Self { key, previous }
     }
 
-    /// Prepends `dir` to `PATH`: the mock-binary pattern used by 115 tests.
+    /// Prepends `dir` to `PATH`: the mock-binary pattern.
     pub fn prepend_path(dir: &Path) -> Self {
         let previous = std::env::var_os("PATH");
         let mut entries = vec![dir.to_path_buf()];
