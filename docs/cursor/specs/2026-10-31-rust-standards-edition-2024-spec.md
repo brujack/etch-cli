@@ -69,11 +69,17 @@ Four independent gaps, all measured on `origin/main` at `3496cf3` on `claude`
 
 5. **The two production sites are a bug, independent of the edition.** `command.run` applies
    its `env:` map by calling `std::env::set_var` on the etch process before the step
-   (`SetEnvVars`) and `std::env::remove_var` after it (`RemoveEnvVars`). Three defects
+   (`SetEnvVars`) and `std::env::remove_var` after it (`RemoveEnvVars`). Four defects
    follow:
     - **The finalizer deletes instead of restoring.** A manifest with
       `env: { PATH: "..." }` removes `PATH` from the etch process after the step, and
-      every later step that resolves a binary by name fails.
+      every later step that resolves a binary by name fails. A variable etch inherited
+      (say `FOO=orig`) is gone after a step that set `FOO` in `env:`.
+    - **The finalizer does not always run, so `env:` leaks.** `apply.rs` runs initializers
+      inside the plan `filter` but finalizers only after a successful `execute`. After a
+      failed `execute` (`break`) the variable stays set for every later action. Under
+      `--dry-run` initializers run and finalizers never do; nothing executes afterwards in
+      a dry run, so that leak has no observer today.
     - **Privileged commands never receive `env:`.** `sudo` strips the process environment.
       The `Exec` atom already handles this for its own `environment` field by prefixing
       `env K=V` under sudo (`atoms/command/exec.rs:75-82`), but `command.run` never fills
@@ -88,8 +94,13 @@ Four independent gaps, all measured on `origin/main` at `3496cf3` on `claude`
 - **"Edition 2024 is near-free."** True in math (0 source lines from `cargo fix`). Not here:
   159 env-mutation sites.
 - **"Set `unmaintained = "all"`."** It is already the cargo-deny default, and `deny.toml`
-  sets no `unmaintained` key, so etch-cli already has it. This spec writes it explicitly only
-  so the pin test (Design 2) catches a later change to `"workspace"`.
+  sets no `unmaintained` key, so etch-cli already has it. This spec writes it explicitly so
+  the default is visible in the file and does not move with a cargo-deny release.
+- **"Pin the whole `deny.toml` with a test."** In math the pin forces a reviewed edit. Here
+  `auto-merge` squash-merges on green with no human review step, so an agent editing
+  `deny.toml` edits the pin dict in the same diff, and the test changes no verdict. Dropped
+  in Step 8 round 1; the positive control below is kept because it is the only check that
+  fails if cargo-deny measures nothing.
 - **"Every CI job that runs bats needs cargo-deny installed."** etch-cli has no bats suite.
   The analogous trap is the pytest job, handled in Design 2.
 
@@ -106,15 +117,12 @@ change.
 
 `bans` stays `multiple-versions = "warn"`: duplicate versions are warnings, not failures.
 
-### 2. Pin `deny.toml` with a test, and prove the policy rejects
+### 2. Prove the policy rejects, and keep one ignore list
 
-`tests/test_deny_policy.py` (pytest, already run by the `test` job):
+`deny.toml` gains `unmaintained = "all"` under `[advisories]`. `tests/test_deny_policy.py`
+(pytest, already run by the `test` job):
 
-- **Pin test.** Parse `deny.toml` with `tomllib` and compare the whole document to one
-  expected dict literal. Any change to an allow list, ignore, exception, clarify, source
-  or ban becomes a deliberate edit to the test, reviewed in the same diff. `deny.toml` gains
-  `unmaintained = "all"` under `[advisories]`.
-- **Ignore lists agree.** The scheduled workflow (Design 4) passes no `--ignore` flags of its
+- **One ignore list.** The scheduled workflow (Design 4) passes no `--ignore` flags of its
   own, so there is only one list. The test asserts that no workflow file contains
   `--ignore RUSTSEC`, which prevents a second list from returning.
 - **Positive control: the policy rejects what it should.** Two fixture crates under
@@ -141,8 +149,10 @@ Each crate's `[lints.rust]` table (`lib`, `app`, `jsonschemagen`) gains
 `deny`, not `forbid`, because the 8 production FFI blocks stay. Each gets
 `#[expect(unsafe_code, reason = "...")]` on the smallest enclosing item or statement, with
 a reason naming the FFI call and why it is sound. `expect`, not `allow`: if the `unsafe`
-block is later removed, the stale `expect` fails the build instead of lingering as an
-unused allow-path.
+block is later removed, the stale `expect` raises `unfulfilled_lint_expectations`, which
+`make lint` (`clippy -D warnings`) turns into a failure, instead of lingering as an unused
+allow-path. A plain `cargo build` only warns. Verified by the risk lens on rustc 1.99.1:
+`#[expect]` is accepted on a `let` statement, an expression statement and an item.
 
 The 2 test blocks in `config_unset.rs` move to `EnvGuard` (Design 6) and need no `expect`.
 
@@ -166,10 +176,24 @@ with their modules and re-exports; `command.run` is their only user (`git grep` 
 other). The `Ensure` env initializer and finalizer go from the plan; the `SkipIf`
 initializer stays.
 
+**Program resolution moves with it.** `Exec::execute` resolves the program with
+`utilities::get_binary_path` → `which()` against the etch process `PATH`
+(`atoms/command/exec.rs:152`, `utilities/mod.rs:11`). Today `SetEnvVars` has already
+changed that `PATH`, so `command: foo` with `env: { PATH: "/opt/foo/bin" }` finds `foo`.
+Moving `env:` into `Command::envs` alone would break that. So, when the command is not
+elevated and `environment` contains `PATH`, `Exec` resolves the program with
+`which::which_in(program, Some(<that PATH>), <working_dir or current dir>)`; otherwise it
+keeps `which()`. When elevated, the provider (`sudo`, `doas`, `run0`) still resolves
+against the etch process `PATH`, and the inner program is resolved by `env` from the
+`env K=V` prefix, which already sees the new `PATH`. Both paths then resolve the program
+against the step's own `PATH`. This is internal to `Exec`; no field or signature changes,
+so N3 does not apply.
+
 Behaviour after the fix:
 
 - `env:` reaches the child process through `Command::envs`, and through `env K=V` under
   sudo, using `Exec`'s existing path.
+- An unprivileged program is found on the step's own `env:` `PATH` when one is set.
 - The etch process environment is never modified, so no later step sees a removed or
   leaked variable.
 - `env:` values are redacted in `Debug`, through `Exec`'s hand-written impl.
@@ -203,23 +227,43 @@ One private `apply(key, Option<value>)` holds the module's only `unsafe` block, 
 tests are threads in one process, and only `#[serial]` serialises them against each other.
 That is the same exposure as today's bare `set_var`, made explicit, not a new one.
 
-Every test site moves to the guard. Manual save-and-restore code (`original_path` and
-similar, 5 files) is deleted: the guard restores on drop, including on panic, which today's
-manual restores do not.
+`EnvGuard` carries
+`#[must_use = "bind to a named variable (let _g = ...); let _ = drops and restores at once"]`.
+Without it, a mechanical port to `let _ = EnvGuard::prepend_path(...)` drops the guard on
+the same line, `PATH` stays real, and the test runs the host's real `systemctl`,
+`useradd` or `gem` instead of the mock (core.md tdd-007). `#[must_use]` warns on a bare
+expression statement only; it does not fire on `let _ =`, so the source check below covers
+that form.
 
-A separate test, `tests/test_env_guard_serial.py`, asserts that every Rust test function under `lib/src`
-whose body names `EnvGuard` carries `#[serial]` or `#[serial_test::serial]`. Detection is a
-regex over function bodies; the test includes a fixture string without `#[serial]` that
-must be flagged, so it cannot pass by matching nothing.
+Every test site moves to the guard. Manual save-and-restore code (`original_path` and
+similar) is deleted from 14 files
+(`git grep -lE 'original_path|orig_path|old_path|saved_path|prev_path' -- lib/src`): the
+guard restores on drop, including on panic, which today's manual restores do not. Sites
+that replace `PATH` outright (e.g. `pyenv/virtualenv.rs:327`, `PATH=/nonexistent`) use
+`set`.
+
+`tests/test_env_guard_serial.py` scans `lib/src/**/*.rs` and fails on any of:
+
+- a function whose body names `EnvGuard` and which is not `#[test]` (`test_helpers.rs`
+  itself excepted). Guards are built only in test bodies, so no shared helper can hide an
+  unserialised caller from the next rule;
+- a `#[test]` function whose body names `EnvGuard` without `#[serial]` or
+  `#[serial_test::serial]`;
+- `let _ = EnvGuard` anywhere.
+
+Detection is a regex over function bodies. The test carries one negative fixture string per
+rule that must be flagged, so it cannot pass by matching nothing.
 
 ### 7. Edition 2024
 
 Order matters: Designs 5 and 6 land first, so the edition bump finds no env-mutation sites.
 
 - `edition = "2024"` in `app`, `lib`, `jsonschemagen` and `fuzz` `Cargo.toml`.
-- `rustfmt.toml` at the repo root with `style_edition = "2024"`, so editors and
-  `cargo fmt` agree. Then `cargo fmt --all`; the resulting churn (import order, one-line
-  `if`/`else`) is its own commit with no other change.
+- **Pre-check on the 2021 tree.** Immediately before the edition bump (after Designs 5 and
+  6), `cargo check --workspace --all-targets` with `RUSTFLAGS=-W rust-2024-compatibility`
+  reports 0 `set_var`/`remove_var` warnings, and the drop-order, `gen` and `if let` sites
+  match the Problem 4 list. This must run on 2021: the migration lints fire only on editions
+  before 2024, so the same command after the bump reports 0 whatever happened.
 - `cargo fix --edition --all-targets` handles the `gen` keyword sites (raw identifier) and
   the `if let` rescope at `providers/git.rs:26`.
 - **Drop-order sites are read, not auto-fixed.** For each of the 12 sites listed in Problem
@@ -231,41 +275,57 @@ Order matters: Designs 5 and 6 land first, so the edition bump finds no env-muta
 - The workspace `resolver` stays `"2"`. Resolver 3's only difference is MSRV-aware
   fallback, which does nothing without `rust-version`, and this spec sets no
   `rust-version`.
+- **Style edition is a separate PR (PR2).** `auto-merge` squash-merges, so a fmt-only
+  commit inside PR1 would not survive onto `main`, and every reformatted line would blame to
+  the combined commit. PR2 adds `rustfmt.toml` with `style_edition = "2024"`, runs
+  `cargo fmt --all` (import order, one-line `if`/`else`), and nothing else. A follow-up
+  direct-to-main commit adds PR2's squash SHA to `.git-blame-ignore-revs`.
 
 ## Delivery
 
-One branch, one PR, one commit per Design section in the order 1, 2, 3, 4, 5, 6, 7
-(7 split into the edition/fix commit and the separate fmt-only commit). The fmt commit is
-last so every earlier commit reviews as a small diff.
+- **PR1:** Designs 1-7 except the style edition, one commit per Design section in order.
+- **PR2:** the style-edition reformat, opened after PR1 merges.
+- **Then:** `.git-blame-ignore-revs` entry naming PR2's squash SHA, direct to `main`
+  (pure data, no executable logic).
 
 ## Testing
 
 - Design 1: CI's `cargo-audit` job log shows the `licenses ok` and `sources ok` lines.
-- Design 2: `pytest tests/test_deny_policy.py`. Mutation control: change one `allow`
-  entry in a scratch copy and confirm the pin test fails; change `gpl-fixture`'s license to
-  MIT and confirm the rejection case fails.
+- Design 2: `pytest tests/test_deny_policy.py`. Mutation controls: change `gpl-fixture`'s
+  license to MIT and confirm the rejection case fails; add an `--ignore RUSTSEC-0000-0000`
+  line to a scratch workflow and confirm the one-list case fails.
 - Design 3: `make lint` passes. Mutation control: delete one `#[expect(unsafe_code)]` and
   confirm `make lint` fails on that site.
-- Design 5: RED first. Unit test: `RunCommand::plan` with `env: {FOO: bar}` yields an
-  `Exec` whose `environment` is `[("FOO", "bar")]` and a step with no env initializer or
-  finalizer. Integration test (`app/tests/integration.rs`, `ETCH_STATE_DIR` set): a manifest
-  with step 1 `command.run` with `env: { ETCH_SPEC_PROBE: "x" }` and step 2 running
-  `sh -c 'printf %s "${ETCH_SPEC_PROBE-unset}"'` prints `unset`. A second integration case
-  sets `PATH` in step 1's `env:` and checks step 2 still resolves `sh` by name. Both fail on
-  current `main` for the stated reason before the fix. `Debug` of the planned step does not
-  contain the env value.
+- Design 5, unit: `RunCommand::plan` with `env: {FOO: bar}` yields an `Exec` whose
+  `environment` is `[("FOO", "bar")]` and a step with no env initializer or finalizer
+  (this also removes the `--dry-run` leak, which has no runtime observer). `Debug` of the
+  planned step does not contain the env value.
+- Design 5, integration (`app/tests/integration.rs`, `ETCH_STATE_DIR` set; etch run with
+  `ETCH_SPEC_PROBE=orig` in its own environment). Each probe step runs
+  `sh -c 'printf %s "${ETCH_SPEC_PROBE-unset}"'`.
+    - **(a) Restore.** Action 1 sets `env: { ETCH_SPEC_PROBE: "x" }`; action 2 probes.
+      Expected `orig`. On `main`: `unset` (deleted, not restored). RED.
+    - **(b) Failed step.** Action 1 sets `env: { ETCH_SPEC_PROBE: "x" }` and runs `false`;
+      action 2 probes. Expected `orig`. On `main`: `x` (finalizer skipped). RED.
+    - **(c) PATH survives.** Action 1 sets `env: { PATH: "<tmp>" }`; action 2 resolves
+      `sh` by name and succeeds. On `main`: "Command `sh` not found in path". RED.
+    - **(d) Same-step resolution.** Action 1 sets `env: { PATH: "<tmp>:<real PATH>" }`
+      with `command: etch-spec-mock`, an executable only in `<tmp>`. It succeeds. Green
+      on `main` too: a regression guard. Mutation control: revert `which_in` to `which()`
+      and confirm (d) fails.
 - Design 6: the full suite passes under `make test` (nextest) and under `cargo tarpaulin`
   (threads). `git grep -nE 'env::(set_var|remove_var)' -- '*.rs'` returns only
   `lib/src/test_helpers.rs`.
-- Design 7: `cargo check --workspace --all-targets` with
-  `RUSTFLAGS=-W rust-2024-compatibility` on the final tree reports 0 warnings of the five
-  kinds in Problem 4.
+- Design 6: `pytest tests/test_env_guard_serial.py`, with each negative fixture flagged.
+- Design 7: the 2021-tree pre-check in Design 7, then `make test` on the 2024 tree.
+  Compilation is the gate for `set_var` (now `unsafe`, denied) and `gen`; V3 is the gate
+  for drop order.
 
 ## Requirements
 
 - **R1.** `[PR1]` The `cargo-audit` job in `ci.yml` runs `cargo deny check advisories licenses bans sources`, keeps job id `cargo-audit`, and stays in `auto-merge`'s `needs:`.
 - **R2.** `[PR1]` `deny.toml` sets `unmaintained = "all"` under `[advisories]`; its other content is unchanged.
-- **R3.** `[PR1]` `tests/test_deny_policy.py` compares the parsed `deny.toml` to one expected dict and fails on any difference.
+- **R3.** `[PR1]` When `Exec` is not elevated and `environment` contains `PATH`, it resolves the program with `which::which_in` against that `PATH` and the working directory; otherwise it resolves with `which()` against the etch process `PATH`.
 - **R4.** `[PR1]` `tests/test_deny_policy.py` asserts no file under `.github/workflows/` contains `--ignore RUSTSEC`.
 - **R5.** `[PR1]` Fixture crates `tests/fixtures/deny/gpl-fixture` (GPL-3.0-only) and `tests/fixtures/deny/mit-fixture` (MIT) exist; the test runs `cargo deny --config deny.toml --manifest-path <tmp copy> check licenses` on each and expects non-zero with `error[rejected]` for GPL and exit 0 for MIT.
 - **R6.** `[PR1]` The fixture cases skip when `cargo-deny` is absent and `CI` is unset, and fail when `cargo-deny` is absent and `CI` is set.
@@ -275,27 +335,30 @@ last so every earlier commit reviews as a small diff.
 - **R10.** `[PR1]` `.github/workflows/cargo-audit-scheduled.yml` is deleted and `.github/workflows/cargo-deny-scheduled.yml` runs `cargo deny check advisories` on `cron: "0 6 * * 1"` using `cargo-deny@0.20.2` from the pinned install-action.
 - **R11.** `[PR1]` `RunCommand::plan` sets `Exec.environment` from `env:`, sorted by key, and adds no initializer or finalizer that touches the process environment.
 - **R12.** `[PR1]` `SetEnvVars`, `RemoveEnvVars` and their modules and re-exports are deleted.
-- **R13.** `[PR1]` An integration test proves a `command.run` `env:` variable is not visible to the next step, and another proves a `PATH` set in one step's `env:` leaves the next step able to resolve `sh` by name.
-- **R14.** `[PR1]` `lib/src/test_helpers.rs` defines `EnvGuard` with `set`, `remove` and `prepend_path`, restoring the previous value on drop; its single `unsafe` block carries `#[expect(unsafe_code, reason = "...")]` and a SAFETY note naming the nextest-process and `#[serial]`-thread conditions.
+- **R13.** `[PR1]` Integration tests (a)-(d) from Testing exist: with etch started under `ETCH_SPEC_PROBE=orig`, a later action sees `orig` after an earlier action set it in `env:` (a) and after that earlier action failed (b); a `PATH` set in one action's `env:` leaves the next action able to resolve `sh` (c); and an unprivileged action resolves a program present only on its own `env:` `PATH` (d).
+- **R14.** `[PR1]` `lib/src/test_helpers.rs` defines `EnvGuard` with `set`, `remove` and `prepend_path`, marked `#[must_use]`, restoring the previous value on drop; its single `unsafe` block carries `#[expect(unsafe_code, reason = "...")]` and a SAFETY note naming the nextest-process and `#[serial]`-thread conditions.
 - **R15.** `[PR1]` `git grep -nE 'env::(set_var|remove_var)' -- '*.rs'` matches only `lib/src/test_helpers.rs`.
-- **R16.** `[PR1]` `tests/test_env_guard_serial.py` fails for any `lib/src` test function using `EnvGuard` without `#[serial]`, and includes a negative fixture that it must flag.
-- **R17.** `[PR1]` `app`, `lib`, `jsonschemagen` and `fuzz` `Cargo.toml` set `edition = "2024"`; root `rustfmt.toml` sets `style_edition = "2024"`.
-- **R18.** `[PR1]` The fmt-only churn from `style_edition = "2024"` is a single commit with no non-formatting change.
-- **R19.** `[PR1]` `docs/src/command.md` states that `env:` now reaches privileged commands and no longer modifies the etch process environment.
+- **R16.** `[PR1]` `tests/test_env_guard_serial.py` fails on a non-`#[test]` function naming `EnvGuard` outside `test_helpers.rs`, on a `#[test]` function naming `EnvGuard` without `#[serial]`, and on `let _ = EnvGuard`; it carries one negative fixture per rule that it must flag.
+- **R17.** `[PR1]` `app`, `lib`, `jsonschemagen` and `fuzz` `Cargo.toml` set `edition = "2024"`.
+- **R18.** `[PR2]` Root `rustfmt.toml` sets `style_edition = "2024"`, and PR2's diff is that file plus `cargo fmt --all` output with no non-formatting change.
+- **R19.** `[PR1]` `docs/src/command.md` states that `env:` now reaches privileged commands, that an unprivileged program is resolved on the step's own `env:` `PATH`, and that `env:` no longer modifies the etch process environment.
+- **R20.** `[PR3]` `.git-blame-ignore-revs` names PR2's squash-merge SHA.
 - **V1.** CI on the PR: the `cargo-audit` job log contains `licenses ok` and `sources ok`, and every job in `auto-merge`'s `needs:` is green.
-- **V2.** Mutation controls run and recorded in the PR body: one `deny.toml` allow edit fails the pin test; the GPL fixture relabelled MIT fails the rejection case; one removed `#[expect(unsafe_code)]` fails `make lint`.
+- **V2.** Mutation controls run and recorded in the PR body: the GPL fixture relabelled MIT fails the rejection case; a scratch `--ignore RUSTSEC` line fails the one-list case; one removed `#[expect(unsafe_code)]` fails `make lint`; `which_in` reverted to `which()` fails integration case (d).
 - **V3.** The PR body classifies each of the 12 drop-order sites (temporary type, behaviour change yes/no, action taken).
-- **V4.** On macOS (`ssh` to the Mac Studio; there is no macOS CI job), `cargo check --workspace --all-targets` with `RUSTFLAGS=-W rust-2024-compatibility` and `cargo clippy --all-targets -D warnings` pass on the final tree, covering `#[cfg(target_os = "macos")]` sites the Linux count excluded.
+- **V4.** On macOS (`ssh` to the Mac Studio; there is no macOS CI job), `cargo clippy --all-targets -- -D warnings` and `cargo nextest run` pass on the final 2024 tree, covering `#[cfg(target_os = "macos")]` sites the Linux build excluded.
 - **V5.** `make fuzz-manifest FUZZ_TIMEOUT=10` builds and runs under edition 2024 on nightly.
-- **V6.** Before the fix, the two R13 integration tests fail on `main` with the leak and the missing-`PATH` failure respectively; output recorded in the PR body.
+- **V6.** Before the fix, R13 cases (a), (b) and (c) fail on `main` with `unset`, `x` and "Command `sh` not found in path" respectively, and (d) passes; output recorded in the PR body.
 - **V7.** Linux CI Rust coverage stays at or above 81% and Python coverage at or above 90%.
+- **V8.** The Design 7 pre-check runs on the 2021 tree immediately before the edition bump and reports 0 `set_var`/`remove_var` warnings; output recorded in the PR body.
 - **N1.** No `rust-version` field in any `Cargo.toml`, and no MSRV job.
 - **N2.** No change to `[licenses].allow`, `[[licenses.clarify]]`, `[bans]`, `[sources]` or the 6 advisory ignores in `deny.toml` beyond adding `unmaintained = "all"`.
-- **N3.** No change to atom or action APIs to inject `PATH` or other env (approach B).
+- **N3.** No change to atom or action public fields or signatures to inject `PATH` or other env (approach B).
 - **N4.** No `unsafe` block added outside `EnvGuard`, and no `#[allow(unsafe_code)]` anywhere.
 - **N5.** The workspace `resolver` stays `"2"`.
 - **N6.** No `unsafe_code` lint or other lint change in `fuzz/`.
 - **N7.** The `cargo-audit` job id in `ci.yml` is not renamed.
+- **N8.** No whole-file pin test of `deny.toml`.
 
 ## Multi-Lens Review
 
@@ -319,7 +382,9 @@ Finding:
 Assumption: no consumer depends on `env:` changing etch's own process (same-step
 resolution, or a later step relying on a leaked variable). etch-config checked, none
 found; unversioned local manifests unchecked.
-Disposition:
+Disposition: Addressed (operator, 2026-10-31) — 1: `Exec` resolves on the step's own
+`env:` `PATH` (Design 5, R3, R13 (d)). 2: whole-file pin test dropped (N8); positive
+control and one-list assertion kept.
 
 ### Ergonomics
 
@@ -341,7 +406,11 @@ Finding:
 Assumption: R16's body-scan assumes guards are created only inside `#[test]` bodies. A
 shared helper returning an `EnvGuard` would hide its callers from the check. Settle by
 reading how the `write_mock_*` helpers are called in the 14 files.
-Disposition:
+Disposition: Addressed (operator, 2026-10-31) — 1: `#[must_use]` plus a `let _ = EnvGuard`
+source check (R14, R16). 2: style edition moved to PR2 plus `.git-blame-ignore-revs` (R18,
+R20). 3: compat check moved to the 2021 tree before the bump (V8), removed from V4.
+4: count corrected to 14. Assumption: R16 now fails on any non-test function naming
+`EnvGuard`, so a helper cannot own a guard.
 
 ### Risk
 
@@ -362,7 +431,10 @@ Finding:
 
 Assumption: same as Goal-Fit — no field manifest relies on `env:` affecting how etch
 resolves the command. Moot if `Exec` resolves against `environment`'s `PATH`.
-Disposition:
+Disposition: Addressed (operator, 2026-10-31) — 1: as Goal-Fit 1. 2: R13 rewritten to
+cases (a)-(d) with etch started under `ETCH_SPEC_PROBE=orig`; failed-step leak added to
+Problem 5; dry-run leak noted as unobserved and covered by the plan unit test. 3: wording
+now says `make lint`.
 
 ### Adversarial Spec Review (comparison/judge designs only)
 
