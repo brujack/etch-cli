@@ -168,9 +168,9 @@ jobs:
         with:
           tool: cargo-deny@0.20.2
           fallback: none
-      - name: Run cargo deny advisories
-        # Uses deny.toml ignore list — cargo audit does not read deny.toml
-        run: cargo deny check advisories
+      - name: Run cargo deny (advisories, licenses, bans, sources)
+        # Reads all of deny.toml. The job id stays cargo-audit: it is the required-check name.
+        run: cargo deny check advisories licenses bans sources
 
   secret-scan:
     name: Secret Scan
