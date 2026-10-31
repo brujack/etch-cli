@@ -196,6 +196,8 @@ Single workflow `.github/workflows/ci.yml`, triggers on `pull_request` to `main`
 | `semver-check` | `cargo semver-checks` vs `origin/main` baseline (advisory, `continue-on-error: true`, not in auto-merge needs)                                                                                         |
 | `auto-merge`   | Squash-merges the PR when all required jobs pass                                                                                                                                                       |
 
+`mutation-pr.yml` (required check, separate workflow) runs `cargo mutants --in-diff` with `--jobs 2` under a 30-minute cap. `.cargo/mutants.toml` excludes the macOS-only `lib/src/atoms/file/chflags.rs` and `lib/src/actions/file/flags.rs`, because the Linux runner cannot compile them; it also applies to the monthly `mutation-testing.yml`. cargo-mutants runs only the mutated crate's tests, so a guard test in another crate does not kill an etch-lib mutant.
+
 The scheduled `.github/workflows/cargo-deny-scheduled.yml` (cron `0 6 * * 1`, weekly) runs `cargo deny check advisories` against the same `deny.toml`. It is not a PR job and is not in `needs:`.
 
 **Which jobs block.** Every job in `auto-merge`'s
