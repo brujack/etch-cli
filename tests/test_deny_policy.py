@@ -70,3 +70,11 @@ def test_cargo_deny_missing_skips_locally(monkeypatch):
     monkeypatch.delenv("CI", raising=False)
     with pytest.raises(pytest.skip.Exception):
         _cargo_deny()
+
+
+def test_one_ignore_list_no_workflow_has_its_own() -> None:
+    """deny.toml is the only advisory ignore list; no workflow may carry one."""
+    files = sorted((REPO / ".github/workflows").glob("*.y*ml"))
+    assert files
+    offenders = [f.name for f in files if "--ignore RUSTSEC" in f.read_text()]
+    assert offenders == []
