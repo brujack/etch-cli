@@ -1,7 +1,9 @@
 # Rust standards: supply-chain policy, `unsafe_code`, edition 2024
 
-**Status:** design approved in conversation 2026-10-31 (one combined spec, env-guard
-approach A, `command.run` env fix folded in); spec under review.
+- **Approved:** 2026-10-31
+
+**Status:** approved after three Step 8 rounds (one combined spec, env-guard approach A,
+`command.run` env fix folded in).
 
 **Origin:** the math session passed on Rust learnings from math#187/#188 (spec
 `math docs/superpowers/specs/2026-10-31-rust-python-standards-tier1-design.md`) at the
@@ -36,8 +38,14 @@ Four independent gaps, all measured on `origin/main` at `3496cf3` on `claude`
    `unsound` default is `"workspace"`, which drops unsound advisories in transitive crates.
    Measured on `claude` at `412dac2`: with `unsound = "all"` added to a copy of `deny.toml`,
    `cargo deny check advisories` exits 1 with exactly those two `error[unsound]` lines; with
-   today's file it exits 0. `cargo update -p faster-hex` and `cargo update -p scc` lock 0
-   packages, so neither clears with a lockfile bump; `serial_test` 4.0.1 exists. Population:
+   today's file it exits 0. `cargo update -p faster-hex` alone locks 0 packages: the locked
+   `gix-hash 0.26.1` already admits `faster-hex ^0.10.0`, but faster-hex 0.10.1 needs the
+   build-dependency `autocfg ^1.5.1` and the lock pins autocfg 1.5.0. scc arrives only
+   through `serial_test` 3.x. Measured by the round-3 lens on a scratch copy: with
+   `serial_test = "4"` in `lib/Cargo.toml`, `cargo update -p serial_test -p faster-hex -p autocfg`
+   locks 5 packages (removes scc and sdd), the full `cargo deny` check with
+   `unsound`/`unmaintained = "all"` is all ok, and `cargo check -p etch-lib --tests` gives 0
+   errors. Population:
    the Linux lockfile on `claude`, one advisory-db snapshot. Retiring cargo-audit is safe
    only once cargo-deny reports what it reports.
 
@@ -133,9 +141,10 @@ change.
 second closes the gap in Problem 2 and turns the two unsound advisories into blocking
 `cargo-audit` errors, so PR1 triages them, in this order per advisory:
 
-1. Clear it by a dependency bump if one exists without an API change etch must follow
-   (scc: try `serial_test` 4.x; faster-hex: a gix release that admits faster-hex ≥0.10.1).
-2. Otherwise add a dated ignore to `deny.toml` in the existing comment style: path to the
+1. Clear both by a dependency bump: `serial_test = "4"` in `lib/Cargo.toml` (dev-dependency;
+   clears scc), then `cargo update -p serial_test -p faster-hex -p autocfg` (clears
+   faster-hex). Measured to reach green with no new ignore (Problem 2).
+2. Only if a bump fails at implementation time, add a dated ignore to `deny.toml` in the existing comment style: path to the
    crate, why the unsound code is not reached by etch or why no fix is available, the date
    checked, and what resolves it.
 
@@ -259,9 +268,12 @@ impl Drop for EnvGuard { /* restores `previous`, or removes the key if it was un
 One private `apply(key, Option<value>)` holds the module's only `unsafe` block, under
 `#[expect(unsafe_code, reason = "...")]`. Its SAFETY note states the actual guarantee:
 `set_var` is sound when no other thread reads or writes the environment concurrently. Under
-`cargo nextest` each test is its own process, which holds. Under `cargo test` and tarpaulin,
-tests are threads in one process, and only `#[serial]` serialises them against each other.
-That is the same exposure as today's bare `set_var`, made explicit, not a new one.
+`cargo nextest` (`make test`) each test is its own process, which holds. Under `cargo test`
+and tarpaulin, tests are threads in one process: `#[serial]` serialises guard holders
+against each other, but a non-`#[serial]` test that spawns a `Command` or calls `env::var`
+still reads the environment concurrently. The note names that residual race, says it is
+unchanged from today's bare `set_var`, and says the fix (serialising every
+process-spawning test) is out of scope.
 
 `EnvGuard` carries
 `#[must_use = "bind to a named variable (let _g = ...); let _ = drops and restores at once"]`.
@@ -297,8 +309,10 @@ of:
   `#[test]`);
 - `let _ = <path>EnvGuard` or `drop(<path>EnvGuard` anywhere.
 
-Detection is a regex over function bodies. The test carries one must-flag fixture string
-per rule and must-not-flag fixtures for `#[serial]` before `#[test]`, `#[serial(key)]`, a
+Detection scans function bodies with a brace counter that skips string literals (including
+raw strings), char literals and comments; `state/mod.rs:224` holds `"not: valid: yaml: {{{"`,
+which a naive counter reads as three unclosed braces. The test carries one must-flag
+fixture string per rule and must-not-flag fixtures for an unbalanced-brace string literal, `#[serial]` before `#[test]`, `#[serial(key)]`, a
 module-level `use crate::test_helpers::EnvGuard;` in `mod tests`, and a closure inside a
 `#[test]` body. It cannot pass by matching nothing, and it cannot pass by matching
 everything.
@@ -393,7 +407,7 @@ Order matters: Designs 5 and 6 land first, so the edition bump finds no env-muta
 ## Requirements
 
 - **R1.** `[PR1]` The `cargo-audit` job in `ci.yml` runs `cargo deny check advisories licenses bans sources`, keeps job id `cargo-audit`, and stays in `auto-merge`'s `needs:`.
-- **R2.** `[PR1]` `deny.toml` sets `unmaintained = "all"` and `unsound = "all"` under `[advisories]`, and RUSTSEC-2026-0306 and RUSTSEC-2026-0205 are each cleared by a dependency bump or carry a dated, reasoned ignore; its other content is unchanged.
+- **R2.** `[PR1]` `deny.toml` sets `unmaintained = "all"` and `unsound = "all"` under `[advisories]`; `lib/Cargo.toml` sets dev-dependency `serial_test = "4"` and `Cargo.lock` no longer contains `scc` or `faster-hex 0.10.0`; `deny.toml`'s other content is unchanged.
 - **R3.** `[PR1]` When `Exec` is not elevated (not the `privileged: true`, non-root arm of `elevate_if_required`) and `environment` contains `PATH`, it resolves the program with `which::which_in` against that `PATH` and the etch process cwd; otherwise it resolves with `which()` against the etch process `PATH`.
 - **R4.** `[PR1]` `tests/test_deny_policy.py` asserts no file under `.github/workflows/` contains `--ignore RUSTSEC`, and that its glob matched at least one workflow file.
 - **R5.** `[PR1]` Fixture crates `tests/fixtures/deny/gpl-fixture` (GPL-3.0-only) and `tests/fixtures/deny/mit-fixture` (MIT) exist; the test runs `cargo deny --config deny.toml --manifest-path <tmp copy> check licenses` on each and expects non-zero with `error[rejected]` for GPL and exit 0 for MIT.
@@ -407,7 +421,7 @@ Order matters: Designs 5 and 6 land first, so the edition bump finds no env-muta
 - **R13.** `[PR1]` Integration tests (a)-(d) from Testing exist, each probe writing to a file the test reads: with etch started under `ETCH_SPEC_PROBE=orig`, a later action sees `orig` after an earlier action set it in `env:` (a) and after that earlier action failed (b); a `PATH` set in one action's `env:` leaves the next action able to resolve `sh` (c); and an unprivileged action resolves a program present only on its own `env:` `PATH` (d).
 - **R14.** `[PR1]` `lib/src/test_helpers.rs` defines `EnvGuard` with `set`, `remove` and `prepend_path`, marked `#[must_use]`, restoring the previous value on drop; its single `unsafe` block carries `#[expect(unsafe_code, reason = "...")]` and a SAFETY note naming the nextest-process and `#[serial]`-thread conditions.
 - **R15.** `[PR1]` `git grep -nE 'env::(set_var|remove_var)' -- '*.rs'` matches only `lib/src/test_helpers.rs`.
-- **R16.** `[PR1]` `tests/test_env_guard_serial.py` fails on an aliased `EnvGuard` import, on a non-`#[test]` function naming `EnvGuard` other than the `EnvGuard` impls in `test_helpers.rs`, on a `#[test]` function naming `EnvGuard` without a `#[serial]` attribute in any form or order, and on `let _ =` or `drop(` of an `EnvGuard`; it carries a must-flag fixture per rule and must-not-flag fixtures for `#[serial]` before `#[test]`, `#[serial(key)]`, a module-level `use`, and a closure in a test body.
+- **R16.** `[PR1]` `tests/test_env_guard_serial.py` scans bodies skipping string, char and comment contents, and fails on an aliased `EnvGuard` import, on a non-`#[test]` function naming `EnvGuard` other than the `EnvGuard` impls in `test_helpers.rs`, on a `#[test]` function naming `EnvGuard` without a `#[serial]` attribute in any form or order, and on `let _ =` or `drop(` of an `EnvGuard`; it carries a must-flag fixture per rule and must-not-flag fixtures for an unbalanced-brace string literal, `#[serial]` before `#[test]`, `#[serial(key)]`, a module-level `use`, and a closure in a test body.
 - **R17.** `[PR1]` `app`, `lib`, `jsonschemagen` and `fuzz` `Cargo.toml` set `edition = "2024"`, and root `rustfmt.toml` sets `style_edition = "2021"`.
 - **R18.** `[PR2]` Root `rustfmt.toml` changes `style_edition` from `"2021"` to `"2024"`, and PR2's diff is that line plus `cargo fmt --all` output with no non-formatting change.
 - **R19.** `[PR1]` `docs/src/command.md` states that `env:` now reaches privileged commands, that an unprivileged program is resolved on the step's own `env:` `PATH`, and that `env:` no longer modifies the etch process environment.
@@ -421,9 +435,9 @@ Order matters: Designs 5 and 6 land first, so the edition bump finds no env-muta
 - **V7.** Linux CI Rust coverage stays at or above 81% and Python coverage at or above 90%.
 - **V8.** The Design 7 pre-check runs on the 2021 tree immediately before the edition bump and reports 0 `set_var`/`remove_var` warnings, 4 `gen`, 1 `if let`, and drop-order warnings only in Problem 4's files; per-file counts recorded in the PR body.
 - **V9.** On the Mac Studio, `mkdir -p /tmp/p && printf '#!/bin/sh\necho ok\n' > /tmp/p/etchprobe && chmod +x /tmp/p/etchprobe && /usr/bin/env PATH=/tmp/p etchprobe` prints `ok`, confirming BSD `env` resolves the program on the `PATH` it was given (the elevated branch of Design 5 depends on it).
-- **V10.** Before PR1 deletes `cargo-audit-scheduled.yml`, raw `cargo audit` and `cargo deny check advisories` (with PR1's `deny.toml`) report the same set of non-ignored advisory IDs on the PR1 lockfile; both lists recorded in the PR body.
+- **V10.** On the pre-triage (`main`) lockfile, `cargo deny check advisories` with PR1's `[advisories]` settings reports exactly the `unsound` IDs raw `cargo audit` reports there, {RUSTSEC-2026-0306, RUSTSEC-2026-0205}; on the PR1 lockfile both tools report neither; outputs recorded in the PR body.
 - **N1.** No `rust-version` field in any `Cargo.toml`, and no MSRV job.
-- **N2.** No change to `[licenses].allow`, `[[licenses.clarify]]`, `[bans]`, `[sources]` or the 6 existing advisory ignores in `deny.toml`; the only additions are `unmaintained = "all"`, `unsound = "all"`, and at most two ignores for RUSTSEC-2026-0306 and RUSTSEC-2026-0205.
+- **N2.** No change to `[licenses].allow`, `[[licenses.clarify]]`, `[bans]`, `[sources]` or the 6 existing advisory ignores in `deny.toml`; the only additions are `unmaintained = "all"` and `unsound = "all"`, with no new advisory ignore unless a measured bump fails at implementation time (then recorded as an amendment).
 - **N3.** No change to atom or action public fields or signatures to inject `PATH` or other env (approach B).
 - **N4.** No `unsafe` block added outside `EnvGuard`, and no `#[allow(unsafe_code)]` anywhere.
 - **N5.** The workspace `resolver` stays `"2"`.
@@ -606,4 +620,9 @@ Finding:
 
 Assumption: under `cargo test`/tarpaulin, no non-`#[serial]` test reads the environment
 (`env::var`, `Command` spawn) while an `EnvGuard` writes it. Unaudited.
-Disposition:
+Disposition: Addressed (operator, 2026-10-31) — 1: triage step 1 is the measured
+`serial_test = "4"` plus `cargo update -p serial_test -p faster-hex -p autocfg`; R2 and N2
+tightened to no new ignores. 2: V10 runs on the pre-triage lockfile and requires the
+two-ID set. 3: R16 scanning skips strings, chars and comments, with an unbalanced-brace
+must-not-flag fixture. Assumption: treated as false; the SAFETY note names the residual
+threaded-run race as unchanged from today and out of scope.
