@@ -147,10 +147,10 @@ pub fn lib_config(args: &GlobalArgs) -> anyhow::Result<Config> {
             };
 
             // The existence of the config file allows an implicit manifests location of.
-            if config.manifest_paths.is_empty() {
-                if let Some(parent) = config_path.parent() {
-                    config.manifest_paths.push(parent.display().to_string());
-                }
+            if config.manifest_paths.is_empty()
+                && let Some(parent) = config_path.parent()
+            {
+                config.manifest_paths.push(parent.display().to_string());
             }
 
             config

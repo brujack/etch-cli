@@ -50,8 +50,8 @@ impl JsonSchema for CustomPathBuf {
         Cow::Borrowed("CustomPathBuf")
     }
 
-    fn json_schema(gen: &mut SchemaGenerator) -> Schema {
-        gen.subschema_for::<PathBuf>()
+    fn json_schema(generator: &mut SchemaGenerator) -> Schema {
+        generator.subschema_for::<PathBuf>()
     }
 }
 

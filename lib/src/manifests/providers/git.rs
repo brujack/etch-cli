@@ -23,11 +23,7 @@ impl ManifestProvider for GitManifestProvider {
     fn looks_familiar(&self, url: &str) -> bool {
         use regex::Regex;
 
-        if let Ok(regex) = Regex::new(r"^(https|git|ssh)://") {
-            regex.is_match(url)
-        } else {
-            false
-        }
+        Regex::new(r"^(https|git|ssh)://").is_ok_and(|regex| regex.is_match(url))
     }
 
     fn resolve(

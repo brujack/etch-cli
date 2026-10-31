@@ -95,18 +95,18 @@ impl Action for FileDownload {
         ];
 
         let mut steps = steps;
-        if let Some(user) = self.owner_user.clone() {
-            if let Some(group) = self.owner_group.clone() {
-                steps.push(Step {
-                    atom: Box::new(Chown {
-                        path: path.clone(),
-                        owner: user.clone(),
-                        group: group.clone(),
-                    }),
-                    initializers: vec![],
-                    finalizers: vec![],
-                })
-            }
+        if let Some(user) = self.owner_user.clone()
+            && let Some(group) = self.owner_group.clone()
+        {
+            steps.push(Step {
+                atom: Box::new(Chown {
+                    path: path.clone(),
+                    owner: user.clone(),
+                    group: group.clone(),
+                }),
+                initializers: vec![],
+                finalizers: vec![],
+            })
         }
 
         Ok(steps)

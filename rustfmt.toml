@@ -1,0 +1,2 @@
+# Flipped to 2024 in a separate PR: a reformat here would not survive squash-merge as its own commit
+style_edition = "2021"

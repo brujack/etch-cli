@@ -67,10 +67,8 @@ fn provider_defaults(value: &serde_json::Value, found: &mut Vec<String>) {
                 .get("$ref")
                 .and_then(|r| r.as_str())
                 .is_some_and(|r| r.ends_with("Providers"));
-            if is_provider {
-                if let Some(default) = map.get("default") {
-                    found.push(format!("{} = {default}", map["$ref"]));
-                }
+            if is_provider && let Some(default) = map.get("default") {
+                found.push(format!("{} = {default}", map["$ref"]));
             }
             map.values().for_each(|v| provider_defaults(v, found));
         }

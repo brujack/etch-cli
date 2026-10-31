@@ -207,14 +207,14 @@ impl EtchCommand for Apply {
                 let mut successful = true;
                 let mut notified: IndexSet<String> = IndexSet::new();
 
-                if let Some(label) = self.label.as_ref() {
-                    if !m1.labels.contains(label) {
-                        info!(
-                            message = "Skipping manifest, label not found",
-                            label = label.as_str()
-                        );
-                        continue;
-                    }
+                if let Some(label) = self.label.as_ref()
+                    && !m1.labels.contains(label)
+                {
+                    info!(
+                        message = "Skipping manifest, label not found",
+                        label = label.as_str()
+                    );
+                    continue;
                 }
 
                 if let Some(where_condition) = &m1.r#where {
@@ -423,10 +423,11 @@ impl EtchCommand for Apply {
         }
 
         // Write state — best-effort; never blocks a successful apply
-        if !dry_run && !state_entries.is_empty() {
-            if let Err(e) = StateStore::new().record(state_entries) {
-                warn!("state: failed to record apply state: {e:#}");
-            }
+        if !dry_run
+            && !state_entries.is_empty()
+            && let Err(e) = StateStore::new().record(state_entries)
+        {
+            warn!("state: failed to record apply state: {e:#}");
         }
 
         Ok(())

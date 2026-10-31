@@ -27,10 +27,10 @@ impl Action for GitPull {
     }
 
     fn plan(&self, _: &Manifest, _: &Contexts) -> anyhow::Result<Vec<Step>> {
-        if let Some(path) = &self.skip_if_not_exists {
-            if !PathBuf::from(path).exists() {
-                return Ok(vec![]);
-            }
+        if let Some(path) = &self.skip_if_not_exists
+            && !PathBuf::from(path).exists()
+        {
+            return Ok(vec![]);
         }
         let _ = gix::url::parse(self.repo_url.as_bytes())?;
         Ok(vec![Step {

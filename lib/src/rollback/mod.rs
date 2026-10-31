@@ -297,14 +297,13 @@ impl StashStore {
         #[cfg(unix)]
         {
             let meta_path = hex_dir.join(format!("{}.meta.yaml", latest));
-            if let Ok(meta_content) = std::fs::read_to_string(&meta_path) {
-                if let Ok(meta) = serde_yaml_ng::from_str::<StashMeta>(&meta_content) {
-                    if let Some(mode) = meta.mode {
-                        use std::fs::Permissions;
-                        use std::os::unix::fs::PermissionsExt;
-                        let _ = std::fs::set_permissions(path, Permissions::from_mode(mode));
-                    }
-                }
+            if let Ok(meta_content) = std::fs::read_to_string(&meta_path)
+                && let Ok(meta) = serde_yaml_ng::from_str::<StashMeta>(&meta_content)
+                && let Some(mode) = meta.mode
+            {
+                use std::fs::Permissions;
+                use std::os::unix::fs::PermissionsExt;
+                let _ = std::fs::set_permissions(path, Permissions::from_mode(mode));
             }
         }
 
