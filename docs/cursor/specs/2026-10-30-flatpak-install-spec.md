@@ -121,3 +121,29 @@ if it is missing. System scope (default, privileged) or user scope.
 - **N1.** The action does not install, update or remove flatpak itself, and adds no `flatpak.update` or `flatpak.uninstall`.
 - **N2.** No change to `PackageProviders` or the `package.*` actions.
 - **N3.** No new crate dependency.
+
+## Multi-Lens Review
+
+Reviewed at commit: `23a4502` (Step 7 self-review commit, before Step 8 dispatch)
+
+### Goal-Fit
+
+Finding: Worth building (premise verified: etch-config defers `steam-installer` on this action; `has_flatpak: true` in both profiles; etch state written today). Two points. (1) Reads-it test: the only consumer is one Steam entry (flathub, system), so `scope: user`, custom `remote`/`remote_url`/R6 and `list` have no consumer today. (2) N2 rejects the `package.install` provider route without a reason, although etch-config already installs snaps via `provider: snap` and the `PackageProvider` trait has the flatpak shape (`available`, `has_repository`/`add_repository`, `query`/`installed_version`, `install`; `remove` would need an implementation). Also: no test asserts the fake received the matching `--system`/`--user`, so a scope-flag bug in inspection would pass.
+Assumption: No genuinely uncertain assumption found; the deciding question is whether a second flatpak app or a user-scope install is planned.
+Disposition:
+
+### Ergonomics
+
+Finding: (1) R8's error split cannot fire: real `flatpak info` exits 1 for "not installed" and for errors (bad id, `--installation=bogus`, bad flag all rc 1), so a typo'd id or broken installation reads as "would install" on every dry-run; the exit-2 test checks a code the real binary never returns. Fix: one `flatpak list --<scope> --app --columns=application` (non-zero = error, exact line match = installed); remote check must exact-match lines (`flathub-beta` is not `flathub`). (2) The spec suggests `where: os.name == "linux"`, but etch-config guards with `variables.has_flatpak == "true"`; an OS guard does not protect a Linux host without flatpak, and in a real apply a plan error breaks the manifest loop, stopping every later manifest. Examples should show the `has_flatpak` guard. (3) V1 (zero steps on `claude`) cannot tell a correct plan from one that emits nothing; pair it with a negative case (e.g. a `--user` scope manifest planning one step).
+Assumption: No genuinely uncertain assumption found.
+Disposition:
+
+### Risk
+
+Finding: Same R8 defect as Ergonomics (measured: `info` rc 1 for missing, invalid id and unknown option; `remotes --bogus` rc 1), with the same `flatpak list` fix (also one subprocess instead of N). Plus: `flatpak remotes` hides disabled remotes unless `--show-disabled`; a disabled flathub would yield a no-op `remote-add --if-not-exists` and a failing install. Checked and clean: fake-on-PATH harness is inert (plan runs only read-only queries), privilege/streaming reuse `Exec`, flathub URL default, scope not over-engineered.
+Assumption: An unprivileged `flatpak list/remotes --system` sees the same system installation the sudo-run step changes. Partly checked 2026-10-30: `/etc/flatpak/installations.d/` absent on `claude`; unprivileged `flatpak list --system --app` returns Steam rc 0. Not run: `sudo flatpak list --system --app --columns=application` comparison.
+Disposition:
+
+### Adversarial Spec Review (comparison/judge designs only)
+
+N/A — spec has no comparison/evaluator/ambiguous-criteria trigger.
