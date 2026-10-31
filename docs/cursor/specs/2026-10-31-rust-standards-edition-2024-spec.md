@@ -439,3 +439,63 @@ now says `make lint`.
 ### Adversarial Spec Review (comparison/judge designs only)
 
 N/A — spec has no comparison/evaluator/ambiguous-criteria trigger.
+
+## Multi-Lens Review — round 2
+
+Reviewed at commit: `9136b92` (round-1 revisions). All three lenses re-run: the revision
+changed design substance (`which_in`, delivery split).
+
+### Goal-Fit (round 2)
+
+Finding:
+1. R13 probes print to a stream the test cannot read: `command.run` leaves
+   `Exec.streaming` false, so stdout is captured and logged only at `debug!`
+   (`exec.rs` ~191-205). Probes must write to a file the test reads.
+2. V8 compares against file:line positions PR1 itself moves (`exec.rs:97` is rewritten by
+   Design 5). Restate as counts per category plus a per-file list.
+3. The spec never states what edition 2024 buys; without it the edition work fails the
+   reads-it test on motive.
+4. R20 is tagged `[PR3]` while Delivery says direct to `main`.
+5. R4 passes vacuously if its glob matches no workflow file; assert at least one match.
+
+Assumption: no manifest relies on `env:` leaking into a later action. Checked in
+etch-config only.
+Disposition:
+
+### Ergonomics (round 2)
+
+Finding:
+1. `.git-blame-ignore-revs` disables the branch guard's revert provenance proof:
+   `sdlc-branch-guard.sh:514-515` refuses with "GitHub's tree holds
+   .git-blame-ignore-revs". R20 would close the `rollback-cycle` direct-revert hatch in
+   etch-cli. PR2 measured at 63 files, +250/-207; the blame noise is small. Drop R20/PR3.
+2. R16 rule 1 exempts all of `test_helpers.rs`, inviting a shared env helper there that
+   hides unserialised callers. Four closure helpers set env today
+   (`group/providers/linux.rs:58`, `user/providers/linux.rs:143`,
+   `user/providers/macos.rs:143`, `:158`; 9 callers).
+3. R16 has only must-flag fixtures; no must-not-flag fixture covers `#[serial]` before
+   `#[test]`, a module-level `use … EnvGuard`, or a closure inside a test body. Two existing
+   env-mutating tests lack `#[serial]` (`contexts/mod.rs:170`, `state/mod.rs:254`).
+
+Assumption: confirmed by the orchestrator at `sdlc-branch-guard.sh:514-515`.
+Disposition:
+
+### Risk (round 2)
+
+Finding:
+1. Blocking: with no `style_edition` set, rustfmt follows `edition`, so PR1's edition bump
+   fails `cargo fmt --check` (119 hunks in 63 files on a `git archive` copy). PR1 must pin
+   `style_edition = "2021"` in `rustfmt.toml`; PR2 flips it to `"2024"`.
+2. Same as Goal-Fit 1 (probe output is debug-only).
+3. Relative program names resolve differently by branch: `which_in` resolves a name with a
+   separator against its `cwd` argument, `which()` against the etch process cwd, and
+   `RunCommand` always sets `working_dir`. Use one cwd in both branches.
+4. "Elevated" must be defined as the `(privileged, non-root)` arm of `elevate_if_required`
+   (`exec.rs:68-89`). Separately, `exec.rs:157` compares the resolved absolute path to
+   `"sudo"|"doas"|"run0"`, never matches, so `elevate()` is dead code: a pre-existing bug.
+5. R16 false negatives: an alias (`use … EnvGuard as G`), `let _ = test_helpers::EnvGuard`,
+   `drop(EnvGuard::…)`; false positive on `#[serial(key)]`.
+
+Assumption: on macOS, `/usr/bin/env PATH=/x prog` resolves `prog` on `/x`. Settle on the
+Mac Studio: `mkdir -p /tmp/p && printf '#!/bin/sh\necho ok\n' > /tmp/p/etchprobe && chmod +x /tmp/p/etchprobe && /usr/bin/env PATH=/tmp/p etchprobe`.
+Disposition:
