@@ -21,3 +21,4 @@ Repo-specific decisions for etch-cli. Cross-cutting decisions that apply across 
 | [0015](0015-debug-supertrait-on-atom-finalizer-initializer.md) | Debug supertrait on Atom, Finalizer, and Initializer       | 2026-08-02 | Accepted |
 | [0016](0016-python-toolchain-from-shared-rendering.md) | Python toolchain from the shared pinned rendering          | 2026-08-21 | Accepted |
 | [0017](0017-release-notes-in-release-body.md) | Release notes in the release body only | 2026-10-27 | Accepted |
+| [0018](0018-cargo-deny-unsafe-guard-edition-2024.md) | cargo-deny as the single advisory gate, an unsafe guard, and edition 2024 | 2026-10-31 | Accepted |
