@@ -134,9 +134,12 @@ Invoke `caveman:caveman-commit` skill to generate the commit message before runn
 
 - **DAG execution:** manifests can declare `depends:` on other manifests; petgraph resolves the topological sort before execution.
 - **rhai scripting:** `Engine::new()` (fully open — no sandbox) evaluates `where:` conditions and variant expressions. Manifests from untrusted sources can run arbitrary rhai.
+- **Lua plugins:** `actions/plugin` loads plugin code with `Lua::unsafe_new` and `StdLib::ALL` from a source the operator names, which may be a third-party repo at a mutable tag. See the P3 row "Lua plugins run with debug/ffi from an unpinned source" in `docs/superpowers/README.md`.
 - **Binary downloads:** the `binary` action trusts GitHub TLS only — no checksum verification on downloaded binaries.
 - **Privilege escalation:** declared per-action via `privileged: true`; provider defaults to `sudo`, configurable via `etch.yaml`.
 - **update-informer:** checks crates.io at startup; disable via `disable_update_check: true` in config or `--no-color` flag has no effect on this.
+- **Edition 2024:** all four crates, no `rust-version`. `unsafe_code = "deny"` in each crate; each `unsafe` block carries `#[expect(unsafe_code, reason = ...)]`, never `#[allow]`. `rustfmt.toml` pins `style_edition = "2021"` until a follow-up PR.
+- **`command.run` `env:`** goes to the child process only and never modifies etch's own environment (docs/src/command.md).
 - **lib.rs module order:** `pub mod` declarations in `lib/src/lib.rs` must be alphabetical — rustfmt enforces this. Out-of-order additions cause pre-commit failure.
 - **etch doctor security pattern:** binary names from manifest YAML are passed to `Command::new(binary_name)` (no shell), not `sh -c "binary_name --version"`, to prevent injection from hostile `name:` fields. Only explicit `doctor.versions.command` uses `sh -c` (user-authored in etch.yaml).
 
@@ -168,6 +171,8 @@ cargo test -p etch-cli                                              # integratio
 cargo tarpaulin --exclude-files 'jsonschemagen/*' --fail-under 81  # coverage (matches CI)
 ```
 
+Tests change the environment only through `crate::test_helpers::EnvGuard` (`set`, `remove`, `prepend_path`), bound to a named variable, inside `#[serial]` tests; `tests/test_env_guard_serial.py` fails otherwise. Raw `std::env::set_var` is `unsafe` under edition 2024 and denied.
+
 **Benchmarks must name their Criterion target** — `cargo bench -p etch-lib --bench etch_lib`. A bare
 `cargo bench` also runs the lib's default libtest harness, which rejects `--output-format bencher` and aborts
 before any benchmark runs. See #124.
@@ -183,13 +188,15 @@ Single workflow `.github/workflows/ci.yml`, triggers on `pull_request` to `main`
 | `test`         | `ruff check scripts/ tests/` + `make lint` + `cargo nextest run` + `pytest` with Python coverage ≥90% |
 | `coverage`     | tarpaulin ≥81% (excluding jsonschemagen) and the coverage badge. Its own job so it runs beside `test`. **Blocking** (in `auto-merge` `needs:`) |
 | `coverage-network` | tarpaulin with `--include-ignored` (network tests). Informational: job-level `continue-on-error: true`, not in `needs:` |
-| `cargo-audit`  | **`cargo deny check advisories`** — reads `deny.toml`'s ignore list. **Blocking** (in `auto-merge` `needs:`). Despite the job name it does _not_ run `cargo audit`, which ignores `deny.toml` entirely |
+| `cargo-audit`  | **`cargo deny check advisories licenses bans sources`** (all four checks, cargo-deny 0.20.2) — reads `deny.toml`. **Blocking** (in `auto-merge` `needs:`). Despite the job name it does _not_ run `cargo audit` |
 | `secret-scan`  | gitleaks v8.30.1, pinned and checksum-verified. **Blocking** (in `auto-merge` `needs:`)                                                                                                                |
 | `snyk-scan`    | Snyk CLI v1.1308.0, pinned and checksum-verified; `.snyk` excludes two false-positive files. **Blocking** (in `auto-merge` `needs:`)                                                                   |
 | `docs-lint`    | Lints mdbook docs                                                                                                                                                                                      |
 | `docs-build`   | Builds mdbook docs                                                                                                                                                                                     |
 | `semver-check` | `cargo semver-checks` vs `origin/main` baseline (advisory, `continue-on-error: true`, not in auto-merge needs)                                                                                         |
 | `auto-merge`   | Squash-merges the PR when all required jobs pass                                                                                                                                                       |
+
+The scheduled `.github/workflows/cargo-deny-scheduled.yml` (cron `0 6 * * 1`, weekly) runs `cargo deny check advisories` against the same `deny.toml`. It is not a PR job and is not in `needs:`.
 
 **Which jobs block.** Every job in `auto-merge`'s
 `needs: [test, coverage, cargo-audit, secret-scan, snyk-scan, docs-lint, docs-build]` blocks the merge.
@@ -232,7 +239,7 @@ Adding a new variant to the `Actions` enum always triggers an `enum_variant_adde
 
 ## Advisory Triage
 
-Two advisory ignore lists exist and share nothing. `deny.toml`'s `[advisories].ignore` is read by `cargo deny check advisories`, which the blocking `cargo-audit` job runs. The `--ignore` flags in `.github/workflows/cargo-audit-scheduled.yml` are read by raw `cargo audit`, which never reads `deny.toml`. Triage every new advisory in both places.
+There is one advisory ignore list: `deny.toml`'s `[advisories].ignore`. Both the blocking `cargo-audit` job and the weekly `cargo-deny-scheduled.yml` read it, so triage a new advisory there once. `unsound` and `unmaintained` are set to `"all"`: cargo-deny's `unsound` default of `"workspace"` drops advisories in transitive crates, which hid RUSTSEC-2026-0306 and RUSTSEC-2026-0205. Raw `cargo audit` is no longer run in CI. A workflow `--ignore RUSTSEC` flag fails `tests/test_deny_policy.py`, which also checks that a GPL fixture is rejected and an MIT fixture accepted.
 
 ## Branch Workflow
 
