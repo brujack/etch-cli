@@ -85,10 +85,10 @@ jobs:
           path: test-metrics.json
           retention-days: 90
 
-  # The tarpaulin runs are their own jobs so they run beside `test` on separate
-  # runners instead of after it: each is a full instrumented build and test run
-  # (325-327 s apiece in PR #156's run 41138976453), and in one job the three
-  # ran serially.
+  # The two tarpaulin runs are their own jobs so they run beside `test` on
+  # separate runners instead of after it: each is a full instrumented build and
+  # test run (325-327 s apiece in PR #156's run 41138976453), and in one job
+  # they ran serially after the nextest run.
   coverage:
     name: Coverage
     runs-on: ubuntu-latest
