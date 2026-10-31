@@ -46,6 +46,7 @@ mod test {
     use crate::actions::group::providers::{GroupProvider, LinuxGroupProvider};
     use crate::actions::group::GroupVariant;
     use crate::contexts::Contexts;
+    use crate::test_helpers::EnvGuard;
     use serial_test::serial;
     use std::os::unix::fs::PermissionsExt;
 
@@ -55,56 +56,52 @@ mod test {
         std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
     }
 
-    fn with_mock_bins<F: FnOnce()>(bins: &[&str], f: F) {
+    fn mock_bin_dir(bins: &[&str]) -> tempfile::TempDir {
         let tmp = tempfile::tempdir().unwrap();
         for bin in bins {
             write_mock_bin(tmp.path(), bin);
         }
-        let old_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var("PATH", format!("{}:{}", tmp.path().display(), old_path));
-        f();
-        std::env::set_var("PATH", old_path);
+        tmp
     }
 
     #[test]
     #[serial]
     fn test_add_group() {
-        with_mock_bins(&["groupadd"], || {
-            let group_provider = LinuxGroupProvider {};
-            let contexts = Contexts::default();
-            let steps = group_provider.add_group(
-                &GroupVariant {
-                    group_name: String::from("test"),
-                    ..Default::default()
-                },
-                &contexts,
-            );
-            assert_eq!(1, steps.len());
-        });
+        let tmp = mock_bin_dir(&["groupadd"]);
+        let _path = EnvGuard::prepend_path(tmp.path());
+        let group_provider = LinuxGroupProvider {};
+        let contexts = Contexts::default();
+        let steps = group_provider.add_group(
+            &GroupVariant {
+                group_name: String::from("test"),
+                ..Default::default()
+            },
+            &contexts,
+        );
+        assert_eq!(1, steps.len());
     }
 
     #[test]
     #[serial]
     fn test_add_group_no_group_name() {
-        with_mock_bins(&["groupadd"], || {
-            let group_provider = LinuxGroupProvider {};
-            let contexts = Contexts::default();
-            let steps = group_provider.add_group(
-                &GroupVariant {
-                    ..Default::default()
-                },
-                &contexts,
-            );
-            assert_eq!(0, steps.len());
-        });
+        let tmp = mock_bin_dir(&["groupadd"]);
+        let _path = EnvGuard::prepend_path(tmp.path());
+        let group_provider = LinuxGroupProvider {};
+        let contexts = Contexts::default();
+        let steps = group_provider.add_group(
+            &GroupVariant {
+                ..Default::default()
+            },
+            &contexts,
+        );
+        assert_eq!(0, steps.len());
     }
 
     #[test]
     #[serial]
     fn test_add_group_returns_empty_when_groupadd_not_found() {
         let tmp = tempfile::tempdir().unwrap();
-        let old_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var("PATH", tmp.path().display().to_string());
+        let _path = EnvGuard::set("PATH", tmp.path());
 
         let group_provider = LinuxGroupProvider {};
         let contexts = Contexts::default();
@@ -116,7 +113,6 @@ mod test {
             &contexts,
         );
 
-        std::env::set_var("PATH", old_path);
         assert_eq!(0, steps.len());
     }
 }

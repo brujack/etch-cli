@@ -137,97 +137,93 @@ mod test {
     use crate::actions::user::providers::{MacOSUserProvider, UserProvider};
     use crate::actions::user::{add_group::UserAddGroup, UserVariant};
     use crate::contexts::Contexts;
+    use crate::test_helpers::EnvGuard;
     use serial_test::serial;
     use std::os::unix::fs::PermissionsExt;
 
-    fn with_mock_id<F: FnOnce()>(output: &str, f: F) {
-        let tmp = tempfile::tempdir().unwrap();
-        let id_path = tmp.path().join("id");
-        std::fs::write(
-            &id_path,
-            format!("#!/bin/sh\nprintf '%s\\n' '{}'\nexit 0\n", output),
-        )
-        .unwrap();
+    fn write_id_script(dir: &std::path::Path, script: &str) {
+        let id_path = dir.join("id");
+        std::fs::write(&id_path, script).unwrap();
         std::fs::set_permissions(&id_path, std::fs::Permissions::from_mode(0o755)).unwrap();
-        let old_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var("PATH", format!("{}:{}", tmp.path().display(), old_path));
-        f();
-        std::env::set_var("PATH", old_path);
-    }
-
-    fn with_failing_id<F: FnOnce()>(f: F) {
-        let tmp = tempfile::tempdir().unwrap();
-        let id_path = tmp.path().join("id");
-        std::fs::write(&id_path, "#!/bin/sh\nexit 1\n").unwrap();
-        std::fs::set_permissions(&id_path, std::fs::Permissions::from_mode(0o755)).unwrap();
-        let old_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var("PATH", format!("{}:{}", tmp.path().display(), old_path));
-        f();
-        std::env::set_var("PATH", old_path);
     }
 
     #[test]
     #[serial]
     fn test_add_to_group_skips_already_member() {
-        with_mock_id("staff wheel testgroup", || {
-            let user_provider = MacOSUserProvider {};
-            let contexts = Contexts::default();
-            let steps = user_provider
-                .add_to_group(
-                    &UserAddGroup {
-                        username: String::from("test"),
-                        group: vec![String::from("testgroup")],
-                        ..Default::default()
-                    },
-                    &contexts,
-                )
-                .unwrap();
-            assert_eq!(0, steps.len(), "already a member — should skip");
-        });
+        let tmp = tempfile::tempdir().unwrap();
+        write_id_script(
+            tmp.path(),
+            &format!(
+                "#!/bin/sh\nprintf '%s\\n' '{}'\nexit 0\n",
+                "staff wheel testgroup"
+            ),
+        );
+        let _path = EnvGuard::prepend_path(tmp.path());
+        let user_provider = MacOSUserProvider {};
+        let contexts = Contexts::default();
+        let steps = user_provider
+            .add_to_group(
+                &UserAddGroup {
+                    username: String::from("test"),
+                    group: vec![String::from("testgroup")],
+                    ..Default::default()
+                },
+                &contexts,
+            )
+            .unwrap();
+        assert_eq!(0, steps.len(), "already a member — should skip");
     }
 
     #[test]
     #[serial]
     fn test_add_to_group_skips_already_member_in_list() {
-        with_mock_id("staff wheel testgroup", || {
-            let user_provider = MacOSUserProvider {};
-            let contexts = Contexts::default();
-            let steps = user_provider
-                .add_to_group(
-                    &UserAddGroup {
-                        username: String::from("test"),
-                        group: vec![
-                            String::from("testgroup"),
-                            String::from("wheel"),
-                            String::from("docker"),
-                        ],
-                        ..Default::default()
-                    },
-                    &contexts,
-                )
-                .unwrap();
-            assert_eq!(1, steps.len(), "only docker is not in the member list");
-        });
+        let tmp = tempfile::tempdir().unwrap();
+        write_id_script(
+            tmp.path(),
+            &format!(
+                "#!/bin/sh\nprintf '%s\\n' '{}'\nexit 0\n",
+                "staff wheel testgroup"
+            ),
+        );
+        let _path = EnvGuard::prepend_path(tmp.path());
+        let user_provider = MacOSUserProvider {};
+        let contexts = Contexts::default();
+        let steps = user_provider
+            .add_to_group(
+                &UserAddGroup {
+                    username: String::from("test"),
+                    group: vec![
+                        String::from("testgroup"),
+                        String::from("wheel"),
+                        String::from("docker"),
+                    ],
+                    ..Default::default()
+                },
+                &contexts,
+            )
+            .unwrap();
+        assert_eq!(1, steps.len(), "only docker is not in the member list");
     }
 
     #[test]
     #[serial]
     fn test_add_to_group_generates_step_when_id_fails() {
-        with_failing_id(|| {
-            let user_provider = MacOSUserProvider {};
-            let contexts = Contexts::default();
-            let steps = user_provider
-                .add_to_group(
-                    &UserAddGroup {
-                        username: String::from("newuser"),
-                        group: vec![String::from("docker")],
-                        ..Default::default()
-                    },
-                    &contexts,
-                )
-                .unwrap();
-            assert_eq!(1, steps.len(), "id failure should not skip the step");
-        });
+        let tmp = tempfile::tempdir().unwrap();
+        write_id_script(tmp.path(), "#!/bin/sh\nexit 1\n");
+        let _path = EnvGuard::prepend_path(tmp.path());
+        let user_provider = MacOSUserProvider {};
+        let contexts = Contexts::default();
+        let steps = user_provider
+            .add_to_group(
+                &UserAddGroup {
+                    username: String::from("newuser"),
+                    group: vec![String::from("docker")],
+                    ..Default::default()
+                },
+                &contexts,
+            )
+            .unwrap();
+        assert_eq!(1, steps.len(), "id failure should not skip the step");
     }
 
     #[test]

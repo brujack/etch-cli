@@ -355,6 +355,7 @@ impl StashStore {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_helpers::EnvGuard;
     use serial_test::serial;
     use tempfile::tempdir;
 
@@ -500,14 +501,8 @@ mod tests {
     #[serial]
     fn new_respects_etch_stash_dir_env() {
         let dir = tempdir().unwrap();
-        let old = std::env::var("ETCH_STASH_DIR").ok();
-        std::env::set_var("ETCH_STASH_DIR", dir.path());
+        let _stash = EnvGuard::set("ETCH_STASH_DIR", dir.path());
         let store = StashStore::new();
-        if let Some(v) = old {
-            std::env::set_var("ETCH_STASH_DIR", v);
-        } else {
-            std::env::remove_var("ETCH_STASH_DIR");
-        }
         assert_eq!(store.base, dir.path());
     }
 

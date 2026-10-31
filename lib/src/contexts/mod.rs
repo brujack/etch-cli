@@ -109,8 +109,10 @@ pub fn to_rhai(context: &Contexts) -> rhai::Scope<'_> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::test_helpers::EnvGuard;
     use pretty_assertions::assert_eq;
     use rhai::Engine;
+    use serial_test::serial;
 
     #[test]
     fn it_can_convert_to_rhai() {
@@ -167,6 +169,7 @@ mod test {
     }
 
     #[test]
+    #[serial]
     fn env_context() -> anyhow::Result<()> {
         let variables = BTreeMap::new();
 
@@ -175,8 +178,8 @@ mod test {
             ..Default::default()
         };
 
-        std::env::set_var("ASCENDED_NAME", "Morgan Le Fay");
-        std::env::set_var("REAL_NAME", "Ganos Lal");
+        let _ascended = EnvGuard::set("ASCENDED_NAME", "Morgan Le Fay");
+        let _real = EnvGuard::set("REAL_NAME", "Ganos Lal");
 
         let contexts = build_contexts(&config);
         let env_context_values = contexts.get("env");
