@@ -428,8 +428,9 @@ impl EtchCommand for Apply {
 }
 
 /// Writes the apply's state entries, best-effort: a failure is logged and never
-/// fails a successful apply. Kept out of `Apply::execute` so that function stops
-/// growing (clippy::too_many_lines ratchet).
+/// fails a successful apply. Kept out of `Apply::execute` so that already-long
+/// function does not grow: the Phase 3 maintainability gate (a local check, not
+/// this repo's clippy config) ratchets `clippy::too_many_lines` per function.
 fn record_state(dry_run: bool, state_entries: Vec<StateEntry>) {
     if !dry_run
         && !state_entries.is_empty()
