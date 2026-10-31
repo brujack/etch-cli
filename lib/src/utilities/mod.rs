@@ -126,19 +126,14 @@ mod tests {
     }
 
     #[test]
-    fn custom_path_buf_json_schema_matches_path_buf() {
-        let mut generator = SchemaGenerator::default();
-        let expected = generator.subschema_for::<PathBuf>();
+    fn custom_path_buf_json_schema_is_a_string() {
+        // An independent literal, not a re-derivation through subschema_for:
+        // a path serializes as a JSON string, so that is the schema it must publish.
         let mut generator = SchemaGenerator::default();
         let actual = CustomPathBuf::json_schema(&mut generator);
         assert_eq!(
-            serde_json::to_string(&actual).unwrap(),
-            serde_json::to_string(&expected).unwrap()
-        );
-        assert_ne!(
-            serde_json::to_string(&actual).unwrap(),
-            serde_json::to_string(&Schema::default()).unwrap(),
-            "schema must not be the empty default"
+            serde_json::to_value(&actual).unwrap(),
+            serde_json::json!({"type": "string"})
         );
     }
 }
