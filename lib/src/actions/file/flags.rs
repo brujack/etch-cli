@@ -63,7 +63,7 @@ impl Action for FileFlags {
                 let mut sb: libc::stat = unsafe { std::mem::zeroed() };
                 #[expect(
                     unsafe_code,
-                    reason = "libc::stat on a NUL-terminated CString from a valid path; sb is a zeroed, exclusively borrowed out-param"
+                    reason = "libc::stat on a pointer from a CString live across the call; sb is a zeroed, exclusively borrowed out-param"
                 )]
                 let stat_rc = unsafe { libc::stat(cstr.as_ptr(), &mut sb) };
                 if stat_rc != 0 {

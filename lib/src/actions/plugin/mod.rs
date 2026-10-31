@@ -22,14 +22,10 @@ fn get_plugin(source: &RepoOrDir, contexts: Option<Contexts>) -> Result<PluginSp
 
     #[expect(
         unsafe_code,
-        reason = "Lua::unsafe_new loads the full std lib (incl. debug/ffi); manifests are operator-authored and trusted, as documented for rhai/lua in CLAUDE.md"
+        reason = "Lua::unsafe_new + StdLib::ALL (debug/ffi): plugin code runs with full process authority; the plugin source (possibly a third-party GitHub repo at a mutable tag) is trusted because the operator names it"
     )]
-    let lua = unsafe {
-        let lua_init = Lua::unsafe_new();
-        lua_init.load_std_libs(StdLib::ALL)?;
-
-        lua_init
-    };
+    let lua = unsafe { Lua::unsafe_new() };
+    lua.load_std_libs(StdLib::ALL)?;
 
     if let Some(contexts) = contexts {
         setup_globals(&lua, contexts)?;

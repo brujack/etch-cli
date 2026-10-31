@@ -72,14 +72,12 @@ impl GitManifestProvider {
 
         #[expect(
             unsafe_code,
-            reason = "gix::interrupt::init_handler is unsafe because it installs process-global signal handlers; called once, before any other gix use in this operation, with a no-op callback"
+            reason = "gix::interrupt::init_handler: the callback runs in signal context and must be async-signal-safe; || {} is trivially so; repeat calls are no-ops inside gix"
         )]
-        unsafe {
-            let handler = interrupt::init_handler(1, || {});
-            if handler.is_err() {
-                return Err(ManifestProviderError::NoResolution);
-            }
-        };
+        let handler = unsafe { interrupt::init_handler(1, || {}) };
+        if handler.is_err() {
+            return Err(ManifestProviderError::NoResolution);
+        }
 
         let prepare_clone = gix::prepare_clone(url.clone(), cache_path);
         if prepare_clone.is_err() {
