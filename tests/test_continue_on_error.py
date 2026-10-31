@@ -29,7 +29,7 @@ ALLOWED = {
     (
         "workflows/ci.yml",
         "Coverage with network tests (informational)",
-    ): "network-dependent tests are informational; the main coverage step gates.",
+    ): "job-level and kept out of auto-merge needs:; the coverage job gates.",
     (
         "workflows/ci.yml",
         "Semver Check",
