@@ -4,7 +4,9 @@ targets = []
 [advisories]
 db-path = "~/.cargo/advisory-db"
 db-urls = ["https://github.com/rustsec/advisory-db"]
-# "workspace" (the unsound default) drops unsound advisories in transitive crates
+# "all" for both: unsound defaults to "workspace", which drops unsound advisories in
+# transitive crates; unmaintained is written out so a cargo-deny default change cannot
+# narrow it.
 unmaintained = "all"
 unsound = "all"
 # Advisories to ignore — triaged as not applicable to a personal CLI tool

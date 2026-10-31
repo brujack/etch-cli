@@ -21,16 +21,16 @@ def _cargo_deny() -> str:
     return path
 
 
-def _run(fixture: str, tmp_path: Path) -> subprocess.CompletedProcess:
+def _run(fixture: str, tmp_path: Path) -> subprocess.CompletedProcess[str]:
     """Run `cargo deny check licenses` on a copy of a fixture crate.
 
     The copy keeps cargo-deny's Cargo.lock write out of the repo tree.
     """
-    _cargo_deny()
+    cargo_deny = _cargo_deny()
     shutil.copytree(FIXTURES / fixture, tmp_path / fixture)
     return subprocess.run(
         [
-            "cargo",
+            cargo_deny,
             "deny",
             "--config",
             str(REPO / "deny.toml"),
@@ -42,6 +42,7 @@ def _run(fixture: str, tmp_path: Path) -> subprocess.CompletedProcess:
         capture_output=True,
         text=True,
         check=False,
+        timeout=120,
     )
 
 
