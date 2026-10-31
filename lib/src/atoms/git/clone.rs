@@ -70,6 +70,10 @@ impl Atom for Clone {
             return Ok(());
         }
 
+        #[expect(
+            unsafe_code,
+            reason = "gix::interrupt::init_handler is unsafe because it installs process-global signal handlers; called once, before any other gix use in this operation, with a no-op callback"
+        )]
         unsafe {
             interrupt::init_handler(1, || {})?;
         };

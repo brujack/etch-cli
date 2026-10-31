@@ -214,10 +214,12 @@ mod tests {
         // execute() must still target `path`, not whatever GIT_DIR points to.
         let result = {
             // Safety: std::env is process-global; serial_test ensures no concurrent tests.
+            #[expect(unsafe_code, reason = "temporary; replaced by EnvGuard in Task 8")]
             unsafe {
                 std::env::set_var("GIT_DIR", "/nonexistent/.git");
             }
             let r = atom.execute();
+            #[expect(unsafe_code, reason = "temporary; replaced by EnvGuard in Task 8")]
             unsafe {
                 std::env::remove_var("GIT_DIR");
             }

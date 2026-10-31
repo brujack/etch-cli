@@ -70,6 +70,10 @@ impl GitManifestProvider {
 
         let url = url.unwrap();
 
+        #[expect(
+            unsafe_code,
+            reason = "gix::interrupt::init_handler is unsafe because it installs process-global signal handlers; called once, before any other gix use in this operation, with a no-op callback"
+        )]
         unsafe {
             let handler = interrupt::init_handler(1, || {});
             if handler.is_err() {

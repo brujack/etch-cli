@@ -20,6 +20,10 @@ fn get_plugin(source: &RepoOrDir, contexts: Option<Contexts>) -> Result<PluginSp
         return Ok(spec);
     }
 
+    #[expect(
+        unsafe_code,
+        reason = "Lua::unsafe_new loads the full std lib (incl. debug/ffi); manifests are operator-authored and trusted, as documented for rhai/lua in CLAUDE.md"
+    )]
     let lua = unsafe {
         let lua_init = Lua::unsafe_new();
         lua_init.load_std_libs(StdLib::ALL)?;
