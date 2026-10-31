@@ -22,6 +22,8 @@ _DROP_CALL = re.compile(r"\bdrop\s*\(\s*(?:\w+\s*::\s*)*EnvGuard\b")
 _FN = re.compile(r"\bfn\s+(\w+)")
 _IMPL = re.compile(r"\bimpl\s+(?:Drop\s+for\s+)?EnvGuard\s*\{")
 _SERIAL = re.compile(r"#\s*\[\s*(?:serial_test\s*::\s*)?serial\b")
+_OTHER_TEST_ATTR = re.compile(r"#\s*\[[^\]]*\btest\b|#\s*\[\s*rstest\b")
+_TYPE_ALIAS = re.compile(r"\btype\s+\w+\s*=\s*(?:\w+\s*::\s*)*EnvGuard\b")
 _TEST_ATTR = re.compile(r"#\s*\[\s*test\s*\]")
 
 
@@ -125,13 +127,35 @@ def _attributes(masked: str, fn_start: int) -> str:
     return masked[boundary + 1 : fn_start]
 
 
+def _body_open(masked: str, i: int) -> int | None:
+    """Return the `{` opening the body of a fn whose signature starts at `i`.
+
+    A `;` or `{` only ends the signature at paren/bracket/angle depth 0; `->` is not an angle.
+    """
+    depth = 0
+    while i < len(masked):
+        c = masked[i]
+        if masked.startswith("->", i):
+            i += 2
+            continue
+        if c in "([<":
+            depth += 1
+        elif c in ")]>":
+            depth -= 1
+        elif depth <= 0 and c == "{":
+            return i
+        elif depth <= 0 and c == ";":
+            return None
+        i += 1
+    return None
+
+
 def _functions(masked: str) -> list[tuple[str, int, str, str, int]]:
     """Return (name, line, attributes, body, start offset) for each fn that has a body."""
     found = []
     for m in _FN.finditer(masked):
-        brace = masked.find("{", m.end())
-        semi = masked.find(";", m.end())
-        if brace == -1 or (semi != -1 and semi < brace):
+        brace = _body_open(masked, m.end())
+        if brace is None:
             continue
         body = masked[brace : _match_brace(masked, brace) + 1]
         line = masked.count("\n", 0, m.start()) + 1
@@ -157,7 +181,11 @@ def _function_violations(masked: str, path: str) -> list[str]:
         if not _ENV_GUARD.search(body) or any(a <= start <= b for a, b in exempt):
             continue
         where = f"{path}:{line}: fn {name}"
-        if not _TEST_ATTR.search(attrs):
+        if _OTHER_TEST_ATTR.search(attrs) and not _TEST_ATTR.search(attrs):
+            out.append(
+                f"{where} names EnvGuard; its test attribute is not plain #[test]"
+            )
+        elif not _TEST_ATTR.search(attrs):
             out.append(f"{where} names EnvGuard but is not a #[test]")
         elif not _SERIAL.search(attrs):
             out.append(f"{where} names EnvGuard without #[serial]")
@@ -171,6 +199,7 @@ def _line_of(masked: str, offset: int) -> int:
 def _text_violations(masked: str, path: str) -> list[str]:
     rules = (
         (_ALIAS, "EnvGuard imported under another name"),
+        (_TYPE_ALIAS, "EnvGuard aliased under another name"),
         (_LET_UNDERSCORE, "`let _ =` drops EnvGuard at once"),
         (_DROP_CALL, "drop() of EnvGuard"),
     )
@@ -188,6 +217,16 @@ def scan(source: str, path: str) -> list[str]:
 
 
 MUST_FLAG = {
+    "type_alias": "type G = crate::test_helpers::EnvGuard;\n",
+    "array_in_helper_signature": (
+        'fn h(x: [u8; 4]) {\n    let _g = EnvGuard::set("A", "b");\n}\n'
+    ),
+    "array_in_test_return": (
+        '#[test]\nfn t() -> [u8; 0] {\n    let _g = EnvGuard::set("A", "b");\n    []\n}\n'
+    ),
+    "tokio_test": (
+        '#[tokio::test]\n#[serial]\nasync fn t() {\n    let _g = EnvGuard::set("A", "b");\n}\n'
+    ),
     "alias": "use crate::test_helpers::EnvGuard as G;\n",
     "non_test_helper": 'fn with_path() {\n    let _g = EnvGuard::set("A", "b");\n}\n',
     "test_without_serial": (
@@ -206,6 +245,10 @@ MUST_FLAG = {
 }
 
 MUST_NOT_FLAG = {
+    "trait_decl_then_serial_test": (
+        "trait T {\n    fn f(&self) -> [u8; 4];\n}\n"
+        '#[test]\n#[serial]\nfn t() {\n    let _g = EnvGuard::set("A", "b");\n}\n'
+    ),
     "serial_before_test": (
         '#[serial]\n#[test]\nfn t() {\n    let _g = EnvGuard::set("A", "b");\n}\n'
     ),
@@ -265,12 +308,17 @@ def test_must_not_flag(name: str) -> None:
 def test_each_must_flag_fixture_fires_its_own_rule() -> None:
     expected = {
         "alias": "another name",
+        "type_alias": "aliased under another name",
+        "array_in_helper_signature": "is not a #[test]",
+        "array_in_test_return": "without #[serial]",
+        "tokio_test": "not plain #[test]",
         "non_test_helper": "is not a #[test]",
         "test_without_serial": "without #[serial]",
         "let_underscore": "`let _ =`",
         "let_underscore_qualified": "`let _ =`",
         "drop_call": "drop()",
     }
+    assert expected.keys() == MUST_FLAG.keys()
     for name, fragment in expected.items():
         hits = scan(MUST_FLAG[name], "lib/src/x.rs")
         assert any(fragment in h for h in hits), (name, hits)
@@ -297,6 +345,7 @@ def test_mask_preserves_length_and_newlines() -> None:
 def test_real_tree_is_clean() -> None:
     files = sorted((REPO / "lib/src").rglob("*.rs"))
     assert files, "no Rust sources found; the scan would pass by matching nothing"
+    assert REPO / HELPERS_PATH in files
     violations = []
     for f in files:
         rel = f.relative_to(REPO).as_posix()
