@@ -88,6 +88,7 @@ mod tests {
     use crate::actions::Actions;
     use crate::contexts::Contexts;
     use crate::manifests::Manifest;
+    use crate::test_helpers::EnvGuard;
     use serial_test::serial;
 
     #[test]
@@ -187,8 +188,7 @@ mod tests {
     #[test]
     #[serial]
     fn plan_generates_step_when_claude_not_in_path() {
-        let old = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var("PATH", "/nonexistent");
+        let _path = EnvGuard::set("PATH", "/nonexistent");
         let action = ClaudeInstall {
             name: Some(String::from("superpowers")),
             list: vec![],
@@ -196,7 +196,6 @@ mod tests {
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
             .unwrap();
-        std::env::set_var("PATH", old);
         assert_eq!(
             1,
             steps.len(),
@@ -218,8 +217,7 @@ mod tests {
         .unwrap();
         std::fs::set_permissions(&fake, std::fs::Permissions::from_mode(0o755)).unwrap();
 
-        let old = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var("PATH", format!("{}:{old}", tmp.path().display()));
+        let _path = EnvGuard::prepend_path(tmp.path());
 
         let action = ClaudeInstall {
             name: Some(String::from("superpowers")),
@@ -228,7 +226,6 @@ mod tests {
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
             .unwrap();
-        std::env::set_var("PATH", old);
 
         assert!(
             steps.is_empty(),
@@ -250,8 +247,7 @@ mod tests {
         .unwrap();
         std::fs::set_permissions(&fake, std::fs::Permissions::from_mode(0o755)).unwrap();
 
-        let old = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var("PATH", format!("{}:{old}", tmp.path().display()));
+        let _path = EnvGuard::prepend_path(tmp.path());
 
         let action = ClaudeInstall {
             name: None,
@@ -260,7 +256,6 @@ mod tests {
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
             .unwrap();
-        std::env::set_var("PATH", old);
 
         assert!(steps.is_empty(), "expected no steps — all installed");
     }
@@ -275,8 +270,7 @@ mod tests {
         std::fs::write(&fake, "#!/bin/sh\nprintf '❯ foo@bar\\n'\nexit 0\n").unwrap();
         std::fs::set_permissions(&fake, std::fs::Permissions::from_mode(0o755)).unwrap();
 
-        let old = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var("PATH", format!("{}:{old}", tmp.path().display()));
+        let _path = EnvGuard::prepend_path(tmp.path());
 
         let action = ClaudeInstall {
             name: Some(String::from("foo@bar")),
@@ -285,7 +279,6 @@ mod tests {
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
             .unwrap();
-        std::env::set_var("PATH", old);
 
         assert!(
             steps.is_empty(),

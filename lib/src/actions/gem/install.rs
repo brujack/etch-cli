@@ -88,6 +88,7 @@ mod tests {
     use crate::actions::Actions;
     use crate::contexts::Contexts;
     use crate::manifests::Manifest;
+    use crate::test_helpers::EnvGuard;
     use serial_test::serial;
 
     const FAKE_GEM: &str = "etch_cli_not_a_real_gem_xyz_zyx_test";
@@ -295,8 +296,7 @@ mod tests {
         std::fs::write(&fake_gem, "#!/bin/sh\nexit 0\n").unwrap();
         std::fs::set_permissions(&fake_gem, std::fs::Permissions::from_mode(0o755)).unwrap();
 
-        let old_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var("PATH", format!("{}:{old_path}", tmp.path().display()));
+        let _path = EnvGuard::prepend_path(tmp.path());
 
         let action = GemInstall {
             name: Some(String::from("bundler")),
@@ -306,8 +306,6 @@ mod tests {
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
             .unwrap();
-
-        std::env::set_var("PATH", old_path);
 
         assert!(
             steps.is_empty(),
@@ -325,8 +323,7 @@ mod tests {
         std::fs::write(&fake_gem, "#!/bin/sh\nexit 0\n").unwrap();
         std::fs::set_permissions(&fake_gem, std::fs::Permissions::from_mode(0o755)).unwrap();
 
-        let old_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var("PATH", format!("{}:{old_path}", tmp.path().display()));
+        let _path = EnvGuard::prepend_path(tmp.path());
 
         let action = GemInstall {
             name: None,
@@ -336,8 +333,6 @@ mod tests {
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
             .unwrap();
-
-        std::env::set_var("PATH", old_path);
 
         assert!(
             steps.is_empty(),

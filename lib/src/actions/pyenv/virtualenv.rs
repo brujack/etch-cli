@@ -129,6 +129,7 @@ mod tests {
     use crate::actions::Actions;
     use crate::contexts::Contexts;
     use crate::manifests::Manifest;
+    use crate::test_helpers::EnvGuard;
     use serial_test::serial;
 
     const FAKE_VERSION: &str = "3.12.0";
@@ -262,8 +263,7 @@ mod tests {
         .unwrap();
         std::fs::set_permissions(&fake_pyenv, std::fs::Permissions::from_mode(0o755)).unwrap();
 
-        let old_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var("PATH", format!("{}:{old_path}", tmp.path().display()));
+        let _path = EnvGuard::prepend_path(tmp.path());
 
         let action = PyenvVirtualenv {
             python_version: Some(String::from("3.12.0")),
@@ -273,8 +273,6 @@ mod tests {
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
             .unwrap();
-
-        std::env::set_var("PATH", old_path);
 
         assert!(
             steps.is_empty(),
@@ -297,8 +295,7 @@ mod tests {
         .unwrap();
         std::fs::set_permissions(&fake_pyenv, std::fs::Permissions::from_mode(0o755)).unwrap();
 
-        let old_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var("PATH", format!("{}:{old_path}", tmp.path().display()));
+        let _path = EnvGuard::prepend_path(tmp.path());
 
         let action = PyenvVirtualenv {
             python_version: Some(String::from("3.12.0")),
@@ -308,8 +305,6 @@ mod tests {
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
             .unwrap();
-
-        std::env::set_var("PATH", old_path);
 
         assert_eq!(
             1,
@@ -323,8 +318,7 @@ mod tests {
     #[test]
     #[serial]
     fn plan_generates_step_when_pyenv_not_in_path() {
-        let old_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var("PATH", "/nonexistent");
+        let _path = EnvGuard::set("PATH", "/nonexistent");
 
         let action = PyenvVirtualenv {
             python_version: Some(String::from("3.12.0")),
@@ -334,8 +328,6 @@ mod tests {
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
             .unwrap();
-
-        std::env::set_var("PATH", old_path);
 
         // virtualenv_exists returns false on error → fail-safe: generate step
         assert_eq!(1, steps.len());
@@ -397,8 +389,7 @@ mod tests {
     #[test]
     #[serial]
     fn plan_recreate_true_creates_when_no_venv() {
-        let old_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var("PATH", "/nonexistent");
+        let _path = EnvGuard::set("PATH", "/nonexistent");
 
         let action = PyenvVirtualenv {
             python_version: Some(String::from("3.14.5")),
@@ -408,8 +399,6 @@ mod tests {
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
             .unwrap();
-
-        std::env::set_var("PATH", old_path);
 
         assert_eq!(1, steps.len(), "expected 1 create step when venv absent");
         let display = steps[0].atom.to_string();
@@ -433,8 +422,7 @@ mod tests {
         )
         .unwrap();
         std::fs::set_permissions(&fake_pyenv, std::fs::Permissions::from_mode(0o755)).unwrap();
-        let old_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var("PATH", format!("{}:{old_path}", tmp.path().display()));
+        let _path = EnvGuard::prepend_path(tmp.path());
 
         let action = PyenvVirtualenv {
             python_version: Some(String::from("3.14.5")),
@@ -444,7 +432,6 @@ mod tests {
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
             .unwrap();
-        std::env::set_var("PATH", old_path);
 
         assert!(
             steps.is_empty(),
@@ -466,8 +453,7 @@ mod tests {
         .unwrap();
         std::fs::set_permissions(&fake_pyenv, std::fs::Permissions::from_mode(0o755)).unwrap();
 
-        let old_home = std::env::var("HOME").unwrap_or_default();
-        std::env::set_var("HOME", tmp.path());
+        let _home = EnvGuard::set("HOME", tmp.path());
 
         let versions_dir = tmp.path().join(".pyenv").join("versions");
         let target_dir = versions_dir.join("3.14.5").join("envs").join("ansible");
@@ -478,8 +464,7 @@ mod tests {
         )
         .unwrap();
 
-        let old_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var("PATH", format!("{}:{old_path}", tmp.path().display()));
+        let _path = EnvGuard::prepend_path(tmp.path());
 
         let action = PyenvVirtualenv {
             python_version: Some(String::from("3.14.5")),
@@ -489,9 +474,6 @@ mod tests {
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
             .unwrap();
-
-        std::env::set_var("HOME", old_home);
-        std::env::set_var("PATH", old_path);
 
         assert!(
             steps.is_empty(),
@@ -513,8 +495,7 @@ mod tests {
         .unwrap();
         std::fs::set_permissions(&fake_pyenv, std::fs::Permissions::from_mode(0o755)).unwrap();
 
-        let old_home = std::env::var("HOME").unwrap_or_default();
-        std::env::set_var("HOME", tmp.path());
+        let _home = EnvGuard::set("HOME", tmp.path());
 
         let versions_dir = tmp.path().join(".pyenv").join("versions");
         let target_dir = versions_dir.join("3.14.4").join("envs").join("ansible");
@@ -525,8 +506,7 @@ mod tests {
         )
         .unwrap();
 
-        let old_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var("PATH", format!("{}:{old_path}", tmp.path().display()));
+        let _path = EnvGuard::prepend_path(tmp.path());
 
         let action = PyenvVirtualenv {
             python_version: Some(String::from("3.14.5")),
@@ -536,9 +516,6 @@ mod tests {
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
             .unwrap();
-
-        std::env::set_var("HOME", old_home);
-        std::env::set_var("PATH", old_path);
 
         assert_eq!(2, steps.len(), "expected uninstall + create steps");
         let s0 = steps[0].atom.to_string();
@@ -576,12 +553,10 @@ mod tests {
         .unwrap();
         std::fs::set_permissions(&fake_pyenv, std::fs::Permissions::from_mode(0o755)).unwrap();
 
-        let old_home = std::env::var("HOME").unwrap_or_default();
-        std::env::set_var("HOME", tmp.path());
+        let _home = EnvGuard::set("HOME", tmp.path());
         // No symlink created — installed_python_version returns None
 
-        let old_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var("PATH", format!("{}:{old_path}", tmp.path().display()));
+        let _path = EnvGuard::prepend_path(tmp.path());
 
         let action = PyenvVirtualenv {
             python_version: Some(String::from("3.14.5")),
@@ -591,9 +566,6 @@ mod tests {
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
             .unwrap();
-
-        std::env::set_var("HOME", old_home);
-        std::env::set_var("PATH", old_path);
 
         assert!(
             steps.is_empty(),

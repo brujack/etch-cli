@@ -118,6 +118,7 @@ mod tests {
     use super::*;
     use crate::contexts::Contexts;
     use crate::manifests::Manifest;
+    use crate::test_helpers::EnvGuard;
     use serial_test::serial;
 
     const FAKE_MODULE: &str = "etch_cli_not_a_real_ps_module_xyz_zyx_test";
@@ -309,8 +310,7 @@ mod tests {
         // Fake pwsh exits 0 unconditionally — simulates module already installed
         std::fs::write(&fake_pwsh, "#!/bin/sh\nexit 0\n").unwrap();
         std::fs::set_permissions(&fake_pwsh, std::fs::Permissions::from_mode(0o755)).unwrap();
-        let old_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var("PATH", format!("{}:{old_path}", tmp.path().display()));
+        let _path = EnvGuard::prepend_path(tmp.path());
         let action = PowershellModule {
             name: Some(String::from("oh-my-posh")),
             list: vec![],
@@ -319,7 +319,6 @@ mod tests {
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
             .unwrap();
-        std::env::set_var("PATH", old_path);
         assert!(
             steps.is_empty(),
             "expected no steps when module already installed"
@@ -334,8 +333,7 @@ mod tests {
         let fake_pwsh = tmp.path().join("pwsh");
         std::fs::write(&fake_pwsh, "#!/bin/sh\nexit 0\n").unwrap();
         std::fs::set_permissions(&fake_pwsh, std::fs::Permissions::from_mode(0o755)).unwrap();
-        let old_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var("PATH", format!("{}:{old_path}", tmp.path().display()));
+        let _path = EnvGuard::prepend_path(tmp.path());
         let action = PowershellModule {
             name: None,
             list: vec![String::from("Az"), String::from("oh-my-posh")],
@@ -344,7 +342,6 @@ mod tests {
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
             .unwrap();
-        std::env::set_var("PATH", old_path);
         assert!(
             steps.is_empty(),
             "expected no steps when all modules already installed"
@@ -354,8 +351,7 @@ mod tests {
     #[test]
     #[serial]
     fn plan_generates_step_when_pwsh_not_in_path() {
-        let old_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var("PATH", "/nonexistent");
+        let _path = EnvGuard::set("PATH", "/nonexistent");
         let action = PowershellModule {
             name: Some(String::from("oh-my-posh")),
             list: vec![],
@@ -364,7 +360,6 @@ mod tests {
         let steps = action
             .plan(&Manifest::default(), &Contexts::default())
             .unwrap();
-        std::env::set_var("PATH", old_path);
         // unwrap_or(false) → not installed → generates step
         assert_eq!(1, steps.len());
     }
