@@ -58,24 +58,27 @@ pub fn new_run_command(command: String) -> Exec {
 }
 
 impl Exec {
+    /// True when the step asked for privilege and the current user is not
+    /// already root, i.e. the command will be wrapped in the privilege provider.
+    fn is_elevated(&self) -> bool {
+        let username = whoami::username().unwrap_or_else(|_| String::from("unknown"));
+        self.privileged && username != "root"
+    }
+
     fn elevate_if_required(&self) -> (String, Vec<String>) {
         // Depending on the priviledged flag and who who the current user is
         // we can determine if we need to prepend sudo to the command
 
         let privilege_provider = self.privilege_provider.clone();
-        let username = whoami::username().unwrap_or_else(|_| String::from("unknown"));
 
-        match (self.privileged, username.as_str()) {
-            // Hasn't requested priviledged, so never try to elevate
-            (false, _) => (self.command.clone(), self.arguments.clone()),
-
-            // Requested priviledged, but is already root
-            (true, "root") => (self.command.clone(), self.arguments.clone()),
+        match self.is_elevated() {
+            // Hasn't requested priviledged, or is already root: never elevate
+            false => (self.command.clone(), self.arguments.clone()),
 
             // Requested privileged, but is not root. sudo strips env vars by
             // default, so inject them via `env KEY=VAL` before the command so
             // they reach the child process regardless of sudoers configuration.
-            (true, _) => {
+            true => {
                 let mut args: Vec<String> = if !self.environment.is_empty() {
                     let mut env_args = vec!["env".to_string()];
                     env_args.extend(self.environment.iter().map(|(k, v)| format!("{k}={v}")));
@@ -149,8 +152,21 @@ impl Atom for Exec {
     fn execute(&mut self) -> anyhow::Result<()> {
         let (command, arguments) = self.elevate_if_required();
 
-        let command = utilities::get_binary_path(&command)
-            .map_err(|_| anyhow!("Command `{command}` not found in path"))?;
+        // An unprivileged step's own PATH decides where its program is found;
+        // an elevated one runs under the provider, which resolves its own PATH.
+        let step_path = self
+            .environment
+            .iter()
+            .find(|(key, _)| key == "PATH")
+            .map(|(_, value)| value);
+        let resolved = match step_path {
+            Some(path) if !self.is_elevated() => {
+                utilities::get_binary_path_in(&command, std::ffi::OsStr::new(path))
+            }
+            _ => utilities::get_binary_path(&command),
+        };
+
+        let command = resolved.map_err(|_| anyhow!("Command `{command}` not found in path"))?;
 
         // If we require root, we need to use sudo with inherited IO
         // to ensure the user can respond if prompted for a password
@@ -558,5 +574,57 @@ mod tests {
             rendered.contains("printenv"),
             "command should still be visible, got: {rendered}"
         );
+    }
+
+    #[test]
+    fn is_elevated_table() {
+        let unprivileged = Exec {
+            privileged: false,
+            ..Default::default()
+        };
+        assert!(!unprivileged.is_elevated());
+
+        let privileged = Exec {
+            privileged: true,
+            ..Default::default()
+        };
+        assert_eq!(
+            privileged.is_elevated(),
+            whoami::username().unwrap() != "root"
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn execute_resolves_program_on_environment_path() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let tmp = tempfile::tempdir().unwrap();
+        let script = tmp.path().join("etch-test-only-prog");
+        std::fs::write(&script, "#!/bin/sh\nexit 0\n").unwrap();
+        std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).unwrap();
+
+        let real_path = std::env::var("PATH").unwrap_or_default();
+        let mut exec = Exec {
+            command: String::from("etch-test-only-prog"),
+            environment: vec![(
+                String::from("PATH"),
+                format!("{}:{}", tmp.path().display(), real_path),
+            )],
+            privileged: false,
+            ..Default::default()
+        };
+        exec.execute().unwrap();
+    }
+
+    #[test]
+    #[serial]
+    fn execute_ignores_environment_path_when_unset() {
+        let mut exec = Exec {
+            command: String::from("sh"),
+            arguments: vec![String::from("-c"), String::from("exit 0")],
+            ..Default::default()
+        };
+        assert!(exec.execute().is_ok());
     }
 }

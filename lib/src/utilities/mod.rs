@@ -14,6 +14,16 @@ pub fn get_binary_path(binary: &str) -> Result<String, anyhow::Error> {
     Ok(binary)
 }
 
+/// Resolve `binary` against an explicit `path` (a PATH-style list) instead of
+/// the process environment, with relative entries taken from the current dir.
+pub fn get_binary_path_in(binary: &str, path: &std::ffi::OsStr) -> Result<String, anyhow::Error> {
+    let binary = which::which_in(binary, Some(path), std::env::current_dir()?)?
+        .to_string_lossy()
+        .to_string();
+
+    Ok(binary)
+}
+
 pub fn get_privilege_provider(contexts: &Contexts) -> Option<String> {
     let privilege_provider = contexts.get("privilege").and_then(|s| s.first_key_value());
 
