@@ -422,15 +422,20 @@ impl EtchCommand for Apply {
             return Err(anyhow::anyhow!("One or more manifests failed"));
         }
 
-        // Write state — best-effort; never blocks a successful apply
-        if !dry_run
-            && !state_entries.is_empty()
-            && let Err(e) = StateStore::new().record(state_entries)
-        {
-            warn!("state: failed to record apply state: {e:#}");
-        }
-
+        record_state(dry_run, state_entries);
         Ok(())
+    }
+}
+
+/// Writes the apply's state entries, best-effort: a failure is logged and never
+/// fails a successful apply. Kept out of `Apply::execute` so that function stops
+/// growing (clippy::too_many_lines ratchet).
+fn record_state(dry_run: bool, state_entries: Vec<StateEntry>) {
+    if !dry_run
+        && !state_entries.is_empty()
+        && let Err(e) = StateStore::new().record(state_entries)
+    {
+        warn!("state: failed to record apply state: {e:#}");
     }
 }
 
