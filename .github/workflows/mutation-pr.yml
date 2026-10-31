@@ -8,7 +8,7 @@ on:
 jobs:
   mutation-pr:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
 
     steps:
       - name: Checkout
@@ -51,4 +51,4 @@ jobs:
 
       - name: Run cargo mutants on diff
         if: steps.detect.outputs.has_rs == 'true'
-        run: cargo mutants --in-diff /tmp/pr.diff --timeout 30 --no-shuffle
+        run: cargo mutants --in-diff /tmp/pr.diff --timeout 30 --no-shuffle --jobs 2

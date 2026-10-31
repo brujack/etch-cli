@@ -799,3 +799,43 @@ fn etch_history_json_first_line_has_file_copy_action() {
     let parsed: serde_json::Value = serde_json::from_str(first_line).unwrap();
     assert_eq!(parsed["action"], "file.copy");
 }
+
+// ─── --label ──────────────────────────────────────────────────────────────────
+
+#[test]
+fn apply_label_runs_only_manifests_carrying_the_label() {
+    let dir = tempdir().unwrap();
+    let state = tempdir().unwrap();
+
+    let kept = dir.path().join("kept_dir");
+    let skipped = dir.path().join("skipped_dir");
+    fs::write(
+        dir.path().join("a_labelled.yaml"),
+        format!(
+            "labels:\n  - keep\nactions:\n  - action: directory.create\n    path: {}\n",
+            kept.display()
+        ),
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join("b_unlabelled.yaml"),
+        format!(
+            "actions:\n  - action: directory.create\n    path: {}\n",
+            skipped.display()
+        ),
+    )
+    .unwrap();
+
+    Command::new(assert_cmd::cargo::cargo_bin!("etch"))
+        .current_dir(dir.path())
+        .env("ETCH_STATE_DIR", state.path())
+        .args(["--no-color", "-d", ".", "apply", "--label", "keep"])
+        .assert()
+        .success();
+
+    assert!(kept.is_dir(), "labelled manifest should have run");
+    assert!(
+        !skipped.exists(),
+        "manifest without the label should have been skipped"
+    );
+}

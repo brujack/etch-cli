@@ -124,4 +124,21 @@ mod tests {
         let name = CustomPathBuf::schema_name();
         assert_eq!(name, "CustomPathBuf");
     }
+
+    #[test]
+    fn custom_path_buf_json_schema_matches_path_buf() {
+        let mut generator = SchemaGenerator::default();
+        let expected = generator.subschema_for::<PathBuf>();
+        let mut generator = SchemaGenerator::default();
+        let actual = CustomPathBuf::json_schema(&mut generator);
+        assert_eq!(
+            serde_json::to_string(&actual).unwrap(),
+            serde_json::to_string(&expected).unwrap()
+        );
+        assert_ne!(
+            serde_json::to_string(&actual).unwrap(),
+            serde_json::to_string(&Schema::default()).unwrap(),
+            "schema must not be the empty default"
+        );
+    }
 }

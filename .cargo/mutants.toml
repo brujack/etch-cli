@@ -1,0 +1,4 @@
+# Both files are macOS-only (#[cfg(target_os = "macos")]). The Linux CI runner
+# cannot compile their macOS paths, so their mutants survive unkillably. See the
+# Backlog row "No mutation testing for macOS-only code" in docs/superpowers/README.md.
+exclude_globs = ["lib/src/atoms/file/chflags.rs", "lib/src/actions/file/flags.rs"]
