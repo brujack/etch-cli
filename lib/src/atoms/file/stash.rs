@@ -37,6 +37,7 @@ impl Atom for Stash {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_helpers::EnvGuard;
     use serial_test::serial;
     use tempfile::tempdir;
 
@@ -84,8 +85,7 @@ mod tests {
         let path = src_dir.path().join("file.txt");
         std::fs::write(&path, "data").unwrap();
 
-        let old = std::env::var("ETCH_STASH_DIR").ok();
-        std::env::set_var("ETCH_STASH_DIR", stash_dir.path());
+        let _stash = EnvGuard::set("ETCH_STASH_DIR", stash_dir.path());
 
         let mut atom = Stash {
             path,
@@ -93,12 +93,6 @@ mod tests {
             keep: 3,
         };
         let result = atom.execute();
-
-        if let Some(v) = old {
-            std::env::set_var("ETCH_STASH_DIR", v);
-        } else {
-            std::env::remove_var("ETCH_STASH_DIR");
-        }
 
         assert!(result.is_ok());
     }

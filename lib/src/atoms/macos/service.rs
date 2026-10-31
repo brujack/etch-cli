@@ -114,6 +114,7 @@ impl Atom for Service {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_helpers::EnvGuard;
     use serial_test::serial;
 
     fn write_mock_launchctl(
@@ -208,11 +209,7 @@ mod tests {
         write_mock_launchctl(mock_dir.path(), &calls_file, 0);
         write_mock_defaults(mock_dir.path(), &calls_file, "com.example", 0);
 
-        let original_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var(
-            "PATH",
-            format!("{}:{}", mock_dir.path().display(), original_path),
-        );
+        let _path = EnvGuard::prepend_path(mock_dir.path());
 
         let mut atom = make_service(
             "/Library/LaunchDaemons/com.example.plist",
@@ -220,8 +217,6 @@ mod tests {
             true,
         );
         let result = atom.execute();
-
-        std::env::set_var("PATH", &original_path);
 
         assert!(result.is_ok(), "execute failed: {:?}", result);
         let log = std::fs::read_to_string(&calls_file).unwrap_or_default();
@@ -241,11 +236,7 @@ mod tests {
         write_mock_launchctl(mock_dir.path(), &calls_file, 1);
         write_mock_defaults(mock_dir.path(), &calls_file, "com.example", 0);
 
-        let original_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var(
-            "PATH",
-            format!("{}:{}", mock_dir.path().display(), original_path),
-        );
+        let _path = EnvGuard::prepend_path(mock_dir.path());
 
         let mut atom = make_service(
             "/Library/LaunchDaemons/com.example.plist",
@@ -253,8 +244,6 @@ mod tests {
             false,
         );
         let result = atom.execute();
-
-        std::env::set_var("PATH", &original_path);
 
         assert!(result.is_ok(), "execute failed: {:?}", result);
         let log = std::fs::read_to_string(&calls_file).unwrap_or_default();
@@ -274,11 +263,7 @@ mod tests {
         write_mock_launchctl(mock_dir.path(), &calls_file, 1);
         write_mock_defaults(mock_dir.path(), &calls_file, "com.example", 0);
 
-        let original_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var(
-            "PATH",
-            format!("{}:{}", mock_dir.path().display(), original_path),
-        );
+        let _path = EnvGuard::prepend_path(mock_dir.path());
 
         let mut atom = make_service(
             "/Library/LaunchDaemons/com.example.plist",
@@ -286,8 +271,6 @@ mod tests {
             true,
         );
         let result = atom.execute();
-
-        std::env::set_var("PATH", &original_path);
 
         assert!(result.is_ok(), "execute failed: {:?}", result);
         let log = std::fs::read_to_string(&calls_file).unwrap_or_default();
@@ -311,11 +294,7 @@ mod tests {
         write_mock_launchctl(mock_dir.path(), &calls_file, 0);
         write_mock_defaults(mock_dir.path(), &calls_file, "com.example", 0);
 
-        let original_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var(
-            "PATH",
-            format!("{}:{}", mock_dir.path().display(), original_path),
-        );
+        let _path = EnvGuard::prepend_path(mock_dir.path());
 
         let mut atom = make_service(
             "/Library/LaunchDaemons/com.example.plist",
@@ -323,8 +302,6 @@ mod tests {
             false,
         );
         let result = atom.execute();
-
-        std::env::set_var("PATH", &original_path);
 
         assert!(result.is_ok(), "execute failed: {:?}", result);
         let log = std::fs::read_to_string(&calls_file).unwrap_or_default();
@@ -345,11 +322,7 @@ mod tests {
         // No defaults mock needed — but write one anyway to detect if it's called
         write_mock_defaults(mock_dir.path(), &calls_file, "com.example", 0);
 
-        let original_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var(
-            "PATH",
-            format!("{}:{}", mock_dir.path().display(), original_path),
-        );
+        let _path = EnvGuard::prepend_path(mock_dir.path());
 
         // label: Some(...) => should NOT call defaults
         let mut atom = make_service(
@@ -358,8 +331,6 @@ mod tests {
             true,
         );
         let result = atom.execute();
-
-        std::env::set_var("PATH", &original_path);
 
         assert!(result.is_ok(), "execute failed: {:?}", result);
         let log = std::fs::read_to_string(&calls_file).unwrap_or_default();
@@ -379,17 +350,11 @@ mod tests {
         write_mock_launchctl(mock_dir.path(), &calls_file, 1);
         write_mock_defaults(mock_dir.path(), &calls_file, "com.example.fromdefaults", 0);
 
-        let original_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var(
-            "PATH",
-            format!("{}:{}", mock_dir.path().display(), original_path),
-        );
+        let _path = EnvGuard::prepend_path(mock_dir.path());
 
         // label: None => should call defaults
         let mut atom = make_service("/Library/LaunchDaemons/com.example.plist", None, true);
         let result = atom.execute();
-
-        std::env::set_var("PATH", &original_path);
 
         assert!(result.is_ok(), "execute failed: {:?}", result);
         let log = std::fs::read_to_string(&calls_file).unwrap_or_default();
@@ -409,16 +374,10 @@ mod tests {
         // defaults exits 1 => error
         write_mock_defaults(mock_dir.path(), &calls_file, "", 1);
 
-        let original_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var(
-            "PATH",
-            format!("{}:{}", mock_dir.path().display(), original_path),
-        );
+        let _path = EnvGuard::prepend_path(mock_dir.path());
 
         let mut atom = make_service("/Library/LaunchDaemons/com.example.plist", None, true);
         let result = atom.execute();
-
-        std::env::set_var("PATH", &original_path);
 
         assert!(result.is_err(), "expected Err when defaults fails, got Ok");
     }
@@ -442,11 +401,7 @@ mod tests {
 
         write_mock_defaults(mock_dir.path(), &calls_file, "com.example", 0);
 
-        let original_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var(
-            "PATH",
-            format!("{}:{}", mock_dir.path().display(), original_path),
-        );
+        let _path = EnvGuard::prepend_path(mock_dir.path());
 
         // load: true, launchctl list exits 1 (not loaded) => will try to load => fails
         let mut atom = make_service(
@@ -455,8 +410,6 @@ mod tests {
             true,
         );
         let result = atom.execute();
-
-        std::env::set_var("PATH", &original_path);
 
         assert!(result.is_err(), "expected Err when launchctl fails, got Ok");
     }

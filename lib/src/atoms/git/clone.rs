@@ -97,6 +97,7 @@ impl Atom for Clone {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_helpers::EnvGuard;
     use serial_test::serial;
 
     fn write_mock_git(mock_dir: &std::path::Path, calls_file: &std::path::Path, exit_code: i32) {
@@ -197,11 +198,7 @@ mod tests {
         std::fs::create_dir_all(&target).unwrap();
         std::fs::create_dir_all(target.join(".git")).unwrap();
 
-        let original_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var(
-            "PATH",
-            format!("{}:{}", mock_dir.path().display(), original_path),
-        );
+        let _path = EnvGuard::prepend_path(mock_dir.path());
 
         let mut atom = Clone {
             repository: gix::url::parse("https://github.com/example/repo.git".as_bytes()).unwrap(),
@@ -209,8 +206,6 @@ mod tests {
             update_existing: true,
         };
         let result = atom.execute();
-
-        std::env::set_var("PATH", &original_path);
 
         assert!(result.is_ok(), "execute failed: {:?}", result);
         let log = std::fs::read_to_string(&calls_file).unwrap_or_default();
@@ -230,11 +225,7 @@ mod tests {
         std::fs::create_dir_all(&target).unwrap();
         std::fs::create_dir_all(target.join(".git")).unwrap();
 
-        let original_path = std::env::var("PATH").unwrap_or_default();
-        std::env::set_var(
-            "PATH",
-            format!("{}:{}", mock_dir.path().display(), original_path),
-        );
+        let _path = EnvGuard::prepend_path(mock_dir.path());
 
         let mut atom = Clone {
             repository: gix::url::parse("https://github.com/example/repo.git".as_bytes()).unwrap(),
@@ -242,8 +233,6 @@ mod tests {
             update_existing: true,
         };
         let result = atom.execute();
-
-        std::env::set_var("PATH", &original_path);
 
         assert!(result.is_err(), "expected Err from failed pull");
     }
