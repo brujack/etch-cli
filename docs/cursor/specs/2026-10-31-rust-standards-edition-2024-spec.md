@@ -579,3 +579,31 @@ Disposition: Addressed (operator, 2026-10-31) — 1: PR1 pins `style_edition = "
 flips it. 2: as Goal-Fit 1. 3: `which_in` takes the etch process cwd. 4: "elevated"
 defined in Design 5 and R3; dead `elevate()` check written as a backlog row (N10).
 5: R16 covers aliases, qualified paths, `drop(` and `#[serial(key)]`. Assumption: V9.
+
+## Multi-Lens Review — round 3 (scoped)
+
+Reviewed at commit: `926e004`. Scope: the sections round 2 changed (Problem 2, Designs 2,
+5, 6, 7, Delivery, Testing, and R2, R3, R4, R13, R16-R18, R20, V8-V10, N2, N9, N10). One
+Risk lens, by operator choice.
+
+### Risk (round 3)
+
+Finding:
+1. The faster-hex triage blames the wrong cause. The locked `gix-hash 0.26.1` already
+   admits `faster-hex ^0.10.0`. The real blocker is faster-hex 0.10.1's build-dependency
+   `autocfg ^1.5.1`, while the lock pins autocfg at 1.5.0. Measured on a scratch copy:
+   with `serial_test = "4"`, `cargo update -p serial_test -p faster-hex -p autocfg` locks
+   5 packages (removes scc and sdd), `cargo deny check advisories licenses bans sources`
+   with `unsound`/`unmaintained = "all"` is all ok, and `cargo check -p etch-lib --tests`
+   gives 0 errors. Zero new ignores are needed.
+2. V10 passes on nothing. On the triaged lockfile both "non-ignored" sets are empty, and
+   raw `cargo audit` reads no ignore list. Run V10 on the pre-triage lockfile and require
+   cargo-deny (`unsound = "all"`) to report {RUSTSEC-2026-0306, RUSTSEC-2026-0205}, the
+   set cargo-audit reports there.
+3. R16 brace counting breaks on the real tree: `state/mod.rs:224` holds
+   `"not: valid: yaml: {{{"`, which swallows the next test. Scanning must skip string
+   literals and comments, with an unbalanced-brace string as a must-not-flag fixture.
+
+Assumption: under `cargo test`/tarpaulin, no non-`#[serial]` test reads the environment
+(`env::var`, `Command` spawn) while an `EnvGuard` writes it. Unaudited.
+Disposition:
