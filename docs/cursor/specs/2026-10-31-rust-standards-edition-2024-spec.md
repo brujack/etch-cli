@@ -296,3 +296,74 @@ last so every earlier commit reviews as a small diff.
 - **N5.** The workspace `resolver` stays `"2"`.
 - **N6.** No `unsafe_code` lint or other lint change in `fuzz/`.
 - **N7.** The `cargo-audit` job id in `ci.yml` is not renamed.
+
+## Multi-Lens Review
+
+Reviewed at commit: `9fb5d1f` (Step 7 self-review commit, before Step 8 dispatch)
+
+### Goal-Fit
+
+Finding:
+1. Design 5 breaks same-step resolution through `env: { PATH }`. `Exec::execute` resolves
+   the program with `utilities::get_binary_path` → `which()` against the etch process
+   `PATH` (`atoms/command/exec.rs:152`, `utilities/mod.rs:11`). Today `SetEnvVars` changes
+   that `PATH` before the lookup; after the fix the lookup uses the old `PATH` and fails
+   with "Command `foo` not found in path". No R13 case covers step 1 resolving through its
+   own `env:`. Proposed fix: resolve with `which::which_in` against `environment`'s `PATH`
+   when set. No manifest in etch-config uses `env:` on `command.run`; latent, not live.
+2. The Design 2 pin test fails the reads-it test: its only reader is the diff, which
+   already shows the `deny.toml` change. Keep the GPL/MIT positive control and the
+   no-`--ignore RUSTSEC` assertion; drop R3 or narrow it to keys whose cargo-deny default
+   would silently change (`unmaintained`, `multiple-versions`).
+
+Assumption: no consumer depends on `env:` changing etch's own process (same-step
+resolution, or a later step relying on a leaked variable). etch-config checked, none
+found; unversioned local manifests unchecked.
+Disposition:
+
+### Ergonomics
+
+Finding:
+1. `EnvGuard` without `#[must_use]`: a mechanical port to `let _ = EnvGuard::…` drops the
+   guard on the same line, `PATH` stays real, and the test runs real `systemctl`,
+   `useradd` or `gem` (breaks tdd-007 inert failure). Add `#[must_use]` and have R16 flag
+   `let _ = EnvGuard`.
+2. Squash auto-merge destroys the separate fmt commit R18 and Delivery promise; every
+   reformatted line blames to the combined commit and `.git-blame-ignore-revs` has no
+   fmt-only SHA to name. Ship the `style_edition` fmt as its own PR, or drop the claim.
+3. The Design 7 check cannot fail on the final tree: the `rust-2024-compatibility`
+   migration lints fire only on editions before 2024, so the check reports 0 after the
+   bump whatever happened. Same for V4's compat-lint half. Restate as "on the 2021 tree
+   immediately before the bump", or delete.
+4. Premise miscount: manual save-and-restore code sits in 14 files, not 5
+   (`git grep -lE 'original_path|orig_path|old_path|saved_path|prev_path' -- lib/src`).
+
+Assumption: R16's body-scan assumes guards are created only inside `#[test]` bodies. A
+shared helper returning an `EnvGuard` would hide its callers from the check. Settle by
+reading how the `write_mock_*` helpers are called in the 14 files.
+Disposition:
+
+### Risk
+
+Finding:
+1. Same as Goal-Fit 1, independently found: unprivileged `env: { PATH }` resolution
+   breaks, while privileged still works (`env PATH=… cmd` under sudo resolves on the new
+   `PATH`), so the two paths become inconsistent. Fix internal to `Exec` (`which_in`), not
+   an API change, so N3 does not forbid it.
+2. The first R13 test passes on `main`: `apply.rs` runs finalizers after a successful
+   `execute`, so `RemoveEnvVars` already removes `ETCH_SPEC_PROBE` and step 2 prints
+   `unset`. The leak appears only under `--dry-run` (initializers run in the plan
+   `filter`, finalizers never run) or after a failed `execute` (`break` skips finalizers).
+   Fix: pre-set `ETCH_SPEC_PROBE=orig` and assert step 2 prints `orig` (main prints
+   `unset`: the delete-instead-of-restore defect); add a `--dry-run` case. The dry-run
+   leak is a further defect Problem 5 omits.
+3. A stale `#[expect(unsafe_code)]` is a warning, not an error; it fails `make lint`
+   (`-D warnings`) but not `cargo build`. Wording should say lint.
+
+Assumption: same as Goal-Fit — no field manifest relies on `env:` affecting how etch
+resolves the command. Moot if `Exec` resolves against `environment`'s `PATH`.
+Disposition:
+
+### Adversarial Spec Review (comparison/judge designs only)
+
+N/A — spec has no comparison/evaluator/ambiguous-criteria trigger.
