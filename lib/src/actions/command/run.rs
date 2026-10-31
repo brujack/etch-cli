@@ -248,10 +248,13 @@ mod tests {
         use crate::actions::Action;
         use crate::contexts::Contexts;
         use crate::manifests::Manifest;
-        let env = std::collections::HashMap::from([
-            (String::from("B"), String::from("etch-secret-b")),
-            (String::from("A"), String::from("etch-secret-a")),
-        ]);
+        // Eight keys inserted out of order: HashMap iteration order only
+        // coincides with sorted order by chance, so dropping `.sort()` fails.
+        let env: std::collections::HashMap<String, String> =
+            ["H", "C", "F", "A", "E", "B", "G", "D"]
+                .iter()
+                .map(|k| (k.to_string(), format!("etch-secret-{k}")))
+                .collect();
         let action = super::RunCommand {
             command: String::from("echo"),
             env,
@@ -265,11 +268,20 @@ mod tests {
         let debug = format!("{:?}", steps[0].atom);
         let env_start = debug.find("environment").expect("environment in Debug");
         let env_debug = &debug[env_start..];
-        let a = env_debug.find("\"A\"").expect("key A in Debug");
-        let b = env_debug.find("\"B\"").expect("key B in Debug");
-        assert!(a < b, "keys not sorted: {debug}");
-        assert!(!debug.contains("etch-secret-a"), "leaked: {debug}");
-        assert!(!debug.contains("etch-secret-b"), "leaked: {debug}");
+        let order: Vec<&str> = ["A", "B", "C", "D", "E", "F", "G", "H"]
+            .iter()
+            .copied()
+            .filter(|k| env_debug.contains(&format!("\"{k}\"")))
+            .collect();
+        assert_eq!(8, order.len(), "missing keys: {debug}");
+        let mut positions: Vec<usize> = order
+            .iter()
+            .map(|k| env_debug.find(&format!("\"{k}\"")).unwrap())
+            .collect();
+        let expected = positions.clone();
+        positions.sort_unstable();
+        assert_eq!(expected, positions, "keys not sorted A..H: {debug}");
+        assert!(!debug.contains("etch-secret-"), "leaked: {debug}");
     }
 
     #[test]

@@ -236,8 +236,18 @@ fn command_run_env_with_privileged_is_refused() {
     )
     .unwrap();
 
-    apply_with_state_env(dir.path(), state.path(), &[]).failure();
+    let assert = apply_with_state_env(dir.path(), state.path(), &[]).failure();
 
+    let output = assert.get_output();
+    let combined = format!(
+        "{}{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(
+        combined.contains("cannot be combined with privileged"),
+        "refusal text missing: {combined}"
+    );
     assert!(!marker.exists(), "command ran despite refused env");
 }
 

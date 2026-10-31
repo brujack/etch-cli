@@ -624,6 +624,14 @@ mod tests {
     }
 
     #[test]
+    fn resolve_program_misses_when_step_path_lacks_program() {
+        // `sh` is on the process PATH, so a fallback to it would make this Ok.
+        let env = vec![(String::from("PATH"), String::from("/nonexistent-etch-dir"))];
+        let err = resolve_program("sh", &env, false).unwrap_err();
+        assert!(err.to_string().contains("not found in path"), "{err}");
+    }
+
+    #[test]
     fn resolve_program_last_path_entry_wins() {
         let (_tmp, good) = tmp_program("etch-test-only-prog-dup");
         let env = vec![
