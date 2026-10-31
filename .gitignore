@@ -66,3 +66,6 @@ tarpaulin-report.json
 .coverage
 .pytest_cache/
 htmlcov/
+
+# cargo writes a lockfile beside any manifest it reads; the deny fixtures are policy controls, not built crates
+tests/fixtures/**/Cargo.lock
