@@ -2,6 +2,8 @@
 
 spec: docs/cursor/specs/2026-10-31-rust-standards-edition-2024-spec.md
 
+> **Status: DONE** — PR1 etch-cli#159 (ce5cbf6), PR2 etch-cli#161 (1a1ca4b), merged 2026-10-31/11-01. V1-V10 verified (V4, V9 on the Mac Studio after merge).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Enforce the whole `deny.toml` policy, retire cargo-audit without losing unsound coverage, guard `unsafe`, fix `command.run` env handling, and move the workspace to edition 2024.
