@@ -54,10 +54,10 @@ if [[ -z "${REPO_ROOT}" ]]; then
 fi
 
 needs_test=0
+if [[ -n "${_pcg_refs}" ]]; then
 # shellcheck disable=SC2034 # git's pre-push protocol supplies four whitespace-separated
 # fields per ref on stdin; local_ref and remote_ref must be named to consume the line
 # positionally even though only the two SHAs are read below.
-if [[ -n "${_pcg_refs}" ]]; then
 while read -r local_ref local_sha remote_ref remote_sha; do
     [[ "${local_sha}" == "0000000000000000000000000000000000000000" ]] && continue
 

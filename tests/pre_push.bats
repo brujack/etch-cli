@@ -42,11 +42,12 @@ _commit_file() {
   git -C "${REPO}" rev-parse HEAD
 }
 
-# _run_hook <stdin text> -- runs the hook in the fixture with the stubs first on PATH.
+# _run_hook <stdin text> [cwd] -- runs the hook with the stubs first on PATH, in
+# the fixture repo unless a cwd is given.
 _run_hook() {
   printf '%b' "${1}" | bash -c "
     export PATH='${BIN}:/usr/bin:/bin'
-    cd '${REPO}' || exit 2
+    cd '${2:-${REPO}}' || exit 2
     bash '${HOOK}' origin file:///nonexistent
   "
 }
@@ -112,6 +113,57 @@ _run_hook() {
   [ "${status}" -eq 0 ]
   [[ "${output}" == *"cannot resolve"* ]]
   grep -qxF -- "-C ${REPO} test" "${MAKE_CALLS}"
+}
+
+# From inside .git there is no work tree, so `rev-parse --show-toplevel` fails and
+# the hook must derive the root from the common git dir.
+@test "run from inside .git the hook still finds the repo root" {
+  local head
+  head="$(_commit_file x.rs 'fn main() {}' 'feat: code')"
+  run _run_hook "refs/heads/feat/x ${head} refs/heads/feat/x ${BASE_SHA}\n" "${REPO}/.git"
+  [ "${status}" -eq 0 ]
+  grep -qxF -- "-C ${REPO} test" "${MAKE_CALLS}"
+}
+
+# A new branch is judged against its merge-base with origin/main, not all history:
+# origin/main already holds an .rs change, so a docs-only commit on top must skip.
+@test "a docs-only new branch on top of origin/main skips make test" {
+  local code head
+  code="$(_commit_file x.rs 'fn main() {}' 'feat: code')"
+  git -C "${REPO}" update-ref refs/remotes/origin/main "${code}"
+  head="$(_commit_file README.md v2 'docs: v2')"
+  run _run_hook "refs/heads/feat/x ${head} refs/heads/feat/x ${NULL_SHA}\n"
+  [ "${status}" -eq 0 ]
+  [ ! -f "${MAKE_CALLS}" ]
+}
+
+# PATH holds make, env and git only (symlinks), so neither shellcheck nor bats
+# resolves and bats cannot recurse into itself.
+_hooks_target_without_tools() { # <CI value, or empty to unset>
+  local shim="${FIXTURE}/notools" tool root
+  root="$(cd "${BATS_TEST_DIRNAME}/.." && pwd)" || return 1
+  mkdir -p "${shim}" || return 1
+  for tool in make env git; do
+    ln -sf "$(command -v "${tool}")" "${shim}/${tool}" || return 1
+  done
+  if [ -n "${1}" ]; then
+    CI="${1}" PATH="${shim}" "${shim}/make" -C "${root}" test-hooks 2>&1
+  else
+    env -u CI PATH="${shim}" "${shim}/make" -C "${root}" test-hooks 2>&1
+  fi
+}
+
+@test "make test-hooks without shellcheck and bats fails in CI and names both" {
+  run _hooks_target_without_tools 1
+  [ "${status}" -ne 0 ]
+  [[ "${output}" == *"shellcheck"* ]]
+  [[ "${output}" == *"bats"* ]]
+}
+
+@test "make test-hooks without shellcheck and bats skips locally with exit 0" {
+  run _hooks_target_without_tools ""
+  [ "${status}" -eq 0 ]
+  [[ "${output}" == *"skipping"* ]]
 }
 
 @test "a docs-only feature push skips make test" {
