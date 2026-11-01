@@ -1,5 +1,5 @@
-use super::{check_version, PackageProvider, VersionCheck};
-use crate::actions::package::{repository::PackageRepository, PackageVariant};
+use super::{PackageProvider, VersionCheck, check_version};
+use crate::actions::package::{PackageVariant, repository::PackageRepository};
 use crate::atoms::command::Exec;
 use crate::contexts::Contexts;
 use crate::steps::Step;
@@ -161,11 +161,7 @@ impl PackageProvider for Aptitude {
             return Ok(None);
         }
         let s = String::from_utf8(out.stdout)?.trim().to_owned();
-        if s.is_empty() {
-            Ok(None)
-        } else {
-            Ok(Some(s))
-        }
+        if s.is_empty() { Ok(None) } else { Ok(Some(s)) }
     }
 
     fn remove(

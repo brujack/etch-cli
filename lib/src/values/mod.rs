@@ -8,8 +8,8 @@ use std::{
 use serde_json::Value as JsonValue;
 
 use serde::{
-    de::{Error as SError, SeqAccess, Visitor},
     Deserialize, Deserializer, Serialize,
+    de::{Error as SError, SeqAccess, Visitor},
 };
 
 #[derive(Clone, PartialEq, PartialOrd)]

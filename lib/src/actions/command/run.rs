@@ -1,6 +1,6 @@
 use crate::contexts::Contexts;
-use crate::steps::initializers::FileExists;
 use crate::steps::Step;
+use crate::steps::initializers::FileExists;
 use crate::{actions::Action, manifests::Manifest, steps, utilities};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -311,9 +311,11 @@ mod tests {
             privileged: true,
             ..Default::default()
         };
-        assert!(action
-            .plan(&Manifest::default(), &Contexts::default())
-            .is_ok());
+        assert!(
+            action
+                .plan(&Manifest::default(), &Contexts::default())
+                .is_ok()
+        );
     }
 
     #[test]
@@ -326,9 +328,11 @@ mod tests {
             env: std::collections::HashMap::from([(String::from("K"), String::from("v"))]),
             ..Default::default()
         };
-        assert!(action
-            .plan(&Manifest::default(), &Contexts::default())
-            .is_ok());
+        assert!(
+            action
+                .plan(&Manifest::default(), &Contexts::default())
+                .is_ok()
+        );
     }
 
     #[test]

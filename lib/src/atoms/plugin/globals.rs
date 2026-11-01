@@ -1,12 +1,12 @@
 use std::{thread::sleep, time::Duration};
 
-use anyhow::{anyhow, Error, Result};
+use anyhow::{Error, Result, anyhow};
 use tealr::{
-    mlu::{
-        mlua::{Lua, Table},
-        TealData, UserData,
-    },
     ToTypename,
+    mlu::{
+        TealData, UserData,
+        mlua::{Lua, Table},
+    },
 };
 
 use crate::{contexts::Contexts, utilities::lua::json_to_lua};

@@ -53,8 +53,8 @@ impl GroupProvider for MacOsGroupProvider {
 #[cfg(target_os = "macos")]
 #[cfg(test)]
 mod test {
-    use crate::actions::group::providers::{GroupProvider, MacOsGroupProvider};
     use crate::actions::group::GroupVariant;
+    use crate::actions::group::providers::{GroupProvider, MacOsGroupProvider};
     use crate::contexts::Contexts;
     use serial_test::serial;
 

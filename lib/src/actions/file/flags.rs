@@ -150,8 +150,8 @@ mod tests {
     #[cfg(target_os = "macos")]
     fn plan_errors_on_unknown_flag() {
         use super::FileFlags;
-        use crate::actions::file::FileActionConfig;
         use crate::actions::Action;
+        use crate::actions::file::FileActionConfig;
         let action = FileFlags {
             path: String::from("/tmp/testfile"),
             flags: vec!["badname".to_string()],
@@ -162,19 +162,21 @@ mod tests {
             &crate::contexts::Contexts::default(),
         );
         assert!(result.is_err());
-        assert!(result
-            .err()
-            .unwrap()
-            .to_string()
-            .contains("unknown flag: badname"));
+        assert!(
+            result
+                .err()
+                .unwrap()
+                .to_string()
+                .contains("unknown flag: badname")
+        );
     }
 
     #[test]
     #[cfg(target_os = "macos")]
     fn plan_returns_chflags_step_when_not_privileged() {
         use super::FileFlags;
-        use crate::actions::file::FileActionConfig;
         use crate::actions::Action;
+        use crate::actions::file::FileActionConfig;
 
         let tmp = tempfile::tempdir().unwrap();
         let path = tmp.path().join("test.txt");
@@ -199,8 +201,8 @@ mod tests {
     #[cfg(not(target_os = "macos"))]
     fn plan_errors_on_non_macos() {
         use super::FileFlags;
-        use crate::actions::file::FileActionConfig;
         use crate::actions::Action;
+        use crate::actions::file::FileActionConfig;
         let action = FileFlags {
             path: String::from("/tmp/testfile"),
             flags: vec!["hidden".to_string()],
@@ -211,18 +213,20 @@ mod tests {
             &crate::contexts::Contexts::default(),
         );
         assert!(result.is_err());
-        assert!(result
-            .err()
-            .unwrap()
-            .to_string()
-            .contains("only supported on macOS"));
+        assert!(
+            result
+                .err()
+                .unwrap()
+                .to_string()
+                .contains("only supported on macOS")
+        );
     }
 
     #[test]
     fn summarize_includes_path_and_flags() {
         use super::FileFlags;
-        use crate::actions::file::FileActionConfig;
         use crate::actions::Action;
+        use crate::actions::file::FileActionConfig;
         let action = FileFlags {
             path: String::from("/tmp/myfile"),
             flags: vec!["uchg".to_string()],
@@ -237,8 +241,8 @@ mod tests {
     #[cfg(target_os = "macos")]
     fn plan_returns_exec_step_when_privileged() {
         use super::FileFlags;
-        use crate::actions::file::FileActionConfig;
         use crate::actions::Action;
+        use crate::actions::file::FileActionConfig;
 
         let tmp = tempfile::tempdir().unwrap();
         let path = tmp.path().join("test.txt");
@@ -269,8 +273,8 @@ mod tests {
     #[cfg(target_os = "macos")]
     fn plan_clears_a_flag_with_no_prefix_when_privileged() {
         use super::FileFlags;
-        use crate::actions::file::FileActionConfig;
         use crate::actions::Action;
+        use crate::actions::file::FileActionConfig;
 
         let tmp = tempfile::tempdir().unwrap();
         let path = tmp.path().join("test.txt");

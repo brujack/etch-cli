@@ -7,21 +7,21 @@ use std::{
     str::FromStr,
 };
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use dirs_next::data_local_dir;
 use gix::{
+    Repository,
     bstr::ByteSlice,
     diff::object::tree::EntryKind,
     interrupt::IS_INTERRUPTED,
     open, prepare_clone_bare,
     progress::Discard,
-    remote::{ref_map, Direction::Fetch},
-    Repository,
+    remote::{Direction::Fetch, ref_map},
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
-use serde_with::{serde_as, DisplayFromStr, KeyValueMap};
+use serde_with::{DisplayFromStr, KeyValueMap, serde_as};
 use tracing::{debug, error, info, instrument};
 
 use super::get_plugin;
@@ -31,7 +31,7 @@ use crate::{
     contexts::Contexts,
     manifests::Manifest,
     steps::Step,
-    utilities::{lua::json_to_lua, CustomPathBuf},
+    utilities::{CustomPathBuf, lua::json_to_lua},
 };
 
 #[derive(

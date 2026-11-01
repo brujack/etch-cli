@@ -1,8 +1,8 @@
 use super::{FileAction, FileActionConfig};
 use crate::manifests::Manifest;
+use crate::steps::Step;
 use crate::steps::initializers::FileExists;
 use crate::steps::initializers::FlowControl::Ensure;
-use crate::steps::Step;
 use crate::utilities;
 use crate::{actions::Action, contexts::Contexts};
 use glob::glob as glob_expand;
@@ -342,8 +342,8 @@ mod tests {
     #[test]
     fn plan_returns_exec_steps_when_privileged() {
         use super::FileLink;
-        use crate::actions::file::FileActionConfig;
         use crate::actions::Action;
+        use crate::actions::file::FileActionConfig;
         use crate::config::Config;
         use crate::contexts::build_contexts;
 

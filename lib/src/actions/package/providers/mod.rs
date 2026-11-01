@@ -6,7 +6,7 @@ mod snapcraft;
 use self::snapcraft::Snapcraft;
 pub(crate) mod apt_upgrade;
 pub(crate) mod snap_upgrade;
-use super::{repository::PackageRepository, PackageVariant};
+use super::{PackageVariant, repository::PackageRepository};
 use crate::contexts::Contexts;
 use crate::steps::Step;
 use schemars::JsonSchema;

@@ -238,9 +238,11 @@ mod tests {
             plugins: vec![String::from("https://example.com")],
             omz_dir: omz_dir.to_string_lossy().to_string(),
         };
-        assert!(action
-            .plan(&Manifest::default(), &Contexts::default())
-            .is_err());
+        assert!(
+            action
+                .plan(&Manifest::default(), &Contexts::default())
+                .is_err()
+        );
     }
 
     // ── deserialization ───────────────────────────────────────────────────

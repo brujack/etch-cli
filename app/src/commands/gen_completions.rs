@@ -4,7 +4,7 @@ use super::EtchCommand;
 use crate::Runtime;
 
 use clap::{Command, CommandFactory, Parser};
-use clap_complete::{generate, Generator, Shell};
+use clap_complete::{Generator, Shell, generate};
 
 use crate::GlobalArgs;
 

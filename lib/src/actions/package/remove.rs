@@ -61,11 +61,13 @@ mod tests {
         let action = PackageRemove::default();
         let result = action.plan(&Manifest::default(), &Contexts::default());
         assert!(result.is_err());
-        assert!(result
-            .err()
-            .unwrap()
-            .to_string()
-            .contains("requires either 'name' or 'list'"));
+        assert!(
+            result
+                .err()
+                .unwrap()
+                .to_string()
+                .contains("requires either 'name' or 'list'")
+        );
     }
 
     #[cfg(target_os = "linux")]

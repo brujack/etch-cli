@@ -130,10 +130,12 @@ mod tests {
             &crate::contexts::Contexts::default(),
         );
         assert!(result.is_err());
-        assert!(result
-            .err()
-            .unwrap()
-            .to_string()
-            .contains("requires 'name'"));
+        assert!(
+            result
+                .err()
+                .unwrap()
+                .to_string()
+                .contains("requires 'name'")
+        );
     }
 }

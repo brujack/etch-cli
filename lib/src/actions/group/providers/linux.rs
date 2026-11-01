@@ -43,8 +43,8 @@ impl GroupProvider for LinuxGroupProvider {
 
 #[cfg(test)]
 mod test {
-    use crate::actions::group::providers::{GroupProvider, LinuxGroupProvider};
     use crate::actions::group::GroupVariant;
+    use crate::actions::group::providers::{GroupProvider, LinuxGroupProvider};
     use crate::contexts::Contexts;
     use crate::test_helpers::EnvGuard;
     use serial_test::serial;

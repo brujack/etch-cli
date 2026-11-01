@@ -87,12 +87,12 @@ impl Step {
 
 #[cfg(test)]
 mod tests {
+    use super::finalizers::FlowControl as FinalizerFlowControl;
     use super::finalizers::test::EchoFinalizer;
     use super::finalizers::test::ErrorFinalizer;
-    use super::finalizers::FlowControl as FinalizerFlowControl;
+    use super::initializers::FlowControl as InitializerFlowControl;
     use super::initializers::test::Echo as EchoInitializer;
     use super::initializers::test::Error as ErrorInitializer;
-    use super::initializers::FlowControl as InitializerFlowControl;
     use crate::atoms::Echo as EchoAtom;
     use pretty_assertions::assert_eq;
 

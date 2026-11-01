@@ -127,7 +127,7 @@ impl GitManifestProvider {
                     repository: String::from(repository),
                     branch: Some(parts.to_string()),
                     path: None,
-                }
+                };
             }
         };
 

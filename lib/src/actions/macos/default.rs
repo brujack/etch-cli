@@ -242,9 +242,11 @@ mod tests {
             kind: None,
             value: Some(String::from("true")),
         };
-        assert!(action
-            .plan(&Manifest::default(), &Contexts::default())
-            .is_err());
+        assert!(
+            action
+                .plan(&Manifest::default(), &Contexts::default())
+                .is_err()
+        );
     }
 
     #[test]
@@ -256,9 +258,11 @@ mod tests {
             kind: Some(String::from("bool")),
             value: None,
         };
-        assert!(action
-            .plan(&Manifest::default(), &Contexts::default())
-            .is_err());
+        assert!(
+            action
+                .plan(&Manifest::default(), &Contexts::default())
+                .is_err()
+        );
     }
 
     #[test]
@@ -395,9 +399,11 @@ mod tests {
                 "/System/Library/CoreServices/Menu Extras/Volume.menu",
             )),
         };
-        assert!(action
-            .plan(&Manifest::default(), &Contexts::default())
-            .is_err());
+        assert!(
+            action
+                .plan(&Manifest::default(), &Contexts::default())
+                .is_err()
+        );
     }
 
     #[test]
@@ -409,9 +415,11 @@ mod tests {
             kind: Some(String::from("string")),
             value: None,
         };
-        assert!(action
-            .plan(&Manifest::default(), &Contexts::default())
-            .is_err());
+        assert!(
+            action
+                .plan(&Manifest::default(), &Contexts::default())
+                .is_err()
+        );
     }
 
     #[test]
@@ -440,9 +448,11 @@ mod tests {
             kind: Some(String::from("notakind")),
             value: Some(String::from("true")),
         };
-        assert!(action
-            .plan(&Manifest::default(), &Contexts::default())
-            .is_err());
+        assert!(
+            action
+                .plan(&Manifest::default(), &Contexts::default())
+                .is_err()
+        );
     }
 
     #[test]
@@ -454,9 +464,11 @@ mod tests {
             kind: Some(String::from("notakind")),
             value: Some(String::from("/some/path")),
         };
-        assert!(action
-            .plan(&Manifest::default(), &Contexts::default())
-            .is_err());
+        assert!(
+            action
+                .plan(&Manifest::default(), &Contexts::default())
+                .is_err()
+        );
     }
 
     #[test]

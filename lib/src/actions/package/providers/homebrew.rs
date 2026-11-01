@@ -1,4 +1,4 @@
-use super::{check_version, PackageProvider, VersionCheck};
+use super::{PackageProvider, VersionCheck, check_version};
 use crate::actions::package::repository::PackageRepository;
 use crate::contexts::Contexts;
 use crate::steps::Step;
@@ -22,15 +22,21 @@ impl PackageProvider for Homebrew {
     }
 
     fn bootstrap(&self, _contexts: &Contexts) -> Vec<Step> {
-        vec![Step { atom: Box::new(Exec {
-            command: String::from("bash"),
-            arguments: vec![
-                String::from("-c"),
-                String::from("$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)")
-            ],
-            streaming: true,
-            ..Default::default()
-        }), initializers: vec![], finalizers: vec![] },]
+        vec![Step {
+            atom: Box::new(Exec {
+                command: String::from("bash"),
+                arguments: vec![
+                    String::from("-c"),
+                    String::from(
+                        "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)",
+                    ),
+                ],
+                streaming: true,
+                ..Default::default()
+            }),
+            initializers: vec![],
+            finalizers: vec![],
+        }]
     }
 
     fn has_repository(&self, _: &PackageRepository) -> bool {

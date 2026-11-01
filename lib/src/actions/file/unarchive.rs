@@ -117,19 +117,21 @@ mod tests {
     #[test]
     fn plan_errors_when_privileged_not_supported() {
         use super::FileUnarchive;
-        use crate::actions::file::FileActionConfig;
         use crate::actions::Action;
+        use crate::actions::file::FileActionConfig;
         let action = FileUnarchive {
             from: "/tmp/archive.tar.gz".to_string(),
             to: "/tmp/dest".to_string(),
             force: None,
             config: FileActionConfig { privileged: true },
         };
-        assert!(action
-            .plan(
-                &crate::manifests::Manifest::default(),
-                &crate::contexts::Contexts::default()
-            )
-            .is_err());
+        assert!(
+            action
+                .plan(
+                    &crate::manifests::Manifest::default(),
+                    &crate::contexts::Contexts::default()
+                )
+                .is_err()
+        );
     }
 }

@@ -2,7 +2,7 @@ use crate::actions::Action;
 use crate::atoms::binary::{ArchiveFormat, BinaryExtract, BinaryVerify};
 use crate::atoms::file::Chmod;
 use crate::atoms::http::Download;
-use crate::contexts::{to_tera, Contexts};
+use crate::contexts::{Contexts, to_tera};
 use crate::manifests::Manifest;
 use crate::steps::Step;
 use schemars::JsonSchema;

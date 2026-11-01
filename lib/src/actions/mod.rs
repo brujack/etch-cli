@@ -4,8 +4,8 @@ mod claude;
 mod command;
 mod directory;
 mod file;
-pub use file::link::FileLink;
 pub use file::FileAction;
+pub use file::link::FileLink;
 mod gem;
 mod git;
 mod group;
@@ -585,7 +585,7 @@ pub trait Action {
 
 #[cfg(test)]
 mod tests {
-    use crate::actions::{command::run::RunCommand, Actions};
+    use crate::actions::{Actions, command::run::RunCommand};
     use crate::manifests::Manifest;
 
     #[test]
@@ -965,8 +965,8 @@ actions:
 
     #[test]
     fn variant_new_constructor() {
-        use crate::actions::command::run::RunCommand;
         use crate::actions::Variant;
+        use crate::actions::command::run::RunCommand;
         let action = RunCommand::default();
         let v = Variant::new(action.clone(), Some("true".to_string()));
         assert_eq!(v.condition, Some("true".to_string()));

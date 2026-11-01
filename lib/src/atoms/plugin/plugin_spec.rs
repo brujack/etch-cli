@@ -8,8 +8,8 @@ use std::{
 };
 
 use tealr::{
-    mlu::mlua::{Error as LuaError, FromLua, Function, Lua, Table, Value},
     ToTypename,
+    mlu::mlua::{Error as LuaError, FromLua, Function, Lua, Table, Value},
 };
 
 use crate::utilities::lua::LuaFunction;

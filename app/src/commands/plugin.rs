@@ -7,7 +7,7 @@ use std::{
 use super::EtchCommand;
 use crate::Runtime;
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use clap::{Parser, Subcommand};
 use colored::Colorize;
 use dirs_next::data_local_dir;
@@ -15,7 +15,7 @@ use gix::{
     interrupt::IS_INTERRUPTED,
     open as open_repo,
     progress::Discard,
-    remote::{ref_map::Options as GixOptions, Direction},
+    remote::{Direction, ref_map::Options as GixOptions},
 };
 
 fn plugin_path() -> PathBuf {

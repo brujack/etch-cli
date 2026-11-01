@@ -153,9 +153,11 @@ mod tests {
             state: MacOSServiceState::Loaded,
             privileged: false,
         };
-        assert!(action
-            .plan(&Manifest::default(), &Contexts::default())
-            .is_err());
+        assert!(
+            action
+                .plan(&Manifest::default(), &Contexts::default())
+                .is_err()
+        );
     }
 
     #[test]

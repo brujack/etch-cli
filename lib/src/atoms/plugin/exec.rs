@@ -9,7 +9,7 @@ use tealr::mlu::mlua::{Function, Value as LuaValue};
 use tracing::{debug, error, trace};
 
 use crate::{
-    atoms::{plugin::PluginSpec, Atom, Outcome},
+    atoms::{Atom, Outcome, plugin::PluginSpec},
     utilities::lua::LuaRuntime,
 };
 

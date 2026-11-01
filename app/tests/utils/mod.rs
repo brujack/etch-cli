@@ -1,8 +1,8 @@
 #![allow(dead_code)]
-use assert_cmd::{assert::Assert, Command};
+use assert_cmd::{Command, assert::Assert};
 use std::io::Result;
 use std::{
-    fs::{create_dir, File},
+    fs::{File, create_dir},
     path::Path,
 };
 

@@ -410,9 +410,11 @@ mod tests {
             repository: String::from("no-slash-here"),
             version: None,
         };
-        assert!(action
-            .plan(&Manifest::default(), &Contexts::default())
-            .is_err());
+        assert!(
+            action
+                .plan(&Manifest::default(), &Contexts::default())
+                .is_err()
+        );
     }
 
     #[test]
@@ -484,9 +486,11 @@ mod tests {
             repository: String::from("no-slash-here"),
             version: Some(String::from("v1.5.0")),
         };
-        assert!(action
-            .plan(&Manifest::default(), &Contexts::default())
-            .is_err());
+        assert!(
+            action
+                .plan(&Manifest::default(), &Contexts::default())
+                .is_err()
+        );
     }
 
     #[test]

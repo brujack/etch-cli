@@ -1,6 +1,6 @@
-use super::providers::PackageProviders;
 use super::Package;
 use super::PackageVariant;
+use super::providers::PackageProviders;
 use crate::actions::Action;
 use crate::contexts::Contexts;
 use crate::manifests::Manifest;
@@ -79,9 +79,9 @@ impl Action for PackageInstall {
                     }
                     _ => {
                         return Err(anyhow!(
-                        "Package Provider, {}, isn't capabale of local file installs. Skipping action.",
-                        provider.name()
-                    ));
+                            "Package Provider, {}, isn't capabale of local file installs. Skipping action.",
+                            provider.name()
+                        ));
                     }
                 }
             }
@@ -156,8 +156,8 @@ mod tests {
     #[test]
     fn plan_includes_bootstrap_steps_when_provider_unavailable() {
         use super::PackageInstall;
-        use crate::actions::package::providers::PackageProviders;
         use crate::actions::Action;
+        use crate::actions::package::providers::PackageProviders;
         use crate::contexts::Contexts;
         use crate::manifests::Manifest;
 
@@ -214,8 +214,8 @@ mod tests {
     #[test]
     fn plan_rejects_version_with_list() {
         use super::PackageInstall;
-        use crate::actions::package::providers::PackageProviders;
         use crate::actions::Action;
+        use crate::actions::package::providers::PackageProviders;
         use crate::contexts::Contexts;
         use crate::manifests::Manifest;
 
@@ -237,8 +237,8 @@ mod tests {
     #[test]
     fn plan_rejects_version_with_cask() {
         use super::PackageInstall;
-        use crate::actions::package::providers::PackageProviders;
         use crate::actions::Action;
+        use crate::actions::package::providers::PackageProviders;
         use crate::contexts::Contexts;
         use crate::manifests::Manifest;
 
@@ -262,8 +262,8 @@ mod tests {
     #[test]
     fn plan_errors_for_file_install_with_non_aptitude_provider() {
         use super::PackageInstall;
-        use crate::actions::package::providers::PackageProviders;
         use crate::actions::Action;
+        use crate::actions::package::providers::PackageProviders;
         use crate::contexts::Contexts;
         use crate::manifests::Manifest;
 
