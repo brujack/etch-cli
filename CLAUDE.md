@@ -84,7 +84,8 @@ Read the matching file before the work it covers (paths relative to `~/git-repos
 
 ```bash
 make lint          # cargo fmt --check + cargo clippy --all-targets -D warnings
-make test          # lint, then cargo test
+make test          # lint, test-hooks (bats), cargo nextest, pytest
+make test-hooks    # shellcheck + bats on tests/pre_push.bats (skips locally without them; fails when CI is set)
 make build         # cargo build --release → target/release/etch (macOS aarch64)
 make build-linux   # cargo zigbuild → target/x86_64-unknown-linux-gnu/release/etch
 make install       # build, then copy target/release/etch to ${XDG_BIN_HOME:-$HOME/.local/bin}/etch
@@ -185,7 +186,7 @@ Single workflow `.github/workflows/ci.yml`, triggers on `pull_request` to `main`
 
 | Job            | What it does                                                                                                                                                                                           |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `test`         | `ruff check scripts/ tests/` + `make lint` + `cargo nextest run` + `pytest` with Python coverage ≥90% |
+| `test`         | `ruff check scripts/ tests/` + `make lint` + apt `bats` install + `make test-hooks` + `cargo nextest run` + `pytest` with Python coverage ≥90% |
 | `coverage`     | tarpaulin ≥81% (excluding jsonschemagen) and the coverage badge. Its own job so it runs beside `test`. **Blocking** (in `auto-merge` `needs:`) |
 | `coverage-network` | tarpaulin with `--include-ignored` (network tests). Informational: job-level `continue-on-error: true`, not in `needs:` |
 | `cargo-audit`  | **`cargo deny check advisories licenses bans sources`** (all four checks, cargo-deny 0.20.2) — reads `deny.toml`. **Blocking** (in `auto-merge` `needs:`). Despite the job name it does _not_ run `cargo audit` |
@@ -223,13 +224,13 @@ disagree, trust the `needs:` list.
   40726750135). Read any change to it from CI output, never a local run: `scripts/test_metrics.py`
   has a version-conditional zstd import, so 3.13 and 3.14 cover different lines.
   `tests/test_requirements_sync.py` fails if the floor drops below 90 or drifts from this file.
-- `scripts/pre-push` does not trigger on `scripts/*.py`, `ruff.toml` or `Makefile`. A push
+- `scripts/pre-push` does not trigger on `ruff.toml` or `Makefile`. A push
   touching only those skips the local hook, and CI is the only gate.
 
 > **Note:** `build` job is temporarily disabled — restore when build times improve.
 
 Pre-commit hook: `make lint` + `ggshield secret scan pre-commit`
-Pre-push hook: `make test` (full suite before push reaches GitHub)
+Pre-push hook: `make test` (full suite, including the hook's own bats suite, before push reaches GitHub). Pushes to main are also judged by ai-config's shared push-content gate (ADR-0091), loaded from GitHub and refused when it cannot load.
 
 ## cargo semver-checks
 

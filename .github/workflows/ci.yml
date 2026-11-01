@@ -60,6 +60,10 @@ jobs:
           tar -xJf /tmp/sc.tar.xz -C /tmp
           sudo install -m755 "/tmp/shellcheck-v${SC_VER}/shellcheck" /usr/local/bin/shellcheck
           shellcheck --version | grep -q "version: ${SC_VER}"
+      - name: Install bats
+        run: sudo apt-get install -y bats
+      - name: Run hook tests
+        run: make test-hooks
       - name: Run tests
         run: make lint && cargo nextest run --profile ci
       - name: Run Python tests

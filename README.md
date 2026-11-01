@@ -392,7 +392,7 @@ sudo env DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true NEEDRES
 ## Development
 
 ```shell
-make test     # lint + test
+make test     # lint, test-hooks (bats), cargo nextest, pytest
 make lint     # cargo clippy -D warnings
 make build    # cargo build --release
 make install  # build, then copy the binary to ${XDG_BIN_HOME:-$HOME/.local/bin}/etch
@@ -430,6 +430,8 @@ Prerequisites:
   (`make test` runs `pytest tests/ -v`). Without these on PATH, `make lint`, `make test`,
   and the pre-push hook all fail. The file is a hash-verified rendering of the shared
   dev-venv package set, kept byte-identical to its source in dotfiles
+- `bats` and `shellcheck` are needed for `make test-hooks` (part of `make test`): it skips locally
+  with a printed remedy when either is missing, and fails in CI.
 
 ## Verifying releases
 
