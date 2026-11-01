@@ -544,4 +544,37 @@ mod test {
             "NEEDRESTART_MODE must be a"
         );
     }
+
+    /// Writes a `dpkg-query` mock that prints `stdout` and exits with `code`.
+    fn write_mock_dpkg_query(dir: &std::path::Path, stdout: &str, code: i32) {
+        use std::os::unix::fs::PermissionsExt;
+        let path = dir.join("dpkg-query");
+        std::fs::write(
+            &path,
+            format!("#!/bin/sh\nprintf '%s' '{stdout}'\nexit {code}\n"),
+        )
+        .unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn installed_version_reads_dpkg_query_output() {
+        let dir = tempfile::tempdir().unwrap();
+        write_mock_dpkg_query(dir.path(), "1.2.3-1ubuntu1", 0);
+        let _path = crate::test_helpers::EnvGuard::prepend_path(dir.path());
+        let version = Aptitude {}.installed_version("curl").unwrap();
+        assert_eq!(version.as_deref(), Some("1.2.3-1ubuntu1"));
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn installed_version_is_none_when_not_installed_or_empty() {
+        let dir = tempfile::tempdir().unwrap();
+        let _path = crate::test_helpers::EnvGuard::prepend_path(dir.path());
+        write_mock_dpkg_query(dir.path(), "", 1);
+        assert_eq!(Aptitude {}.installed_version("absent").unwrap(), None);
+        write_mock_dpkg_query(dir.path(), "", 0);
+        assert_eq!(Aptitude {}.installed_version("absent").unwrap(), None);
+    }
 }
