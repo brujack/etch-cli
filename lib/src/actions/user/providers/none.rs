@@ -1,5 +1,5 @@
 use super::UserProvider;
-use crate::actions::user::{add_group::UserAddGroup, UserVariant};
+use crate::actions::user::{UserVariant, add_group::UserAddGroup};
 use crate::contexts::Contexts;
 use crate::steps::Step;
 use serde::{Deserialize, Serialize};
@@ -27,7 +27,7 @@ impl UserProvider for NoneUserProvider {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::actions::user::{add_group::UserAddGroup, UserVariant};
+    use crate::actions::user::{UserVariant, add_group::UserAddGroup};
     use crate::config::Config;
     use crate::contexts::build_contexts;
 

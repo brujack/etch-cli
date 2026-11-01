@@ -73,9 +73,11 @@ mod tests {
             shell: String::new(),
             username: None,
         };
-        assert!(action
-            .plan(&Manifest::default(), &Contexts::default())
-            .is_err());
+        assert!(
+            action
+                .plan(&Manifest::default(), &Contexts::default())
+                .is_err()
+        );
     }
 
     #[test]

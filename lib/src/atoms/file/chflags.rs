@@ -153,10 +153,12 @@ mod tests {
         let flags = vec!["badname".to_string()];
         let result = compute_desired(0, &flags);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("unknown flag: badname"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("unknown flag: badname")
+        );
     }
 
     #[test]

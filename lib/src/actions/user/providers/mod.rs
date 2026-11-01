@@ -1,7 +1,7 @@
 use crate::steps::Step;
 mod none;
 use self::none::NoneUserProvider;
-use super::{add_group::UserAddGroup, UserVariant};
+use super::{UserVariant, add_group::UserAddGroup};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 mod linux;

@@ -239,8 +239,8 @@ mod tests {
     }
 
     fn make_tar_gz(dir: &std::path::Path, entry_name: &str, content: &[u8]) -> PathBuf {
-        use flate2::write::GzEncoder;
         use flate2::Compression;
+        use flate2::write::GzEncoder;
         use std::fs::File;
         let path = dir.join("test.tar.gz");
         let file = File::create(&path).unwrap();

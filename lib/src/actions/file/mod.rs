@@ -9,10 +9,10 @@ pub mod unarchive;
 
 use crate::actions::Action;
 use crate::manifests::Manifest;
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use normpath::PathExt;
 use schemars::JsonSchema;
-use serde::{de::Error, Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, de::Error};
 use std::path::PathBuf;
 
 #[derive(JsonSchema, Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]

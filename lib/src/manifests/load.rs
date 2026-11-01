@@ -1,6 +1,6 @@
 use super::Manifest;
 use crate::{
-    contexts::{to_tera, Contexts},
+    contexts::{Contexts, to_tera},
     manifests::get_manifest_name,
     tera_functions::register_functions,
 };

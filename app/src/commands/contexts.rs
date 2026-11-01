@@ -1,7 +1,7 @@
 use super::EtchCommand;
 use crate::Runtime;
 use colored::Colorize;
-use comfy_table::{presets::NOTHING, Attribute, Cell, ContentArrangement, Table};
+use comfy_table::{Attribute, Cell, ContentArrangement, Table, presets::NOTHING};
 
 use clap::Parser;
 

@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
 use anyhow::Result;
+use hickory_resolver::Resolver;
 use hickory_resolver::config::ResolverConfig;
 use hickory_resolver::net::runtime::TokioRuntimeProvider;
 use hickory_resolver::proto::rr::{RData, Record};
-use hickory_resolver::Resolver;
 use reqwest::Url;
 use tokio::runtime::Runtime;
 
@@ -61,8 +61,8 @@ mod tests {
         assert_eq!(err.to_string(), "Failed to parse host");
         assert!(contexts.is_empty());
     }
-    use hickory_resolver::proto::rr::rdata::{CNAME, TXT};
     use hickory_resolver::proto::rr::Name;
+    use hickory_resolver::proto::rr::rdata::{CNAME, TXT};
     use std::str::FromStr;
 
     fn record(rdata: RData) -> Record {

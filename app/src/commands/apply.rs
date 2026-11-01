@@ -4,10 +4,10 @@ use chrono::Utc;
 use clap::Parser;
 use core::panic;
 use etch_lib::contexts::to_rhai;
-use etch_lib::manifests::{load, Manifest};
+use etch_lib::manifests::{Manifest, load};
 use etch_lib::state::{StateEntry, StateStore};
 use indexmap::IndexSet;
-use petgraph::{visit::DfsPostOrder, Graph};
+use petgraph::{Graph, visit::DfsPostOrder};
 use rhai::Engine;
 use std::path::PathBuf;
 use std::{collections::HashMap, ops::Deref};
@@ -58,7 +58,7 @@ impl Apply {
             None => {
                 return Err(anyhow::anyhow!(
                     "Manifest location, {first_manifest_path:?}, could be resolved"
-                ))
+                ));
             }
         };
 
@@ -443,9 +443,9 @@ fn record_state(dry_run: bool, state_entries: Vec<StateEntry>) {
 #[cfg(test)]
 mod tests {
     use super::Apply;
+    use crate::Runtime;
     use crate::commands::EtchCommand;
     use crate::config::{Config, GlobalArgs};
-    use crate::Runtime;
     use etch_lib::contexts::build_contexts;
     use std::path::Path;
     use tempfile::tempdir;

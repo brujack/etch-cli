@@ -92,8 +92,8 @@ mod tests {
     #[test]
     fn plan_returns_chmod_step() {
         use super::FileChmod;
-        use crate::actions::file::FileActionConfig;
         use crate::actions::Action;
+        use crate::actions::file::FileActionConfig;
         let action = FileChmod {
             path: String::from("/tmp/testdir"),
             mode: String::from("700"),
@@ -112,8 +112,8 @@ mod tests {
     #[test]
     fn plan_errors_on_invalid_mode() {
         use super::FileChmod;
-        use crate::actions::file::FileActionConfig;
         use crate::actions::Action;
+        use crate::actions::file::FileActionConfig;
         let action = FileChmod {
             path: String::from("/tmp/testdir"),
             mode: String::from("xyz"),
@@ -132,8 +132,8 @@ mod tests {
     #[test]
     fn plan_accepts_0o_prefixed_mode() {
         use super::FileChmod;
-        use crate::actions::file::FileActionConfig;
         use crate::actions::Action;
+        use crate::actions::file::FileActionConfig;
         let action = FileChmod {
             path: String::from("/tmp/testdir"),
             mode: String::from("0o700"),
@@ -152,8 +152,8 @@ mod tests {
     #[test]
     fn plan_returns_exec_step_when_privileged() {
         use super::FileChmod;
-        use crate::actions::file::FileActionConfig;
         use crate::actions::Action;
+        use crate::actions::file::FileActionConfig;
         let action = FileChmod {
             path: String::from("/tmp/testdir"),
             mode: String::from("700"),
@@ -172,8 +172,8 @@ mod tests {
     #[test]
     fn summarize_includes_path_and_mode() {
         use super::FileChmod;
-        use crate::actions::file::FileActionConfig;
         use crate::actions::Action;
+        use crate::actions::file::FileActionConfig;
         let action = FileChmod {
             path: String::from("/tmp/testdir"),
             mode: String::from("755"),

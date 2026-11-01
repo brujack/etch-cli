@@ -49,11 +49,7 @@ mod tests {
                 .find(|(_, n)| *n == name)
                 .unwrap_or_else(|| panic!("chflags rejects {word:?}"))
                 .0;
-            if clear {
-                acc & !bit
-            } else {
-                acc | bit
-            }
+            if clear { acc & !bit } else { acc | bit }
         })
     }
 

@@ -1,5 +1,5 @@
-use super::{default_chmod, from_octal};
 use super::{FileAction, FileActionConfig};
+use super::{default_chmod, from_octal};
 use crate::atoms::file::Chown;
 use crate::manifests::Manifest;
 use crate::steps::Step;
@@ -115,9 +115,9 @@ impl Action for FileDownload {
 
 #[cfg(test)]
 mod tests {
-    use crate::actions::file::download::FileDownload;
     use crate::actions::Action;
     use crate::actions::Actions;
+    use crate::actions::file::download::FileDownload;
 
     #[test]
     fn it_can_be_deserialized() {
@@ -186,19 +186,21 @@ mod tests {
     #[test]
     fn plan_errors_when_privileged_not_supported() {
         use super::FileDownload;
-        use crate::actions::file::FileActionConfig;
         use crate::actions::Action;
+        use crate::actions::file::FileActionConfig;
         let action = FileDownload {
             from: "https://example.com/file".to_string(),
             to: "/tmp/file".to_string(),
             config: FileActionConfig { privileged: true },
             ..Default::default()
         };
-        assert!(action
-            .plan(
-                &crate::manifests::Manifest::default(),
-                &crate::contexts::Contexts::default()
-            )
-            .is_err());
+        assert!(
+            action
+                .plan(
+                    &crate::manifests::Manifest::default(),
+                    &crate::contexts::Contexts::default()
+                )
+                .is_err()
+        );
     }
 }

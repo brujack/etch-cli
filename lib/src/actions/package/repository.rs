@@ -126,8 +126,8 @@ mod tests {
     #[test]
     fn plan_includes_bootstrap_steps_when_provider_unavailable() {
         use super::PackageRepository;
-        use crate::actions::package::providers::PackageProviders;
         use crate::actions::Action;
+        use crate::actions::package::providers::PackageProviders;
         use crate::contexts::Contexts;
         use crate::manifests::Manifest;
 
@@ -149,8 +149,8 @@ mod tests {
     #[test]
     fn plan_with_available_provider_adds_repository() {
         use super::PackageRepository;
-        use crate::actions::package::providers::PackageProviders;
         use crate::actions::Action;
+        use crate::actions::package::providers::PackageProviders;
         use crate::contexts::Contexts;
         use crate::manifests::Manifest;
 

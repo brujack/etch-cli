@@ -70,9 +70,11 @@ mod tests {
             directory: String::from("/tmp/repo"),
             skip_if_not_exists: None,
         };
-        assert!(action
-            .plan(&Manifest::default(), &Contexts::default())
-            .is_err());
+        assert!(
+            action
+                .plan(&Manifest::default(), &Contexts::default())
+                .is_err()
+        );
     }
 
     #[test]

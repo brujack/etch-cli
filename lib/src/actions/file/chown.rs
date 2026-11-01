@@ -179,8 +179,8 @@ mod tests {
     #[test]
     fn plan_returns_exec_step_when_privileged() {
         use super::FileChown;
-        use crate::actions::file::FileActionConfig;
         use crate::actions::Action;
+        use crate::actions::file::FileActionConfig;
         let action = FileChown {
             path: String::from("/tmp/file"),
             user: Some(String::from("root")),
@@ -209,8 +209,8 @@ mod tests {
     #[test]
     fn plan_privileged_group_only() {
         use super::FileChown;
-        use crate::actions::file::FileActionConfig;
         use crate::actions::Action;
+        use crate::actions::file::FileActionConfig;
         let action = FileChown {
             path: String::from("/tmp/file"),
             user: None,

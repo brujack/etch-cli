@@ -442,7 +442,7 @@ mod tests {
     #[test]
     #[serial]
     fn plan_recreate_true_skips_when_version_matches() {
-        use std::os::unix::fs::{symlink, PermissionsExt};
+        use std::os::unix::fs::{PermissionsExt, symlink};
         let tmp = tempfile::tempdir().unwrap();
 
         let fake_pyenv = tmp.path().join("pyenv");
@@ -484,7 +484,7 @@ mod tests {
     #[test]
     #[serial]
     fn plan_recreate_true_recreates_when_version_differs() {
-        use std::os::unix::fs::{symlink, PermissionsExt};
+        use std::os::unix::fs::{PermissionsExt, symlink};
         let tmp = tempfile::tempdir().unwrap();
 
         let fake_pyenv = tmp.path().join("pyenv");

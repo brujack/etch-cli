@@ -1,7 +1,7 @@
 use super::super::Atom;
 use crate::atoms::Outcome;
 use gix::interrupt;
-use gix::{progress::Discard, Url};
+use gix::{Url, progress::Discard};
 use std::path::PathBuf;
 use tracing::instrument;
 

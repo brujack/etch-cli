@@ -2,7 +2,7 @@ use crate::commands;
 use clap::{Parser, Subcommand};
 use std::error::Error;
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 pub use etch_lib::config::Config;
 use std::{
     path::{Path, PathBuf},
@@ -247,7 +247,7 @@ fn find_configs(args: &GlobalArgs) -> Option<PathBuf> {
 
 #[cfg(test)]
 mod tests {
-    use crate::config::{lib_config, GlobalArgs};
+    use crate::config::{GlobalArgs, lib_config};
     use std::path::PathBuf;
 
     fn get_config_file() -> PathBuf {

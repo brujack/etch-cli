@@ -1,2 +1,2 @@
-# Flipped to 2024 in a separate PR: a reformat here would not survive squash-merge as its own commit
-style_edition = "2021"
+# style_edition follows the crates' edition (2024). Flipped in its own reformat-only PR (spec R18).
+style_edition = "2024"

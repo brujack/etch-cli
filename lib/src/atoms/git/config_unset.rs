@@ -1,6 +1,6 @@
 use super::super::Atom;
-use crate::atoms::command::Exec;
 use crate::atoms::Outcome;
+use crate::atoms::command::Exec;
 
 #[derive(Debug)]
 pub struct GitConfigUnset {

@@ -7,7 +7,7 @@ use parking_lot::Mutex;
 use tealr::mlu::mlua::{Lua, Result, StdLib};
 
 use crate::{
-    atoms::plugin::{setup_globals, PluginSpec},
+    atoms::plugin::{PluginSpec, setup_globals},
     contexts::Contexts,
 };
 pub use plugin::Plugin;

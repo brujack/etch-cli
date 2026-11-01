@@ -2,7 +2,7 @@ use super::UserProvider;
 use crate::contexts::Contexts;
 use crate::steps::Step;
 use crate::{
-    actions::user::add_group::UserAddGroup, actions::user::UserVariant, atoms::command::Exec,
+    actions::user::UserVariant, actions::user::add_group::UserAddGroup, atoms::command::Exec,
     utilities,
 };
 use serde::{Deserialize, Serialize};
@@ -129,7 +129,7 @@ impl UserProvider for LinuxUserProvider {
 #[cfg(test)]
 mod test {
     use crate::actions::user::providers::{LinuxUserProvider, UserProvider};
-    use crate::actions::user::{add_group::UserAddGroup, UserVariant};
+    use crate::actions::user::{UserVariant, add_group::UserAddGroup};
     use crate::contexts::Contexts;
     use crate::test_helpers::EnvGuard;
     use serial_test::serial;

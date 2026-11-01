@@ -1,4 +1,4 @@
-use super::{check_version, PackageProvider, VersionCheck};
+use super::{PackageProvider, VersionCheck, check_version};
 use crate::actions::package::repository::PackageRepository;
 use crate::contexts::Contexts;
 use crate::steps::Step;

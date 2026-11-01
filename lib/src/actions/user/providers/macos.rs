@@ -1,5 +1,5 @@
 use super::UserProvider;
-use crate::actions::user::{add_group::UserAddGroup, UserVariant};
+use crate::actions::user::{UserVariant, add_group::UserAddGroup};
 use crate::atoms::command::Exec;
 use crate::contexts::Contexts;
 use crate::steps::Step;
@@ -135,7 +135,7 @@ impl UserProvider for MacOSUserProvider {
 #[cfg(test)]
 mod test {
     use crate::actions::user::providers::{MacOSUserProvider, UserProvider};
-    use crate::actions::user::{add_group::UserAddGroup, UserVariant};
+    use crate::actions::user::{UserVariant, add_group::UserAddGroup};
     use crate::contexts::Contexts;
     use crate::test_helpers::EnvGuard;
     use serial_test::serial;

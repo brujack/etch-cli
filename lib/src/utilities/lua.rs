@@ -7,15 +7,15 @@ use std::{
 use anyhow::Result;
 use serde_json::Value as JsonValue;
 use tealr::{
-    mlu::{
-        mlua::{Error as LuaError, Function, Lua, Value as LuaValue},
-        FromToLua,
-    },
     ToTypename,
+    mlu::{
+        FromToLua,
+        mlua::{Error as LuaError, Function, Lua, Value as LuaValue},
+    },
 };
 use tracing::error;
 
-use schemars::{json_schema, JsonSchema, Schema, SchemaGenerator};
+use schemars::{JsonSchema, Schema, SchemaGenerator, json_schema};
 
 // Used in tests and reserved for Lua→JSON roundtrip once plugin output is wired up.
 #[allow(dead_code)]

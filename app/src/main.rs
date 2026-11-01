@@ -1,13 +1,13 @@
 use crate::commands::EtchCommand;
 use crate::config::{Commands, GlobalArgs};
 
-use etch_lib::contexts::build_contexts;
 use etch_lib::contexts::Contexts;
+use etch_lib::contexts::build_contexts;
 use etch_lib::manifests;
 
 use clap::Parser;
 use tracing::error;
-use tracing_subscriber::{filter::LevelFilter, layer::SubscriberExt, Layer, Registry};
+use tracing_subscriber::{Layer, Registry, filter::LevelFilter, layer::SubscriberExt};
 
 mod commands;
 mod config;
@@ -96,7 +96,7 @@ fn main() -> anyhow::Result<()> {
 
 fn check_for_updates(no_color: bool) {
     use colored::*;
-    use update_informer::{registry, Check};
+    use update_informer::{Check, registry};
 
     if no_color {
         control::set_override(false);

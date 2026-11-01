@@ -1,5 +1,5 @@
-use crate::atoms::atomic_write::write_atomically;
 use crate::atoms::Outcome;
+use crate::atoms::atomic_write::write_atomically;
 
 use super::super::Atom;
 use std::io::Write;
@@ -128,7 +128,9 @@ mod tests {
         let to_file = tmpdir.path().join("download");
 
         let mut atom = Download {
-            url: String::from("https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png"),
+            url: String::from(
+                "https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png",
+            ),
             to: to_file,
         };
 

@@ -1,5 +1,5 @@
-use super::{default_chmod, from_octal};
 use super::{FileAction, FileActionConfig};
+use super::{default_chmod, from_octal};
 #[cfg(unix)]
 use crate::atoms::file::Chown;
 use crate::atoms::file::Decrypt;
@@ -514,9 +514,10 @@ mod tests {
         let contexts = crate::test_helpers::make_contexts();
         let result = action.plan(&manifest, &contexts);
         match result {
-            Err(e) => assert!(e
-                .to_string()
-                .contains("Failed to render contents for FileCopy action")),
+            Err(e) => assert!(
+                e.to_string()
+                    .contains("Failed to render contents for FileCopy action")
+            ),
             Ok(_) => panic!("expected plan to fail on invalid template"),
         }
     }
@@ -542,8 +543,8 @@ mod tests {
     #[test]
     fn plan_returns_exec_steps_when_privileged_no_template() {
         use super::FileCopy;
-        use crate::actions::file::FileActionConfig;
         use crate::actions::Action;
+        use crate::actions::file::FileActionConfig;
 
         let tmp = tempfile::tempdir().unwrap();
         let real_tmp = tmp.path().canonicalize().unwrap();
@@ -574,8 +575,8 @@ mod tests {
     #[test]
     fn plan_returns_setcontents_then_exec_when_privileged_template() {
         use super::FileCopy;
-        use crate::actions::file::FileActionConfig;
         use crate::actions::Action;
+        use crate::actions::file::FileActionConfig;
 
         let tmp = tempfile::tempdir().unwrap();
         let real_tmp = tmp.path().canonicalize().unwrap();
@@ -607,8 +608,8 @@ mod tests {
     #[test]
     fn plan_privileged_with_passphrase_uses_decrypt_step() {
         use super::FileCopy;
-        use crate::actions::file::FileActionConfig;
         use crate::actions::Action;
+        use crate::actions::file::FileActionConfig;
 
         let tmp = tempfile::tempdir().unwrap();
         let real_tmp = tmp.path().canonicalize().unwrap();
@@ -641,8 +642,8 @@ mod tests {
     #[test]
     fn plan_privileged_with_owner_adds_chown_step() {
         use super::FileCopy;
-        use crate::actions::file::FileActionConfig;
         use crate::actions::Action;
+        use crate::actions::file::FileActionConfig;
 
         let tmp = tempfile::tempdir().unwrap();
         let real_tmp = tmp.path().canonicalize().unwrap();

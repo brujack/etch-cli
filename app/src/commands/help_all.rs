@@ -1,6 +1,6 @@
 use super::EtchCommand;
-use crate::config::GlobalArgs;
 use crate::Runtime;
+use crate::config::GlobalArgs;
 
 use clap::{CommandFactory, Parser};
 

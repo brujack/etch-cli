@@ -93,17 +93,19 @@ mod tests {
     #[test]
     fn plan_errors_when_privileged_not_supported() {
         use super::FileRemove;
-        use crate::actions::file::FileActionConfig;
         use crate::actions::Action;
+        use crate::actions::file::FileActionConfig;
         let action = FileRemove {
             target: String::from("/tmp/somefile"),
             config: FileActionConfig { privileged: true },
         };
-        assert!(action
-            .plan(
-                &crate::manifests::Manifest::default(),
-                &crate::contexts::Contexts::default()
-            )
-            .is_err());
+        assert!(
+            action
+                .plan(
+                    &crate::manifests::Manifest::default(),
+                    &crate::contexts::Contexts::default()
+                )
+                .is_err()
+        );
     }
 }
