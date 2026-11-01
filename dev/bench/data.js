@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1790822296222,
+  "lastUpdate": 1793499559459,
   "repoUrl": "https://github.com/brujack/etch-cli",
   "entries": {
     "Benchmark": [
@@ -91,6 +91,52 @@ window.BENCHMARK_DATA = {
             "name": "file_link_resolve/nested_path",
             "value": 2286,
             "range": "± 53",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "Bruce Jackson",
+            "username": "brujack",
+            "email": "bjackson@pobox.com"
+          },
+          "committer": {
+            "name": "Bruce Jackson",
+            "username": "brujack",
+            "email": "bjackson@pobox.com"
+          },
+          "id": "cf97daec04f964089f19e0096cf6159766c94430",
+          "message": "docs(plan): close Rust standards and edition 2024\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01RMRWKKn1ZnoEgzb3hX8ewo",
+          "timestamp": "2026-11-01T00:51:10Z",
+          "url": "https://github.com/brujack/etch-cli/commit/cf97daec04f964089f19e0096cf6159766c94430"
+        },
+        "date": 1793499558432,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "manifest_yaml",
+            "value": 12457,
+            "range": "± 70",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "manifest_toml",
+            "value": 913,
+            "range": "± 2",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "file_link_resolve/single_dotfile",
+            "value": 2980,
+            "range": "± 16",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "file_link_resolve/nested_path",
+            "value": 4567,
+            "range": "± 36",
             "unit": "ns/iter"
           }
         ]
