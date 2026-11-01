@@ -1,4 +1,4 @@
-.PHONY: all test lint build build-linux install install-hooks mutants bench fuzz fuzz-manifest fuzz-path semver validate-plan docs-debt schema
+.PHONY: all test test-hooks lint build build-linux install install-hooks mutants bench fuzz fuzz-manifest fuzz-path semver validate-plan docs-debt schema
 
 # Derived from the tracked set (git ls-files), not a hand-maintained list --
 # an omitted file would leave a hand-list's coverage unchanged rather than
@@ -12,9 +12,25 @@ SHELL_FILES := $(shell env -u GIT_DIR -u GIT_WORK_TREE -u GIT_COMMON_DIR -u GIT_
 
 all: test build
 
-test: lint
+test: lint test-hooks
 	cargo nextest run
 	pytest tests/ -v
+
+# Hook tests: shellcheck, then bats. scripts/pre-push is already covered by
+# `make lint`. A missing tool degrades locally (remedy printed, skipped, exit 0) so
+# it cannot lock a machine out of committing (core.md shell-004), but fails when CI
+# is set so CI cannot skip silently.
+test-hooks:
+	@missing=""; \
+	command -v shellcheck >/dev/null 2>&1 || missing="shellcheck (install: sudo apt-get install shellcheck; CI pins shellcheck 0.11.0; apt may differ)"; \
+	command -v bats >/dev/null 2>&1 || missing="$${missing:+$$missing; }bats (install: sudo apt-get install bats)"; \
+	if [ -n "$$missing" ]; then \
+		printf 'test-hooks: %s not found, skipping\n' "$$missing" >&2; \
+		if [ -n "$${CI:-}" ]; then exit 1; fi; \
+		exit 0; \
+	fi; \
+	shellcheck --severity=warning tests/pre_push.bats && \
+	bats tests/pre_push.bats < /dev/null
 
 lint:
 	cargo fmt --all -- --check
