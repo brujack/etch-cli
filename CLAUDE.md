@@ -223,13 +223,13 @@ disagree, trust the `needs:` list.
   40726750135). Read any change to it from CI output, never a local run: `scripts/test_metrics.py`
   has a version-conditional zstd import, so 3.13 and 3.14 cover different lines.
   `tests/test_requirements_sync.py` fails if the floor drops below 90 or drifts from this file.
-- `scripts/pre-push` does not trigger on `scripts/*.py`, `ruff.toml` or `Makefile`. A push
+- `scripts/pre-push` does not trigger on `ruff.toml` or `Makefile`. A push
   touching only those skips the local hook, and CI is the only gate.
 
 > **Note:** `build` job is temporarily disabled — restore when build times improve.
 
 Pre-commit hook: `make lint` + `ggshield secret scan pre-commit`
-Pre-push hook: `make test` (full suite before push reaches GitHub)
+Pre-push hook: `make test` (full suite, including the hook's own bats suite, before push reaches GitHub). Pushes to main are also judged by ai-config's shared push-content gate (ADR-0091), loaded from GitHub and refused when it cannot load.
 
 ## cargo semver-checks
 
