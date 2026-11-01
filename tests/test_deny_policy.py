@@ -74,7 +74,9 @@ def test_cargo_deny_missing_skips_locally(monkeypatch):
 
 
 def test_one_ignore_list_no_workflow_has_its_own() -> None:
-    """deny.toml is the only advisory ignore list; no workflow may carry one."""
+    """deny.toml is the only advisory ignore list. cargo-deny has no --ignore
+    flag; this stops a re-added `cargo audit --ignore RUSTSEC-...` from
+    becoming a second list."""
     files = sorted((REPO / ".github/workflows").glob("*.y*ml"))
     assert files
     offenders = [f.name for f in files if "--ignore RUSTSEC" in f.read_text()]
@@ -89,3 +91,41 @@ def test_advisories_cover_transitive_crates() -> None:
         advisories = tomllib.load(handle)["advisories"]
     assert advisories.get("unsound") == "all"
     assert advisories.get("unmaintained") == "all"
+
+
+# Every cargo-deny call in the workflows, exactly. Dropping a check from the
+# blocking line, or adding -A/--allow, --exclude* or -t, narrows the run while
+# the fixtures and deny.toml stay green.
+DENY_CALLS = {
+    "ci.yml": ["cargo deny check advisories licenses bans sources"],
+    "cargo-deny-scheduled.yml": ["cargo deny check advisories"],
+}
+
+
+def test_workflow_cargo_deny_calls_are_pinned() -> None:
+    found = {}
+    for f in sorted((REPO / ".github/workflows").glob("*.y*ml")):
+        calls = [
+            line.strip().removeprefix("run:").strip()
+            for line in f.read_text().splitlines()
+            if "cargo deny" in line and not line.strip().startswith(("#", "- name:"))
+        ]
+        if calls:
+            found[f.name] = calls
+    assert found == DENY_CALLS
+
+
+def test_licence_overrides_are_pinned() -> None:
+    """A [[licenses.clarify]] or [licenses].exceptions entry can relabel a GPL
+    crate as permissive, and the GPL/MIT fixtures cannot see it."""
+    with (REPO / "deny.toml").open("rb") as handle:
+        licenses = tomllib.load(handle)["licenses"]
+    assert licenses.get("exceptions") == []
+    assert licenses.get("clarify") == [
+        {
+            "name": "ring",
+            "version": "*",
+            "expression": "MIT AND ISC AND OpenSSL",
+            "license-files": [{"path": "LICENSE", "hash": 0xBD0EED23}],
+        }
+    ]
