@@ -1,5 +1,7 @@
 # Shared Push-Content Gate — PR4 (etch-cli) Implementation Plan
 
+> **Status: DONE** — merged as #160 (`3a01183`). V1 on 2026-10-31 used the installed pre-push hook against a local bare remote: code to main was refused `[file rule R2]`, docs to main was permitted, a feature push was permitted.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Spec:** ai-config `docs/superpowers/specs/2026-10-30-shared-push-content-gate-design.md`. The spec is cross-repo, so this plan has no `spec:` line. R13, as amended on 2026-10-31, is copied below. Spec alignment records SKIP for this PR (operator decision, 2026-10-31).

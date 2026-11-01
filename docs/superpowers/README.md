@@ -92,6 +92,7 @@ Master status index for all specs and implementation plans in this directory.
 | 2026-07-16 | [release-sbom-monitor](plans/2026-07-16-release-sbom-monitor.md)                           | [spec](https://github.com/brujack/ai-config/blob/master/docs/superpowers/specs/2026-07-16-release-sbom-vuln-monitoring-design.md) | Done   |
 | 2026-08-22 | [gix-bump](plans/2026-08-22-gix-bump.md)                                                   | [gix-bump](specs/2026-08-22-gix-bump-design.md)                                                                                  | Done   |
 | 2026-10-27 | [ci-release-hardening](plans/2026-10-27-ci-release-hardening.md) | [ci-release-hardening](specs/2026-10-27-ci-release-hardening-design.md) | Done |
+| 2026-10-31 | [shared-push-content-gate](plans/2026-10-31-shared-push-content-gate.md) | ai-config `2026-10-30-shared-push-content-gate-design.md` (cross-repo) | Done |
 
 ---
 
