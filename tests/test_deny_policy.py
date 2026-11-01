@@ -6,6 +6,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
+import tomllib
 
 REPO = Path(__file__).resolve().parent.parent
 FIXTURES = REPO / "tests/fixtures/deny"
@@ -78,3 +79,13 @@ def test_one_ignore_list_no_workflow_has_its_own() -> None:
     assert files
     offenders = [f.name for f in files if "--ignore RUSTSEC" in f.read_text()]
     assert offenders == []
+
+
+def test_advisories_cover_transitive_crates() -> None:
+    """cargo-deny 0.20.2 defaults `unsound` to "workspace", which hid
+    RUSTSEC-2026-0306 and -0205 (etch-cli#159). The fixtures cannot see this
+    setting, so pin both scope keys explicitly."""
+    with (REPO / "deny.toml").open("rb") as handle:
+        advisories = tomllib.load(handle)["advisories"]
+    assert advisories.get("unsound") == "all"
+    assert advisories.get("unmaintained") == "all"
