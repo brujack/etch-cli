@@ -242,7 +242,7 @@ Adding a new variant to the `Actions` enum always triggers an `enum_variant_adde
 
 ## Advisory Triage
 
-There is one advisory ignore list: `deny.toml`'s `[advisories].ignore`. Both the blocking `cargo-audit` job and the weekly `cargo-deny-scheduled.yml` read it, so triage a new advisory there once. `unsound` and `unmaintained` are set to `"all"`: cargo-deny's `unsound` default of `"workspace"` drops advisories in transitive crates, which hid RUSTSEC-2026-0306 and RUSTSEC-2026-0205. Raw `cargo audit` is no longer run in CI. A workflow `--ignore RUSTSEC` flag fails `tests/test_deny_policy.py`, which also checks that a GPL fixture is rejected and an MIT fixture accepted.
+There is one advisory ignore list: `deny.toml`'s `[advisories].ignore`. Both the blocking `cargo-audit` job and the weekly `cargo-deny-scheduled.yml` read it, so triage a new advisory there once. `unsound` and `unmaintained` are set to `"all"`: cargo-deny's `unsound` default of `"workspace"` drops advisories in transitive crates, which hid RUSTSEC-2026-0306 and RUSTSEC-2026-0205. Raw `cargo audit` is no longer run in CI. A workflow `--ignore RUSTSEC` flag, or `unsound`/`unmaintained` set to anything but `"all"`, fails `tests/test_deny_policy.py`, which also checks that a GPL fixture is rejected and an MIT fixture accepted.
 
 ## Branch Workflow
 
