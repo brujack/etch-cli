@@ -3,14 +3,6 @@
 # Permanent: provides fast local feedback and conserves GitHub Actions minutes.
 # It also judges every push to master or main with ai-config's shared
 # push-content gate (ADR-0091), loaded by the wiring block below.
-# The next directive is FILE-WIDE (it precedes the first command), so it covers the
-# whole hook, not only the wiring block. This repo's .shellcheckrc sets enable=all;
-# the wiring block must stay byte-identical to ai-config's template, so its
-# SC2249 (case without default), SC2310 and SC2311 (set -e disabled inside a
-# condition or substitution) info findings are suppressed here instead. All three
-# are deliberate in the block: its case arms fall through on purpose and its
-# fetch/source chain is meant to run under || and &&.
-# shellcheck disable=SC2249,SC2310,SC2311
 set -e
 
 # >>> push-content-gate wiring
@@ -18,7 +10,7 @@ set -e
 _pcg_fetch() { # <api path>; prints the raw file. curl reads no user-writable configuration; the token comes from gh's own store.
   local tok ca
   tok="$(gh auth token 2>/dev/null)" || return 1
-  case "${tok}" in '' | *[!A-Za-z0-9_]*) return 1 ;; esac
+  case "${tok}" in '' | *[!A-Za-z0-9_]*) return 1 ;; *) ;; esac
   for ca in /etc/ssl/certs/ca-certificates.crt /etc/ssl/cert.pem ''; do [[ -r "${ca}" ]] && break; done
   [[ -n "${ca}" ]] || return 1
   printf 'header = "Authorization: Bearer %s"\n' "${tok}" \
@@ -30,10 +22,10 @@ _pcg_fetch() { # <api path>; prints the raw file. curl reads no user-writable co
 _pcg_refs="$(</dev/stdin)" || { printf 'pre-push: cannot read the pushed refs\n' >&2; exit 1; }
 _pcg_hit=1
 while read -r _ _ _pcg_rref _; do
-  case "${_pcg_rref}" in refs/heads/master | refs/heads/main) _pcg_hit=0 ;; esac
+  case "${_pcg_rref}" in refs/heads/master | refs/heads/main) _pcg_hit=0 ;; *) ;; esac
 done <<< "${_pcg_refs}"
 if [[ "${_pcg_hit}" -eq 0 ]]; then
-  # shellcheck disable=SC1090 # the library is fetched at runtime; there is no file to follow
+  # shellcheck disable=SC1090,SC2310,SC2311 # the library is fetched at runtime, so there is no file to follow; a failed fetch is handled by the else arm, not by set -e
   if _pcg_src="$(_pcg_fetch 'repos/brujack/ai-config/contents/.claude/hooks/push-content-gate.sh?ref=master')" \
     && source <(printf '%s\n' "${_pcg_src}") \
     && declare -F push_content_gate_refs >/dev/null; then
