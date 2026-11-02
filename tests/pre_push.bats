@@ -4,7 +4,7 @@
 # No test reaches the network: a `gh` stub that exits 1 is first on PATH for every
 # hook run, so the wiring's `gh auth token` fails before any curl is built.
 
-readonly PCG_WIRING_SHA256="d556979bd64b72ca237e4bd3a8d4cf709e0db164ae155c18ab0eea86e39e221f"
+readonly PCG_WIRING_SHA256="554c1385d10d77fac177df1a7aefdf6238e12ba009218689b7c5242fa24d4102"
 readonly NULL_SHA="0000000000000000000000000000000000000000"
 
 setup() {
