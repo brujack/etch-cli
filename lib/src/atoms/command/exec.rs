@@ -182,9 +182,9 @@ impl Atom for Exec {
 
         let command = resolve_program(&command, &self.environment, self.is_elevated())?;
 
-        // If we require root, we need to use sudo with inherited IO
-        // to ensure the user can respond if prompted for a password
-        if command.eq("doas") || command.eq("sudo") || command.eq("run0") {
+        // resolve_program returns the full path (e.g. /usr/bin/sudo), so a
+        // bare name comparison would never match. Use is_elevated() instead.
+        if self.is_elevated() {
             match self.elevate() {
                 Ok(_) => (),
                 Err(err) => {
@@ -673,5 +673,21 @@ mod tests {
             ..Default::default()
         };
         assert!(exec.execute().is_ok());
+    }
+
+    #[test]
+    fn resolve_program_returns_full_path_not_bare_name() {
+        // resolve_program calls `which`, which always returns an absolute path.
+        // The execute() elevation check must not compare the resolved path to a
+        // bare name like "sudo"; it must use is_elevated() instead.
+        let resolved = resolve_program("sh", &[], false).unwrap();
+        assert!(
+            std::path::Path::new(&resolved).is_absolute(),
+            "resolve_program returned a relative/bare name: {resolved}"
+        );
+        assert!(
+            !resolved.eq("sh"),
+            "bare name equality would succeed — the elevation check would fire on the wrong condition"
+        );
     }
 }
