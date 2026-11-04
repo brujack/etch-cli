@@ -183,8 +183,11 @@ impl Atom for Exec {
         let command = resolve_program(&command, &self.environment, self.is_elevated())?;
 
         // If we require root, we need to use sudo with inherited IO
-        // to ensure the user can respond if prompted for a password
-        if command.eq("doas") || command.eq("sudo") || command.eq("run0") {
+        // to ensure the user can respond if prompted for a password.
+        // `resolve_program` returns a full absolute path, so compare against
+        // the basename; `is_elevated()` is the canonical check for the same
+        // condition and covers all three providers.
+        if self.is_elevated() {
             match self.elevate() {
                 Ok(_) => (),
                 Err(err) => {
@@ -596,6 +599,26 @@ mod tests {
         assert!(!elevation_needed(false, "bruce"));
         assert!(!elevation_needed(true, "root"));
         assert!(elevation_needed(true, "bruce"));
+    }
+
+    /// `resolve_program` returns a full absolute path (e.g. `/usr/bin/sudo`),
+    /// not a bare name.  The elevation gate must use `is_elevated()`, not a
+    /// string comparison against `"sudo"` / `"doas"` / `"run0"`, or it always
+    /// evaluates to false and `sudo --validate` is never called.
+    #[test]
+    fn resolve_program_returns_full_path_not_bare_name() {
+        // Any command guaranteed to be on PATH in CI.
+        let result = resolve_program("sh", &[], false);
+        let path = result.expect("sh must be on PATH");
+        // A full absolute path starts with '/', never equals the bare name.
+        assert!(
+            std::path::Path::new(&path).is_absolute(),
+            "resolve_program returned a non-absolute path: {path}"
+        );
+        assert_ne!(
+            path, "sh",
+            "resolve_program returned the bare name; is_elevated() guard would break"
+        );
     }
 
     /// Temp dir holding an executable named `name`, plus a PATH value of
