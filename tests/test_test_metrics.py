@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import contextlib
 import io
 import json
@@ -60,9 +59,8 @@ JUNIT_FAIL = """\
 
 
 def _tmp(content):
-    f = tempfile.NamedTemporaryFile(mode="w", suffix=".xml", delete=False)
-    f.write(content)
-    f.close()
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", delete=False) as f:
+        f.write(content)
     return f.name
 
 
@@ -441,9 +439,9 @@ class TestFetchHistorical(unittest.TestCase):
         with (
             patch("scripts.test_metrics.subprocess.run", side_effect=fake_run),
             patch("scripts.test_metrics.json.load", side_effect=AttributeError("boom")),
+            self.assertRaises(AttributeError),
         ):
-            with self.assertRaises(AttributeError):
-                fetch_historical("etch-cli")
+            fetch_historical("etch-cli")
 
 
 class TestMain(unittest.TestCase):

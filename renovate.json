@@ -37,7 +37,8 @@
         "!docker.io/library/python"
       ],
       "matchPackageNames": [
-        "!actions/python-versions"
+        "!actions/python-versions",
+        "!ruff"
       ],
       "groupName": "all non-major dependencies",
       "automerge": true,
@@ -68,7 +69,8 @@
         "!docker.io/library/python"
       ],
       "matchPackageNames": [
-        "!actions/python-versions"
+        "!actions/python-versions",
+        "!ruff"
       ],
       "automerge": true,
       "automergeType": "pr",

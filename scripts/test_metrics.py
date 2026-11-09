@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Parse nextest JUnit XML → normalized test-metrics.json.
 
