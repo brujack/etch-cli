@@ -41,6 +41,34 @@ ignore = [
     # JWT, so no secret-dependent operation runs. Resolves when jsonwebtoken moves to
     # p256 0.14.
     "RUSTSEC-2026-0387",
+    # chrono 0.4.44, chrono-tz 0.9.0, chrono-tz-build 0.3.0: unmaintained, every
+    # version affected, no patched release (RUSTSEC-2026-0543/0555/0559). chrono is a
+    # direct dependency of etch-lib and etch-cli and is also required by octocrab and
+    # by tera 1.x's default `builtins` feature (chrono-tz, chrono-tz-build); tera 1.20.1
+    # is the latest 1.x (checked 2026-11-19). Unmaintained, not vulnerable. Resolves
+    # when etch moves to jiff or time and octocrab and tera drop chrono (Backlog row).
+    "RUSTSEC-2026-0543",
+    "RUSTSEC-2026-0555",
+    "RUSTSEC-2026-0559",
+    # heapless 0.8.0: nine unsound advisories (RUSTSEC-2026-0574..0582), fixed in 0.9.4.
+    # Reached only via gix -> gix-hash -> faster-hex 0.10.1, which declares heapless
+    # under `cfg(not(feature = "alloc"))`. Cargo cannot evaluate a feature inside a
+    # target cfg, so heapless is compiled, but faster-hex imports it only without
+    # `alloc`, and gix-hash enables `std` (which implies `alloc`): no heapless code is
+    # referenced. The import is `heapless::{String, Vec}` alone, none of the affected
+    # pool, Deque, IndexMap, SortedLinkedList or Spsc APIs. The latest gix-hash
+    # (0.28.1, required by gix 0.90.0, checked 2026-11-19) still requires
+    # faster-hex ^0.10.1, so there is no fix to take. Resolves when gix-hash moves to
+    # faster-hex 1.x, where heapless is an optional feature.
+    "RUSTSEC-2026-0574",
+    "RUSTSEC-2026-0575",
+    "RUSTSEC-2026-0576",
+    "RUSTSEC-2026-0577",
+    "RUSTSEC-2026-0578",
+    "RUSTSEC-2026-0579",
+    "RUSTSEC-2026-0580",
+    "RUSTSEC-2026-0581",
+    "RUSTSEC-2026-0582",
 ]
 
 [licenses]
