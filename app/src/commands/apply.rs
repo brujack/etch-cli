@@ -3,6 +3,7 @@ use crate::Runtime;
 use chrono::Utc;
 use clap::Parser;
 use core::panic;
+use etch_lib::actions::{PluginAuthority, set_plugin_authority};
 use etch_lib::contexts::to_rhai;
 use etch_lib::manifests::{Manifest, load};
 use etch_lib::state::{StateEntry, StateStore};
@@ -158,6 +159,10 @@ impl EtchCommand for Apply {
         if dry_run {
             println!("[dry run] no changes will be made");
             println!();
+        } else {
+            // Plugin Lua is restricted by default; only a real apply hands it the host
+            // (audit 2026-11-16 F15).
+            set_plugin_authority(PluginAuthority::Full);
         }
 
         let engine = Engine::new();
