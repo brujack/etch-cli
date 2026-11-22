@@ -39,6 +39,18 @@ pub(crate) struct Apply {
 }
 
 impl Apply {
+    /// Announces a dry run, or grants plugin Lua full authority for a real apply. Plugin
+    /// Lua is restricted by default, and this is its only grant (audit 2026-11-16 F15).
+    /// Kept out of `execute` so the dry-run decision about authority sits in one place.
+    fn enter_run_mode(&self) {
+        if self.dry_run {
+            println!("[dry run] no changes will be made");
+            println!();
+        } else {
+            set_plugin_authority(PluginAuthority::Full);
+        }
+    }
+
     pub(crate) fn manifest_path(&self, runtime: &Runtime) -> anyhow::Result<PathBuf> {
         for manifest in &self.manifests {
             if manifest.contains(std::path::MAIN_SEPARATOR) {
@@ -155,15 +167,7 @@ impl EtchCommand for Apply {
         };
 
         let dry_run = self.dry_run;
-
-        if dry_run {
-            println!("[dry run] no changes will be made");
-            println!();
-        } else {
-            // Plugin Lua is restricted by default; only a real apply hands it the host
-            // (audit 2026-11-16 F15).
-            set_plugin_authority(PluginAuthority::Full);
-        }
+        self.enter_run_mode();
 
         let engine = Engine::new();
         let mut scope = to_rhai(contexts);
