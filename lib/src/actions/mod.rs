@@ -51,6 +51,7 @@ use package::{
 };
 use pip::PipInstall;
 use plugin::Plugin;
+pub use plugin::{PluginAuthority, plugin_authority, set_plugin_authority};
 use powershell::PowershellModule;
 use pyenv::{PyenvInstall, PyenvVirtualenv};
 use rhai::Engine;

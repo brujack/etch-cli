@@ -1,6 +1,7 @@
 actions:
     # Run an etch plugin. `repo` is a GitHub "owner/repo" of the plugin.
-    # `version` pins to a git tag or SHA; omit for latest.
+    # `version` names a git tag (a commit SHA is not accepted). Left empty (`version:`):
+    # the `latest` tag, or the default branch head if that tag is absent.
     # `opts` is a nested map passed to the plugin — structure is plugin-defined.
     - action: plugin
       repo: JustinBacher/etch-example-plugin
