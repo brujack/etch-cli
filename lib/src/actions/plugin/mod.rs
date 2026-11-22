@@ -3,6 +3,7 @@ mod plugin;
 
 use std::{
     collections::BTreeMap,
+    ops::BitOr,
     sync::{
         OnceLock,
         atomic::{AtomicBool, Ordering},
@@ -51,6 +52,15 @@ pub fn plugin_authority() -> PluginAuthority {
     }
 }
 
+/// Libraries a restricted plugin gets: computation only, nothing that reaches the host.
+const RESTRICTED_LIBS: [StdLib; 5] = [
+    StdLib::COROUTINE,
+    StdLib::TABLE,
+    StdLib::STRING,
+    StdLib::UTF8,
+    StdLib::MATH,
+];
+
 fn new_lua(authority: PluginAuthority) -> Result<Lua> {
     match authority {
         PluginAuthority::Full => {
@@ -63,8 +73,10 @@ fn new_lua(authority: PluginAuthority) -> Result<Lua> {
             Ok(lua)
         }
         PluginAuthority::Restricted => {
-            let libs =
-                StdLib::COROUTINE | StdLib::TABLE | StdLib::STRING | StdLib::UTF8 | StdLib::MATH;
+            // Folded with `BitOr::bitor` rather than written `a | b | ...`: the flags are
+            // disjoint bits, so cargo-mutants' `|` -> `^` mutants would be equivalent and
+            // unkillable, failing the required mutation-pr check.
+            let libs = RESTRICTED_LIBS.into_iter().fold(StdLib::NONE, BitOr::bitor);
             let lua = Lua::new_with(libs, LuaOptions::default())?;
             // The base library is always loaded, and these two read files from disk.
             let globals = lua.globals();
@@ -153,14 +165,23 @@ mod tests {
             .load("return load(string.dump(function() end)) ~= nil")
             .eval()?;
         assert!(!loaded, "restricted Lua loaded a precompiled chunk");
+        // The env-forwarding branch of the wrapper must refuse bytecode too.
+        let loaded: bool = lua
+            .load("return load(string.dump(function() end), 'c', 'b', {}) ~= nil")
+            .eval()?;
+        assert!(
+            !loaded,
+            "restricted Lua loaded a precompiled chunk with an env"
+        );
         Ok(())
     }
 
     #[test]
     fn restricted_lua_load_still_compiles_source_text() -> Result<()> {
         let lua = new_lua(PluginAuthority::Restricted)?;
-        let value: i64 = lua.load("return load('return 1 + 2')()").eval()?;
-        assert_eq!(value, 3);
+        // Reads a global, so it fails if an absent env were forwarded as an explicit nil.
+        let value: i64 = lua.load("return load('return math.max(1, 2)')()").eval()?;
+        assert_eq!(value, 2);
         // An explicit env is honoured: the chunk sees `x` from the table it was given.
         let value: i64 = lua
             .load("return load('return x', 'c', 'b', { x = 7 })()")
@@ -176,6 +197,52 @@ mod tests {
         for name in ["io", "os", "package", "debug", "dofile", "loadfile"] {
             assert!(!global_is_nil(&lua, name), "full Lua lacks `{name}`");
         }
+        Ok(())
+    }
+
+    /// Resets the process-global authority when dropped, so a failing assertion cannot
+    /// leave later tests in this process running with full authority.
+    struct AuthorityGuard;
+
+    impl Drop for AuthorityGuard {
+        fn drop(&mut self) {
+            set_plugin_authority(PluginAuthority::Restricted);
+        }
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn plugin_authority_follows_set_plugin_authority() {
+        let _guard = AuthorityGuard;
+        assert_eq!(plugin_authority(), PluginAuthority::Restricted);
+        set_plugin_authority(PluginAuthority::Full);
+        assert_eq!(plugin_authority(), PluginAuthority::Full);
+        set_plugin_authority(PluginAuthority::Restricted);
+        assert_eq!(plugin_authority(), PluginAuthority::Restricted);
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn plugin_cache_is_keyed_by_authority() -> anyhow::Result<()> {
+        let _guard = AuthorityGuard;
+        let dir = tempfile::tempdir()?;
+        let lua_file = dir.path().join("plugin.lua");
+        std::fs::write(
+            &lua_file,
+            r#"return { summary = io and "full" or "restricted", actions = {} }"#,
+        )?;
+        let plugin: Plugin = serde_json::from_value(serde_json::json!({
+            "dir": lua_file,
+            "actions": {}
+        }))?;
+
+        use crate::actions::Action;
+        set_plugin_authority(PluginAuthority::Restricted);
+        assert_eq!(plugin.summarize(), "restricted");
+        set_plugin_authority(PluginAuthority::Full);
+        assert_eq!(plugin.summarize(), "full");
+        set_plugin_authority(PluginAuthority::Restricted);
+        assert_eq!(plugin.summarize(), "restricted");
         Ok(())
     }
 }
