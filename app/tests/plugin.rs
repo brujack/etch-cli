@@ -128,6 +128,48 @@ fn apply_dry_run_does_not_give_plugin_os_authority() {
     }
 }
 
+// Error path of the restriction: a plugin that uses `io` without guarding it fails to
+// load under dry-run, the action is logged as FAILED, and nothing is written. A dry-run
+// still exits 0 when an action fails to plan; that is pre-existing and backlogged.
+#[test]
+fn apply_dry_run_fails_an_unguarded_plugin_without_writing() {
+    let root = TempDir::new().unwrap();
+    let manifests = root.path().join("manifests");
+    std::fs::create_dir_all(&manifests).unwrap();
+    let marker = root.path().join("marker-unguarded");
+    let plugin_file = root.path().join("plugin.lua");
+    std::fs::write(
+        &plugin_file,
+        format!(
+            "local f = io.open({:?}, \"w\") f:write(\"x\") f:close()\n\
+             return {{ actions = {{ probe = {{ plan = function() end, exec = function() end }} }} }}\n",
+            marker.to_str().unwrap()
+        ),
+    )
+    .unwrap();
+    std::fs::write(
+        manifests.join("probe.yaml"),
+        format!(
+            "actions:\n  - action: plugin\n    dir: {}\n    actions:\n      probe: {{}}\n",
+            plugin_file.display()
+        ),
+    )
+    .unwrap();
+
+    etch_in(root.path(), &manifests)
+        .args(["apply", "--dry-run"])
+        .assert()
+        .success()
+        .stdout(contains("FAILED"))
+        .stdout(contains("global 'io'"));
+
+    assert!(
+        !marker.exists(),
+        "dry-run plugin wrote {}",
+        marker.display()
+    );
+}
+
 // audit 2026-11-16 F15: `etch status` is read-only and plans every action too.
 #[test]
 fn status_does_not_give_plugin_os_authority() {

@@ -18,7 +18,7 @@ count its steps, but in a restricted Lua state. That state has the `string`, `ta
 `utf8` and `coroutine` libraries and nothing that reaches the host: no `io`, `os`, `package` or
 `debug`, no `dofile` or `loadfile`, and `load` accepts source text only. A plugin
 that needs the host at load or plan time must guard those uses (`if io then ... end`), or its
-dry-run reports the action as failed.
+dry-run logs the action as `FAILED`. The dry-run still exits 0 in that case.
 
 Only `etch apply` without `--dry-run` runs plugin code with every Lua standard library.
 
