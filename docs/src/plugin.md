@@ -15,8 +15,8 @@ Plugins can be used to automate tasks, integrate with other tools, or provide ad
 
 `etch apply --dry-run` and `etch status` still evaluate each plugin, to plan its actions and
 count its steps, but in a restricted Lua state. That state has the `string`, `table`, `math`,
-`utf8` and `coroutine` libraries and nothing that reaches the host: no `io`, `os`, `package`,
-`debug` or `ffi`, no `dofile` or `loadfile`, and `load` accepts source text only. A plugin
+`utf8` and `coroutine` libraries and nothing that reaches the host: no `io`, `os`, `package` or
+`debug`, no `dofile` or `loadfile`, and `load` accepts source text only. A plugin
 that needs the host at load or plan time must guard those uses (`if io then ... end`), or its
 dry-run reports the action as failed.
 

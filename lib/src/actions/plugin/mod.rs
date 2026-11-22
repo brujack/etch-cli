@@ -27,10 +27,11 @@ use plugin::{RepoOrDir, Source};
 /// (audit 2026-11-16 F15). Only a real apply grants [`PluginAuthority::Full`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum PluginAuthority {
-    /// Computation-only libraries: no `io`, `os`, `package`, `debug` or `ffi`, and no
-    /// `dofile` or `loadfile`.
+    /// Computation-only libraries: no `io`, `os`, `package` or `debug`, no `dofile` or
+    /// `loadfile`, and `load` accepts source text only.
     Restricted,
-    /// Every Lua standard library, including `debug` and `ffi`.
+    /// Every Lua standard library, including `debug`. (`ffi` is LuaJIT-only; this crate
+    /// builds Lua 5.4, which has none.)
     Full,
 }
 
@@ -55,7 +56,7 @@ fn new_lua(authority: PluginAuthority) -> Result<Lua> {
         PluginAuthority::Full => {
             #[expect(
                 unsafe_code,
-                reason = "Lua::unsafe_new + StdLib::ALL (debug/ffi): plugin code runs with full process authority on a real apply only; the plugin source (possibly a third-party GitHub repo at a mutable tag) is trusted because the operator names it"
+                reason = "Lua::unsafe_new + StdLib::ALL (debug): plugin code runs with full process authority on a real apply only; the plugin source (possibly a third-party GitHub repo at a mutable tag) is trusted because the operator names it"
             )]
             let lua = unsafe { Lua::unsafe_new() };
             lua.load_std_libs(StdLib::ALL)?;
