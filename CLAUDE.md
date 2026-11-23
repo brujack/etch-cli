@@ -85,7 +85,7 @@ Read the matching file before the work it covers (paths relative to `~/git-repos
 ```bash
 make lint          # cargo fmt --check + cargo clippy --all-targets -D warnings
 make test          # lint, test-hooks (bats), cargo nextest, pytest
-make test-hooks    # shellcheck + bats on tests/pre_push.bats (skips locally without them; fails when CI is set)
+make test-hooks    # shellcheck + bats on tests/pre_push.bats and tests/pre_commit.bats (skips locally without them; fails when CI is set)
 make build         # cargo build --release → target/release/etch (macOS aarch64)
 make build-linux   # cargo zigbuild → target/x86_64-unknown-linux-gnu/release/etch
 make install       # build, then copy target/release/etch to ${XDG_BIN_HOME:-$HOME/.local/bin}/etch
@@ -229,7 +229,7 @@ disagree, trust the `needs:` list.
 
 > **Note:** `build` job is temporarily disabled — restore when build times improve.
 
-Pre-commit hook: `make lint` + `ggshield secret scan pre-commit`
+Pre-commit hook: `make lint` + `ggshield secret scan pre-commit --fail-on-server-error`. ggshield resolves from an override variable, then PATH, then fixed Homebrew/Linuxbrew paths; if none resolves the hook prints `SECRET SCAN DID NOT RUN` and continues (never a silent skip). Exit 3 (cannot authenticate) warns; every other non-zero exit blocks. Tests: `tests/pre_commit.bats`.
 Pre-push hook: `make test` (full suite, including the hook's own bats suite, before push reaches GitHub). Pushes to main are also judged by ai-config's shared push-content gate (ADR-0091), loaded from GitHub and refused when it cannot load.
 
 ## cargo semver-checks
