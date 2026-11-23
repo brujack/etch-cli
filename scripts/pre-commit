@@ -3,14 +3,14 @@
 # Pre-commit hook: runs `make lint`, then a ggshield secret scan whose
 # exit code is read as distinct outcomes — clean, secret found (block),
 # could not authenticate (warn, don't block), anything else (block).
-# Exit 3 alone warns: blocking on it would fail every commit in the repo
-# the moment a token expires, and the escape hatch people reach for then
-# is `git commit --no-verify`, which is
-# all-or-nothing: it also skips make lint, i.e. the sanitization gate and
-# the lint pass. A gate that pushes people toward disabling the whole
-# chain is worse than the risk it covers. An unreachable endpoint is
-# exit 4, not 3, and blocks: it can carry a discarded finding (see
-# run_secret_scan).
+# Two cases warn and let the commit through, each printing SECRET SCAN DID
+# NOT RUN: ggshield cannot be resolved at all, or it exits 3. Blocking on
+# exit 3 would fail every commit the moment a token expires, and the escape
+# hatch people reach for then is `git commit --no-verify`, which is
+# all-or-nothing: it also skips make lint. A gate that pushes people toward
+# disabling the whole chain is worse than the risk it covers. An
+# unreachable endpoint is exit 4, not 3, and blocks: it can carry a
+# discarded finding (see run_secret_scan).
 #
 # Binary resolution order: an explicit GGSHIELD_BIN override, then
 # `command -v`, then a short list of absolute fallback paths. The

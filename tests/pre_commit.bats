@@ -204,6 +204,8 @@ run_with_stub_exit() {
   local fixture call_log
   run_with_stub_exit "secret-found" 1
   [ "$status" -ne 0 ]
+  # The block must come from the scan itself, not from an earlier failure.
+  [ "$(cat "${call_log}")" = "$(printf 'lint\nscan')" ]
 }
 
 @test "could not authenticate (exit 3) warns but does not block" {

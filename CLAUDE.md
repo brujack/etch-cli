@@ -229,7 +229,7 @@ disagree, trust the `needs:` list.
 
 > **Note:** `build` job is temporarily disabled — restore when build times improve.
 
-Pre-commit hook: `make lint` + `ggshield secret scan pre-commit --fail-on-server-error`. ggshield resolves from an override variable, then PATH, then fixed Homebrew/Linuxbrew paths; if none resolves the hook prints `SECRET SCAN DID NOT RUN` and continues (never a silent skip). Exit 3 (cannot authenticate) warns; every other non-zero exit blocks. Tests: `tests/pre_commit.bats`.
+Pre-commit hook: `make lint` + `ggshield secret scan pre-commit --fail-on-server-error`. ggshield resolves from an override variable, then PATH, then fixed install paths (Homebrew, Linuxbrew, `/usr/local/bin`); if none resolves the hook prints `SECRET SCAN DID NOT RUN` and continues (never a silent skip). Exit 3 (cannot authenticate) warns; every other non-zero exit blocks. Tests: `tests/pre_commit.bats`.
 Pre-push hook: `make test` (full suite, including the hook's own bats suite, before push reaches GitHub). Pushes to main are also judged by ai-config's shared push-content gate (ADR-0091), loaded from GitHub and refused when it cannot load.
 
 ## cargo semver-checks
