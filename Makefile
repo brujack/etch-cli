@@ -16,8 +16,8 @@ test: lint test-hooks
 	cargo nextest run
 	pytest tests/ -v
 
-# Hook tests: shellcheck, then bats. scripts/pre-push is already covered by
-# `make lint`. A missing tool degrades locally (remedy printed, skipped, exit 0) so
+# Hook tests: shellcheck, then bats. scripts/pre-push and scripts/pre-commit are
+# already covered by `make lint`. A missing tool degrades locally (remedy printed, skipped, exit 0) so
 # it cannot lock a machine out of committing (core.md shell-004), but fails when CI
 # is set so CI cannot skip silently.
 test-hooks:
@@ -29,8 +29,8 @@ test-hooks:
 		if [ -n "$${CI:-}" ]; then exit 1; fi; \
 		exit 0; \
 	fi; \
-	shellcheck --severity=warning tests/pre_push.bats && \
-	bats tests/pre_push.bats < /dev/null
+	shellcheck --severity=warning tests/pre_push.bats tests/pre_commit.bats && \
+	bats tests/pre_push.bats tests/pre_commit.bats < /dev/null
 
 lint:
 	cargo fmt --all -- --check

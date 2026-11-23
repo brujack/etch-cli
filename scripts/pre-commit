@@ -1,7 +1,136 @@
 #!/usr/bin/env bash
-set -e
-make lint
+#
+# Pre-commit hook: runs `make lint`, then a ggshield secret scan whose
+# exit code is read as distinct outcomes — clean, secret found (block),
+# could not authenticate (warn, don't block), anything else (block).
+# Two cases warn and let the commit through, each printing SECRET SCAN DID
+# NOT RUN: ggshield cannot be resolved at all, or it exits 3. Blocking on
+# exit 3 would fail every commit the moment a token expires, and the escape
+# hatch people reach for then is `git commit --no-verify`, which is
+# all-or-nothing: it also skips make lint. A gate that pushes people toward
+# disabling the whole chain is worse than the risk it covers. An
+# unreachable endpoint is exit 4, not 3, and blocks: it can carry a
+# discarded finding (see run_secret_scan).
+#
+# Binary resolution order: an explicit GGSHIELD_BIN override, then
+# `command -v`, then a short list of absolute fallback paths. The
+# fallback list exists because a hook inherits whoever invoked git: a
+# Homebrew or Linuxbrew prefix is often on PATH only in an interactive
+# shell, so a hook run by cron, by an editor or over a remote session can
+# find nothing via `command -v` while the binary is installed
+# (audit 2026-11-16 F9).
+#
+# GGSHIELD_FALLBACK_PATHS overrides the fallback list itself (default
+# below). It exists purely for test isolation: the default paths may be
+# genuinely installed on a developer's machine, so a test cannot express
+# "ggshield is absent from every resolution path"
+# through PATH alone — PATH restriction does not stop the resolver from
+# finding a real, absolute, installed path.
 
-if command -v ggshield &>/dev/null; then
-    ggshield secret scan pre-commit
-fi
+readonly GGSHIELD_DEFAULT_FALLBACKS='/opt/homebrew/bin/ggshield /home/linuxbrew/.linuxbrew/bin/ggshield /usr/local/bin/ggshield'
+
+resolve_ggshield_bin() {
+  if [[ -n "${GGSHIELD_BIN:-}" ]]; then
+    if [[ ! -x "${GGSHIELD_BIN}" ]]; then
+      printf 'pre-commit: GGSHIELD_BIN=%s is set but not executable\n' "${GGSHIELD_BIN}" >&2
+      return 2
+    fi
+    printf '%s\n' "${GGSHIELD_BIN}"
+    return 0
+  fi
+
+  local found
+  found="$(command -v ggshield 2>/dev/null)"
+  if [[ -n "${found}" ]]; then
+    printf '%s\n' "${found}"
+    return 0
+  fi
+
+  local candidates
+  candidates="${GGSHIELD_FALLBACK_PATHS-${GGSHIELD_DEFAULT_FALLBACKS}}"
+
+  local candidate
+  # shellcheck disable=SC2086 # candidates is a deliberately space-separated path list
+  for candidate in ${candidates}; do
+    if [[ -x "${candidate}" ]]; then
+      printf '%s\n' "${candidate}"
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+# ggshield's own exit codes, measured on ggshield 1.56.1: 0 clean,
+# 1 secret found, 2 usage error (also a 401 mid-scan), 3 could not
+# authenticate, 4 server unavailable, 128 unexpected (quota included).
+# Only 3 warns. 4 blocks because when one chunk of a multi-chunk scan
+# times out, ggshield raises ServiceUnavailableError and drops the
+# findings of chunks that finished, so a 4 can carry a secret.
+# --fail-on-server-error (ggshield >= 1.50.0) is pinned so a machine-level
+# `fail_on_server_error: false` cannot turn that 4 into a silent 0.
+# Unknown codes fail closed.
+run_secret_scan() {
+  local bin_path resolve_rc
+  bin_path="$(resolve_ggshield_bin)"
+  resolve_rc=$?
+
+  if [[ "${resolve_rc}" -eq 2 ]]; then
+    return 1
+  fi
+
+  if [[ "${resolve_rc}" -ne 0 ]]; then
+    printf 'pre-commit: ggshield not found on PATH or in any known install location\n' >&2
+    printf 'pre-commit: install with: brew install gitguardian/tap/ggshield\n' >&2
+    printf 'pre-commit: SECRET SCAN DID NOT RUN\n' >&2
+    return 0
+  fi
+
+  local scan_rc
+  "${bin_path}" secret scan pre-commit --fail-on-server-error
+  scan_rc=$?
+
+  case "${scan_rc}" in
+    0)
+      return 0
+      ;;
+    1)
+      return 1
+      ;;
+    3)
+      printf 'pre-commit: ggshield could not authenticate (exit 3) — expired/invalid credential\n' >&2
+      printf 'pre-commit: run: ggshield auth login\n' >&2
+      printf 'pre-commit: SECRET SCAN DID NOT RUN\n' >&2
+      return 0
+      ;;
+    4)
+      printf 'pre-commit: GitGuardian unreachable (exit 4) — blocking: a partial scan can discard findings\n' >&2
+      printf 'pre-commit: retry the commit when the network is back\n' >&2
+      return 1
+      ;;
+    2)
+      printf 'pre-commit: ggshield failed (exit 2) — usage error or a 401 during the scan, blocking\n' >&2
+      printf 'pre-commit: if ggshield is older than 1.50.0, upgrade it (--fail-on-server-error needs 1.50.0); otherwise retry, a revoked key reports exit 3 next time\n' >&2
+      return 1
+      ;;
+    *)
+      printf 'pre-commit: ggshield failed (exit %s) — unexpected exit code, blocking\n' "${scan_rc}" >&2
+      return 1
+      ;;
+  esac
+}
+
+pre_commit_main() {
+  if ! make lint; then
+    printf 'pre-commit: make lint failed — commit blocked\n' >&2
+    return 1
+  fi
+
+  run_secret_scan || return 1
+
+  return 0
+}
+
+[[ "${BASH_SOURCE[0]}" != "${0}" ]] && return 0
+
+pre_commit_main "$@"
