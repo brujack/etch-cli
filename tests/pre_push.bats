@@ -9,7 +9,7 @@
 # push-content gate library, and logs every path it is asked for.
 
 readonly PCG_WIRING_SHA256="554c1385d10d77fac177df1a7aefdf6238e12ba009218689b7c5242fa24d4102"
-readonly PG_WIRING_SHA256="a177991056f5626989d70e9513a7b2531314e87bd5f2eeceee5121e1f1ecd030"
+readonly PG_WIRING_SHA256="e38c2b5fa6a5de641a421a1e1e71fe10061ab6d6ccf4c7aa4749de9156794689"
 readonly NULL_SHA="0000000000000000000000000000000000000000"
 readonly FAKE_MASTER_SHA="0123456789abcdef0123456789abcdef01234567"
 
@@ -367,4 +367,88 @@ _hooks_target_without_tools() { # <CI value, or empty to unset>
   HOOK="${saved}"
   [ "${status}" -eq 1 ]
   [[ "${output}" == *"markers not found"* ]]
+}
+
+# R17 exemption (ai-config ADR-0099 2A). These tests build the one fixture the exemption
+# accepts: an `origin` remote whose single URL equals the hook's URL argument, an
+# origin/HEAD, and tracking refs equal to the remote sha being replaced. The master-JSON
+# fetch is made to fail, so any run that reaches GitHub blocks with the cannot-load line.
+_with_origin() {
+  git -C "${REPO}" remote add origin file:///nonexistent || return 1
+  git -C "${REPO}" update-ref refs/remotes/origin/main "${BASE_SHA}" || return 1
+  git -C "${REPO}" symbolic-ref refs/remotes/origin/HEAD refs/remotes/origin/main || return 1
+  git -C "${REPO}" update-ref refs/remotes/origin/feat/x "${BASE_SHA}" || return 1
+  git -C "${REPO}" update-ref refs/remotes/origin/feat/y "${BASE_SHA}" || return 1
+}
+
+@test "exempt: a docs-only update of an existing branch passes without any GitHub fetch" {
+  local head
+  _with_origin
+  head="$(_commit_file docs/guide.md v2 'docs: guide')"
+  FAKE_MASTER_FAIL=1 run _run_hook "refs/heads/feat/x ${head} refs/heads/feat/x ${BASE_SHA}\n"
+  [ "${status}" -eq 0 ]
+  [[ "${output}" == *"pre-push: gates: every pushed ref is a deletion or a docs-only branch; gates not run"* ]]
+  [ ! -f "${FETCH_LOG}" ]
+  [ ! -f "${GATES_LOG}" ]
+  [ ! -f "${MAKE_CALLS}" ]
+}
+
+@test "exempt: a deletion-only push passes offline" {
+  _with_origin
+  FAKE_MASTER_FAIL=1 run _run_hook "(delete) ${NULL_SHA} refs/heads/feat/x ${BASE_SHA}\n"
+  [ "${status}" -eq 0 ]
+  [[ "${output}" == *"gates not run"* ]]
+  [ ! -f "${FETCH_LOG}" ]
+  [ ! -f "${MAKE_CALLS}" ]
+}
+
+@test "exempt: a push mixing a docs-only ref with a code ref loads the gates and blocks offline" {
+  local docs code
+  _with_origin
+  docs="$(_commit_file README.md v2 'docs: v2')"
+  code="$(_commit_file x.rs 'fn main() {}' 'feat: code')"
+  FAKE_MASTER_FAIL=1 run _run_hook "refs/heads/feat/x ${docs} refs/heads/feat/x ${BASE_SHA}\nrefs/heads/feat/y ${code} refs/heads/feat/y ${BASE_SHA}\n"
+  [ "${status}" -eq 1 ]
+  [[ "${output}" == *"pre-push: gates: cannot load push gates from GitHub; push blocked"* ]]
+  [[ "${output}" != *"gates not run"* ]]
+  command grep -qxF 'repos/brujack/ai-config/commits/master' "${FETCH_LOG}"
+}
+
+@test "exempt: a push mixing a docs-only ref with a new branch loads the gates and blocks offline" {
+  local docs
+  _with_origin
+  docs="$(_commit_file README.md v2 'docs: v2')"
+  FAKE_MASTER_FAIL=1 run _run_hook "refs/heads/feat/x ${docs} refs/heads/feat/x ${BASE_SHA}\nrefs/heads/feat/new ${docs} refs/heads/feat/new ${NULL_SHA}\n"
+  [ "${status}" -eq 1 ]
+  [[ "${output}" == *"cannot load push gates from GitHub; push blocked"* ]]
+  [[ "${output}" != *"gates not run"* ]]
+}
+
+@test "exempt: a .sh file under docs/ is not docs-only and blocks offline" {
+  local head
+  _with_origin
+  head="$(_commit_file docs/run.sh 'echo hi' 'docs: script')"
+  FAKE_MASTER_FAIL=1 run _run_hook "refs/heads/feat/x ${head} refs/heads/feat/x ${BASE_SHA}\n"
+  [ "${status}" -eq 1 ]
+  [[ "${output}" == *"cannot load push gates from GitHub; push blocked"* ]]
+  [[ "${output}" != *"gates not run"* ]]
+}
+
+@test "exempt: a .md file that starts with a shebang is not docs-only and blocks offline" {
+  local head
+  _with_origin
+  head="$(_commit_file docs/sneaky.md '#!/bin/sh' 'docs: sneaky')"
+  FAKE_MASTER_FAIL=1 run _run_hook "refs/heads/feat/x ${head} refs/heads/feat/x ${BASE_SHA}\n"
+  [ "${status}" -eq 1 ]
+  [[ "${output}" != *"gates not run"* ]]
+}
+
+@test "exempt: a docs-only push whose tracking ref differs from the remote sha is not exempt" {
+  local head
+  _with_origin
+  head="$(_commit_file README.md v2 'docs: v2')"
+  git -C "${REPO}" update-ref refs/remotes/origin/feat/x "${head}"
+  FAKE_MASTER_FAIL=1 run _run_hook "refs/heads/feat/x ${head} refs/heads/feat/x ${BASE_SHA}\n"
+  [ "${status}" -eq 1 ]
+  [[ "${output}" != *"gates not run"* ]]
 }
