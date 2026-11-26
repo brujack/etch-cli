@@ -65,14 +65,14 @@ _hook_copy() {
     printf '_hook_copy: _pcg_fetch markers not found in %s\n' "${HOOK}" >&2
     return 1
   fi
-  cat > "${FAKE_DRIVER}" <<'DRV'
+  cat > "${FAKE_DRIVER}" <<'DRV' || return 1
 push_gates_run() {
   printf 'url=%s\nsha=%s\nrefs=%s\n' "${1}" "${3}" "${2}" >> "${GATES_LOG}"
   printf 'gates\n' >> "${ORDER_LOG}"
   return "${GATES_RC:-0}"
 }
 DRV
-  cat > "${FAKE_FETCH}" <<'FAKE'
+  cat > "${FAKE_FETCH}" <<'FAKE' || return 1
 _pcg_fetch() {
   printf '%s\n' "${1}" >> "${FETCH_LOG}"
   case "${1}" in
@@ -337,7 +337,7 @@ _hooks_target_without_tools() { # <CI value, or empty to unset>
   [ "$(_order)" = "gates,make" ]
   grep -qxF -- "url=file:///nonexistent" "${GATES_LOG}"
   grep -qxF -- "sha=${FAKE_MASTER_SHA}" "${GATES_LOG}"
-  grep -qF -- "refs=refs/heads/feat/x ${head} refs/heads/feat/x ${BASE_SHA}" "${GATES_LOG}"
+  grep -qxF -- "refs=refs/heads/feat/x ${head} refs/heads/feat/x ${BASE_SHA}" "${GATES_LOG}"
 }
 
 @test "gates: a recorder returning 1 blocks the push and make is not run" {
