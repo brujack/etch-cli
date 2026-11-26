@@ -1,11 +1,17 @@
 #!/usr/bin/env bats
 
-# Proves scripts/pre-push loads the shared push-content gate (ai-config ADR-0091).
-# No test reaches the network: a `gh` stub that exits 1 is first on PATH for every
-# hook run, so the wiring's `gh auth token` fails before any curl is built.
+# Proves scripts/pre-push loads the shared push-content gate (ai-config ADR-0091) and
+# runs the shared push-time gates (ADR-0099). No test reaches the network: a `gh` stub
+# that exits 1 is first on PATH for every hook run, so the wiring's `gh auth token`
+# fails before any curl is built. End-to-end runs use a COPY of the hook whose
+# `_pcg_fetch` is a fake: it serves the ai-config master commit JSON and a recorder in
+# place of the gates driver, falls through to the real fetch only for the
+# push-content gate library, and logs every path it is asked for.
 
 readonly PCG_WIRING_SHA256="554c1385d10d77fac177df1a7aefdf6238e12ba009218689b7c5242fa24d4102"
+readonly PG_WIRING_SHA256="a177991056f5626989d70e9513a7b2531314e87bd5f2eeceee5121e1f1ecd030"
 readonly NULL_SHA="0000000000000000000000000000000000000000"
+readonly FAKE_MASTER_SHA="0123456789abcdef0123456789abcdef01234567"
 
 setup() {
   REPO_ROOT="$(cd "${BATS_TEST_DIRNAME}/.." && pwd)"
@@ -20,14 +26,19 @@ setup() {
   REPO="${FIXTURE}/repo"
   GH_CALLS="${FIXTURE}/gh.calls"
   MAKE_CALLS="${FIXTURE}/make.calls"
+  export GATES_LOG="${FIXTURE}/gates.log" ORDER_LOG="${FIXTURE}/order.log" FETCH_LOG="${FIXTURE}/fetch.log"
+  export FAKE_MASTER_SHA FAKE_DRIVER="${FIXTURE}/fake_driver.sh" FAKE_FETCH="${FIXTURE}/fake_fetch.sh"
+  unset FAKE_MASTER_FAIL GATES_RC
   mkdir -p "${BIN}" "${REPO}"
   export HOME="${BATS_TEST_TMPDIR}/home" XDG_CONFIG_HOME="${BATS_TEST_TMPDIR}/home/.config"
   mkdir -p "${HOME}" "${XDG_CONFIG_HOME}"
 
   # gh stub: records its arguments, always fails. make stub: records, succeeds.
   printf '#!/usr/bin/env bash\nprintf "%%s\\n" "$*" >> "%s"\nexit 1\n' "${GH_CALLS}" > "${BIN}/gh"
-  printf '#!/usr/bin/env bash\nprintf "%%s\\n" "$*" >> "%s"\nexit 0\n' "${MAKE_CALLS}" > "${BIN}/make"
+  printf '#!/usr/bin/env bash\nprintf "%%s\\n" "$*" >> "%s"\nprintf "make\\n" >> "%s"\nexit 0\n' "${MAKE_CALLS}" "${ORDER_LOG}" > "${BIN}/make"
   chmod +x "${BIN}/gh" "${BIN}/make"
+
+  HOOK_COPY="$(_hook_copy)" || return 1
 
   git -C "${REPO}" init --quiet || return 1
   BASE_SHA="$(_commit_file README.md v1 'docs: v1')"
@@ -42,13 +53,62 @@ _commit_file() {
   git -C "${REPO}" rev-parse HEAD
 }
 
+# _hook_copy -- writes an executable copy of the hook whose `_pcg_fetch` is a fake and
+# prints its path. The original body is kept as `_pcg_fetch_real`, reachable only for the
+# push-content gate library. Fails loudly when the markers are not where expected.
+_hook_copy() {
+  local start end copy="${FIXTURE}/pre-push.copy"
+  start="$(command grep -n '^# >>> _pcg_fetch$' "${HOOK}" | cut -d: -f1)"
+  end="$(command grep -n '^# <<< _pcg_fetch$' "${HOOK}" | cut -d: -f1)"
+  if [[ ! "${start}" =~ ^[0-9]+$ || ! "${end}" =~ ^[0-9]+$ ]] || (( end <= start + 1 )) \
+    || [[ "$(sed -n "$((start + 1))p" "${HOOK}")" != '_pcg_fetch() {'* ]]; then
+    printf '_hook_copy: _pcg_fetch markers not found in %s\n' "${HOOK}" >&2
+    return 1
+  fi
+  cat > "${FAKE_DRIVER}" <<'DRV' || return 1
+push_gates_run() {
+  printf 'url=%s\nsha=%s\nrefs=%s\n' "${1}" "${3}" "${2}" >> "${GATES_LOG}"
+  printf 'gates\n' >> "${ORDER_LOG}"
+  return "${GATES_RC:-0}"
+}
+DRV
+  cat > "${FAKE_FETCH}" <<'FAKE' || return 1
+_pcg_fetch() {
+  printf '%s\n' "${1}" >> "${FETCH_LOG}"
+  case "${1}" in
+    repos/brujack/ai-config/commits/master)
+      [[ -z "${FAKE_MASTER_FAIL:-}" ]] || return 1
+      printf '{"sha":"%s"}\n' "${FAKE_MASTER_SHA}"
+      ;;
+    "repos/brujack/ai-config/contents/.claude/hooks/push-gates.sh?ref=${FAKE_MASTER_SHA}")
+      printf '%s\n' "$(< "${FAKE_DRIVER}")"
+      ;;
+    repos/brujack/ai-config/contents/.claude/hooks/push-content-gate.sh?ref=master) _pcg_fetch_real "${1}" ;;
+    *) return 1 ;;
+  esac
+}
+FAKE
+  awk -v s="${start}" -v e="${end}" -v fake="${FAKE_FETCH}" '
+    NR > s && NR < e { sub(/^_pcg_fetch\(\)/, "_pcg_fetch_real()") }
+    { print }
+    NR == e { while ((getline l < fake) > 0) print l }
+  ' "${HOOK}" > "${copy}" || return 1
+  printf '%s' "${copy}"
+}
+
+# _order -- the recorded call order, comma-joined (empty when nothing was logged).
+_order() {
+  [ -f "${ORDER_LOG}" ] || return 0
+  paste -sd, "${ORDER_LOG}"
+}
+
 # _run_hook <stdin text> [cwd] -- runs the hook with the stubs first on PATH, in
 # the fixture repo unless a cwd is given.
 _run_hook() {
   printf '%b' "${1}" | bash -c "
     export PATH='${BIN}:/usr/bin:/bin'
     cd '${2:-${REPO}}' || exit 2
-    bash '${HOOK}' origin file:///nonexistent
+    bash -p '${HOOK_COPY}' origin file:///nonexistent
   "
 }
 
@@ -101,6 +161,7 @@ _run_hook() {
   run _run_hook "(delete) ${NULL_SHA} refs/heads/feat/x ${BASE_SHA}\n"
   [ "${status}" -eq 0 ]
   [ ! -f "${MAKE_CALLS}" ]
+  [ "$(_order)" = "gates" ]
   [[ "${output}" != *fatal* ]]
 }
 
@@ -135,6 +196,7 @@ _run_hook() {
   run _run_hook "refs/heads/feat/x ${head} refs/heads/feat/x ${NULL_SHA}\n"
   [ "${status}" -eq 0 ]
   [ ! -f "${MAKE_CALLS}" ]
+  [ "$(_order)" = "gates" ]
 }
 
 # PATH holds make, env and git only (symlinks), so neither shellcheck nor bats
@@ -172,6 +234,7 @@ _hooks_target_without_tools() { # <CI value, or empty to unset>
   run _run_hook "refs/heads/feat/x ${head} refs/heads/feat/x ${BASE_SHA}\n"
   [ "${status}" -eq 0 ]
   [ ! -f "${MAKE_CALLS}" ]
+  [ "$(_order)" = "gates" ]
 }
 
 @test "a main push whose gate cannot load is refused before make" {
@@ -182,6 +245,15 @@ _hooks_target_without_tools() { # <CI value, or empty to unset>
   [[ "${output}" == *"cannot load the push-content gate"* ]]
   grep -q 'auth token' "${GH_CALLS}"
   [ ! -f "${MAKE_CALLS}" ]
+  # Positive check first: the fake fetch was on the path and saw the gate library.
+  if ! command grep -qF 'push-content-gate.sh?ref=master' "${FETCH_LOG}"; then
+    printf 'fake _pcg_fetch was not on the path (FETCH_LOG lacks the gate library)\n' >&2
+    return 1
+  fi
+  if command grep -qF 'push-gates.sh' "${FETCH_LOG}"; then
+    printf 'a refused main push must never fetch the gates driver\n' >&2
+    return 1
+  fi
 }
 
 @test "main on a later ref line is still judged" {
@@ -246,4 +318,53 @@ _hooks_target_without_tools() { # <CI value, or empty to unset>
   local got
   got="$(sed -n '/^# >>> push-content-gate wiring$/,/^# <<< push-content-gate wiring$/p' "${HOOK}" | sha256sum | cut -d' ' -f1)"
   [ "${got}" = "${PCG_WIRING_SHA256}" ]
+}
+
+@test "the push-gates block matches the sha256 pinned to ai-config docs/templates/pre-push-gates" {
+  local got
+  got="$(sed -n '/^# >>> push-gates wiring$/,/^# <<< push-gates wiring$/p' "${HOOK}" | sha256sum | cut -d' ' -f1)"
+  if [ "${got}" != "${PG_WIRING_SHA256}" ]; then
+    printf 'push-gates block missing or drifted (got %s); re-sync it byte for byte from ai-config docs/templates/pre-push-gates\n' "${got}" >&2
+    return 1
+  fi
+}
+
+@test "gates: a feature push reaches the recorder with url, refs and master sha before make test" {
+  local head
+  head="$(_commit_file x.rs 'fn main() {}' 'feat: code')"
+  run _run_hook "refs/heads/feat/x ${head} refs/heads/feat/x ${BASE_SHA}\n"
+  [ "${status}" -eq 0 ]
+  [ "$(_order)" = "gates,make" ]
+  grep -qxF -- "url=file:///nonexistent" "${GATES_LOG}"
+  grep -qxF -- "sha=${FAKE_MASTER_SHA}" "${GATES_LOG}"
+  grep -qxF -- "refs=refs/heads/feat/x ${head} refs/heads/feat/x ${BASE_SHA}" "${GATES_LOG}"
+}
+
+@test "gates: a recorder returning 1 blocks the push and make is not run" {
+  local head
+  head="$(_commit_file x.rs 'fn main() {}' 'feat: code')"
+  GATES_RC=1 run _run_hook "refs/heads/feat/x ${head} refs/heads/feat/x ${BASE_SHA}\n"
+  [ "${status}" -eq 1 ]
+  [ "$(_order)" = "gates" ]
+  [ ! -f "${MAKE_CALLS}" ]
+}
+
+@test "gates: a master-JSON fetch failure blocks with the cannot-load line and make is not run" {
+  local head
+  head="$(_commit_file x.rs 'fn main() {}' 'feat: code')"
+  FAKE_MASTER_FAIL=1 run _run_hook "refs/heads/feat/x ${head} refs/heads/feat/x ${BASE_SHA}\n"
+  [ "${status}" -eq 1 ]
+  [[ "${output}" == *"pre-push: gates: cannot load push gates from GitHub; push blocked"* ]]
+  [ ! -f "${MAKE_CALLS}" ]
+  [ ! -f "${GATES_LOG}" ]
+}
+
+@test "gates: a copy of the hook refuses to build when the _pcg_fetch markers are missing" {
+  local saved="${HOOK}"
+  printf '#!/usr/bin/env bash\n:\n' > "${FIXTURE}/nomarkers"
+  HOOK="${FIXTURE}/nomarkers"
+  run _hook_copy
+  HOOK="${saved}"
+  [ "${status}" -eq 1 ]
+  [[ "${output}" == *"markers not found"* ]]
 }
